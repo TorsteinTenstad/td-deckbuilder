@@ -1,0 +1,82 @@
+use macroquad::prelude::Vec2;
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+
+pub const UNIT_RADIUS: f32 = 10.0;
+pub const PROJECTILE_RADIUS: f32 = 4.0;
+
+#[derive(Serialize, Deserialize)]
+#[serde(remote = "Vec2")]
+pub struct Vec2Def {
+    pub x: f32,
+    pub y: f32,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub enum ClientCommand {
+    #[serde(with = "Vec2Def")]
+    SpawnUnit(Vec2),
+    #[serde(with = "Vec2Def")]
+    SetTarget(Vec2),
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct GameState {
+    pub server_tick: u32,
+    pub units: HashMap<u64, Unit>,
+    pub towers: Vec<Tower>,
+    pub projectiles: Vec<Projectile>,
+    #[serde(with = "Vec2Def")]
+    pub target: Vec2,
+}
+
+impl GameState {
+    pub fn new() -> Self {
+        GameState {
+            server_tick: 0,
+            units: HashMap::new(),
+            towers: vec![Vec2::new(100.0, 100.0), Vec2::new(200.0, 200.0)]
+                .into_iter()
+                .map(|pos| Tower {
+                    pos: pos,
+                    damage: 50.0,
+                    cooldown: 0.5,
+                    last_fire: 0.0,
+                })
+                .collect::<Vec<_>>(),
+            projectiles: Vec::new(),
+            target: Vec2::new(100.0, 100.0),
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct Unit {
+    #[serde(with = "Vec2Def")]
+    pub pos: Vec2,
+    pub health: f32,
+    pub damage_animation: f32,
+    #[serde(with = "Vec2Def")]
+    pub target: Vec2,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct Tower {
+    #[serde(with = "Vec2Def")]
+    pub pos: Vec2,
+    pub damage: f32,
+    pub cooldown: f32,
+    pub last_fire: f32,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct Projectile {
+    #[serde(with = "Vec2Def")]
+    pub pos: Vec2,
+    pub target_id: u64,
+    pub speed: f32,
+    #[serde(with = "Vec2Def")]
+    pub velocity: Vec2,
+    pub damage: f32,
+    pub seconds_left_to_live: f32,
+}
