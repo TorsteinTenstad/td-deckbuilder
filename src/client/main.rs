@@ -1,21 +1,57 @@
 use common::*;
+use local_ip_address::local_ip;
 use macroquad::prelude::{
     clear_background, draw_circle, draw_hexagon, is_mouse_button_down, is_mouse_button_pressed,
     mouse_position, next_frame, MouseButton, Vec2, BLACK, GRAY, GREEN, RED, WHITE,
 };
 use std::net::UdpSocket;
+use std::time::{Duration, SystemTime};
+use std::{thread, time};
 
 #[macroquad::main("BasicShapes")]
 async fn main() {
-    let udp_socket = UdpSocket::bind("127.0.0.1:34254").unwrap();
+    let local_ip = local_ip().unwrap();
+    let socket_addr = format!("{}:34254", local_ip);
+    dbg!(&socket_addr);
+    let udp_socket = UdpSocket::bind(socket_addr).unwrap();
+    udp_socket.set_nonblocking(true).unwrap();
 
+    udp_socket
+        .send_to(
+            &serde_json::to_string(&ClientCommand::JoinGame)
+                .unwrap()
+                .as_bytes(),
+            SERVER_ADDR,
+        )
+        .unwrap();
+
+    let mut game_state = GameState::new();
+
+    let mut time = SystemTime::now();
     loop {
-        let mut buf = [0; 5000];
-        let (amt, src) = udp_socket.recv_from(&mut buf).unwrap();
-        let buf = &mut buf[..amt];
-        let game_state = serde_json::from_slice::<GameState>(buf).unwrap();
-        dbg!(game_state.server_tick);
-
+        let old_time = time;
+        time = SystemTime::now();
+        let dt = time.duration_since(old_time).unwrap().as_secs_f32();
+        println!("tick: {}, dt: {}ms", game_state.server_tick, dt * 1000.0);
+        loop {
+            let mut buf = [0; 5000];
+            let received_message = udp_socket.recv_from(&mut buf);
+            match received_message {
+                Ok((amt, _src)) => {
+                    let buf = &mut buf[..amt];
+                    game_state = serde_json::from_slice::<GameState>(buf).unwrap();
+                }
+                Err(e) => match e.kind() {
+                    std::io::ErrorKind::WouldBlock => {
+                        break;
+                    }
+                    _ => {
+                        dbg!(e);
+                        panic!()
+                    }
+                },
+            }
+        }
         let mut commands = Vec::<ClientCommand>::new();
 
         clear_background(BLACK);
@@ -28,7 +64,10 @@ async fn main() {
         }
         for command in commands {
             udp_socket
-                .send_to(&serde_json::to_string(&command).unwrap().as_bytes(), src)
+                .send_to(
+                    &serde_json::to_string(&command).unwrap().as_bytes(),
+                    SERVER_ADDR,
+                )
                 .unwrap();
         }
 

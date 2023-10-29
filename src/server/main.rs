@@ -1,43 +1,40 @@
 use common::*;
-use macroquad::miniquad::fs;
 use macroquad::prelude::Vec2;
-use std::net::UdpSocket;
-use std::time::Duration;
+use serde::de;
+use std::net::{SocketAddr, UdpSocket};
+use std::time::{Duration, SystemTime};
 use std::{thread, time};
 
 fn main() -> std::io::Result<()> {
     let mut game_state = GameState::new();
-    let udp_socket = UdpSocket::bind("127.0.0.1:7878").unwrap();
-    udp_socket.connect("127.0.0.1:34254").unwrap();
+    let udp_socket = UdpSocket::bind(SERVER_ADDR).unwrap();
     udp_socket
-        .set_read_timeout(Some(Duration::from_millis(15)))
+        .set_read_timeout(Some(Duration::from_millis(10)))
         .unwrap();
     let mut next_unit_id = 0;
-
+    let mut clients = Vec::<SocketAddr>::new();
+    let mut time = SystemTime::now();
     loop {
-        let dt = 0.016;
-        game_state.server_tick += 1;
-        let msg = serde_json::to_string(&game_state).unwrap();
-        dbg!(msg.len());
-        udp_socket
-            .send_to(msg.as_bytes(), "127.0.0.1:34254")
-            .unwrap();
-        dbg!(game_state.server_tick);
+        let old_time = time;
+        time = SystemTime::now();
+        let dt = time.duration_since(old_time).unwrap().as_secs_f32();
+        println!("tick: {}, dt: {}ms", game_state.server_tick, dt * 1000.0);
 
-        let buf = &mut [0; 50];
-        let read_message = udp_socket.recv(buf);
-        match read_message {
+        let client_message_buf = &mut [0; 50];
+        let read_client_message = udp_socket.recv_from(client_message_buf);
+        match read_client_message {
             Err(e) => match e.kind() {
+                std::io::ErrorKind::ConnectionReset => {}
                 std::io::ErrorKind::TimedOut => {}
                 _ => {
                     dbg!(e);
                     panic!()
                 }
             },
-            Ok(amt) => {
-                let s = std::str::from_utf8(buf).unwrap();
-                dbg!(s);
-                let command = serde_json::from_slice::<ClientCommand>(&buf[..amt]).unwrap();
+            Ok((amt, client_addr)) => {
+                let command =
+                    serde_json::from_slice::<ClientCommand>(&client_message_buf[..amt]).unwrap();
+                dbg!(&command);
                 match command {
                     ClientCommand::SpawnUnit(pos) => {
                         game_state.units.insert(
@@ -54,9 +51,19 @@ fn main() -> std::io::Result<()> {
                     ClientCommand::SetTarget(target) => {
                         game_state.target = target;
                     }
+                    ClientCommand::JoinGame => {
+                        clients.push(client_addr);
+                    }
                 }
             }
         }
+
+        let msg = serde_json::to_string(&game_state).unwrap();
+        for client in &clients {
+            udp_socket.send_to(msg.as_bytes(), client).unwrap();
+        }
+
+        game_state.server_tick += 1;
 
         let mut units_to_remove = Vec::<u64>::new();
         for (id, unit) in game_state.units.iter_mut() {
@@ -105,6 +112,6 @@ fn main() -> std::io::Result<()> {
             }
             projectile.seconds_left_to_live -= dt;
             projectile.seconds_left_to_live > 0.0
-        })
+        });
     }
 }

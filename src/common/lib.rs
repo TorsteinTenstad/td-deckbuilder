@@ -2,6 +2,8 @@ use macroquad::prelude::Vec2;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
+pub const SERVER_ADDR: &str = "192.168.1.120:7878";
+pub const TARGET_SERVER_FPS: f32 = 60.0;
 pub const UNIT_RADIUS: f32 = 10.0;
 pub const PROJECTILE_RADIUS: f32 = 4.0;
 
@@ -18,6 +20,7 @@ pub enum ClientCommand {
     SpawnUnit(Vec2),
     #[serde(with = "Vec2Def")]
     SetTarget(Vec2),
+    JoinGame,
 }
 
 #[derive(Serialize, Deserialize)]
