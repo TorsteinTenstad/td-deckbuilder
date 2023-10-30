@@ -52,7 +52,9 @@ fn main() -> std::io::Result<()> {
                         game_state.target = target;
                     }
                     ClientCommand::JoinGame => {
-                        clients.push(client_addr);
+                        if !clients.contains(&client_addr) {
+                            clients.push(client_addr);
+                        }
                     }
                 }
             }
