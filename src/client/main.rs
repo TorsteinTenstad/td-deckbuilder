@@ -20,6 +20,7 @@ async fn main() {
     let path_texture = load_texture("path.png").await.unwrap();
     path_texture.set_filter(macroquad::texture::FilterMode::Nearest);
     let image = path_texture.get_texture_data();
+
     let is_path = |x: i32, y: i32| {
         x >= 0
             && y >= 0
@@ -30,10 +31,11 @@ async fn main() {
                 .r
                 > 0.0
     };
-    let path_endpoints = (0..image.width as i32)
+
+    let path_start = (0..image.width as i32)
         .into_iter()
         .flat_map(|x| (0..image.height as i32).map(move |y| (x, y)))
-        .filter_map(|(x, y)| {
+        .find_map(|(x, y)| {
             (is_path(x, y)
                 && (is_path(x - 1, y) as i32
                     + is_path(x, y - 1) as i32
@@ -41,21 +43,19 @@ async fn main() {
                     + is_path(x, y + 1) as i32)
                     <= 1)
                 .then(|| (x, y))
+        });
+
+    let (mut x, mut y) = path_start.unwrap();
+    let mut path = vec![(x, y)];
+    while let Some(next) = vec![(x - 1, y), (x + 1, y), (x, y - 1), (x, y + 1)]
+        .into_iter()
+        .find_map(|next_xy| {
+            (is_path(next_xy.0, next_xy.1) && !path.contains(&next_xy)).then(|| next_xy)
         })
-        .collect::<Vec<_>>();
-    let path = std::iter::successors(
-        path_endpoints.first().map(|xy| (Option::None, *xy)),
-        |(prev_xy, (x, y))| {
-            vec![(*x - 1, *y), (*x + 1, *y), (*x, *y - 1), (*x, *y + 1)]
-                .iter()
-                .find_map(|(next_x, next_y)| {
-                    (is_path(*next_x, *next_y) && *prev_xy != Some((*next_x, *next_y)))
-                        .then(|| (Some((*x, *y)), (next_x.clone(), next_y.clone())))
-                })
-        },
-    )
-    .map(|(_, xy)| xy)
-    .collect::<Vec<_>>();
+    {
+        path.push(next);
+        (x, y) = next;
+    }
     loop {
         draw_texture_ex(
             &path_texture,
