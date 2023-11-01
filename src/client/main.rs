@@ -32,14 +32,19 @@ async fn main() {
         let old_time = time;
         time = SystemTime::now();
         let dt = time.duration_since(old_time).unwrap().as_secs_f32();
-        println!("tick: {}, dt: {}ms", game_state.server_tick, dt * 1000.0);
+        if dt > 0.019{
+            println!("tick: {}, dt: {}ms", game_state.server_tick, dt * 1000.0);
+        }
         loop {
             let mut buf = [0; 5000];
             let received_message = udp_socket.recv_from(&mut buf);
             match received_message {
                 Ok((amt, _src)) => {
                     let buf = &mut buf[..amt];
-                    game_state = serde_json::from_slice::<GameState>(buf).unwrap();
+                    let received_game_state = serde_json::from_slice::<GameState>(buf).unwrap();
+                    if received_game_state.server_tick > game_state.server_tick{
+                        game_state = received_game_state
+                    }
                 }
                 Err(e) => match e.kind() {
                     std::io::ErrorKind::WouldBlock => {
