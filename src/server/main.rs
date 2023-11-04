@@ -1,12 +1,48 @@
 use common::*;
+use image::GenericImageView;
 use macroquad::prelude::Vec2;
-use serde::de;
 use std::net::{SocketAddr, UdpSocket};
 use std::time::{Duration, SystemTime};
-use std::{thread, time};
 
 fn main() -> std::io::Result<()> {
     let mut game_state = GameState::new();
+
+    let img = image::open("path.png").unwrap();
+    game_state.grid_w = img.dimensions().0;
+    game_state.grid_h = img.dimensions().1;
+
+    let is_path = |x: i32, y: i32| match (x.try_into(), y.try_into()) {
+        (Ok(x), Ok(y)) if x < game_state.grid_w && y < game_state.grid_w => {
+            img.get_pixel(x, y).0.get(0).is_some_and(|v| v > &0)
+        }
+        _ => false,
+    };
+
+    let path_start = (0..game_state.grid_w as i32)
+        .into_iter()
+        .flat_map(|x| (0..game_state.grid_w as i32).map(move |y| (x, y)))
+        .find_map(|(x, y)| {
+            (is_path(x, y)
+                && (is_path(x - 1, y) as i32
+                    + is_path(x, y - 1) as i32
+                    + is_path(x + 1, y) as i32
+                    + is_path(x, y + 1) as i32)
+                    <= 1)
+                .then(|| (x, y))
+        });
+
+    let (mut x, mut y) = path_start.unwrap();
+    game_state.path = vec![(x, y)];
+    while let Some(next) = vec![(x - 1, y), (x + 1, y), (x, y - 1), (x, y + 1)]
+        .into_iter()
+        .find_map(|next_xy| {
+            (is_path(next_xy.0, next_xy.1) && !game_state.path.contains(&next_xy)).then(|| next_xy)
+        })
+    {
+        game_state.path.push(next);
+        (x, y) = next;
+    }
+
     let udp_socket = UdpSocket::bind(SERVER_ADDR).unwrap();
     udp_socket
         .set_read_timeout(Some(Duration::from_millis(10)))
@@ -41,6 +77,7 @@ fn main() -> std::io::Result<()> {
                             next_unit_id,
                             Unit {
                                 pos,
+                                speed: 1.0,
                                 target: game_state.target,
                                 health: 100.0,
                                 damage_animation: 0.0,
@@ -72,7 +109,7 @@ fn main() -> std::io::Result<()> {
             if unit.health <= 0.0 && !units_to_remove.contains(id) {
                 units_to_remove.push(*id);
             } else {
-                unit.pos += (unit.target - unit.pos).normalize_or_zero() * 100.0 * dt;
+                unit.pos += (unit.target - unit.pos).normalize_or_zero() * unit.speed * dt;
                 unit.damage_animation -= dt;
             }
         }
@@ -89,7 +126,7 @@ fn main() -> std::io::Result<()> {
                     game_state.projectiles.push(Projectile {
                         pos: tower.pos,
                         target_id: *id,
-                        speed: 500.0,
+                        speed: 5.0,
                         velocity: Vec2::new(0.0, 0.0),
                         damage: tower.damage,
                         seconds_left_to_live: 3.0,

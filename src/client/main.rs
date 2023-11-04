@@ -2,82 +2,33 @@ use common::*;
 use local_ip_address::local_ip;
 use macroquad::prelude::{
     clear_background, draw_circle, draw_hexagon, is_mouse_button_down, is_mouse_button_pressed,
-    mouse_position, next_frame, screen_height, screen_width, MouseButton, Vec2, BLACK, GRAY, GREEN,
-    RED, WHITE,
+    mouse_position, next_frame, screen_height, screen_width, Color, MouseButton, Vec2, BLACK, GRAY,
+    GREEN, RED, WHITE,
 };
-use macroquad::text::draw_text;
-use macroquad::texture::{draw_texture_ex, load_texture, DrawTextureParams};
+use macroquad::shapes::{draw_rectangle, draw_rectangle_ex, DrawRectangleParams};
+use macroquad::texture::DrawTextureParams;
 use macroquad::window::request_new_screen_size;
-use serde_json::map::VacantEntry;
 use std::net::UdpSocket;
-use std::time::{Duration, SystemTime};
-use std::{path, thread, time};
+use std::time::SystemTime;
 
-#[macroquad::main("BasicShapes")]
+const GRASS_COLOR: Color = Color {
+    r: 0.686,
+    g: 0.784,
+    b: 0.490,
+    a: 1.0,
+};
+
+const PATH_COLOR: Color = Color {
+    r: 0.843,
+    g: 0.803,
+    b: 0.627,
+    a: 1.0,
+};
+
+#[macroquad::main("Client")]
 async fn main() {
     request_new_screen_size(1280.0, 720.0);
 
-    let path_texture = load_texture("path.png").await.unwrap();
-    path_texture.set_filter(macroquad::texture::FilterMode::Nearest);
-    let image = path_texture.get_texture_data();
-
-    let is_path = |x: i32, y: i32| {
-        x >= 0
-            && y >= 0
-            && x <= image.width as i32 - 1
-            && y <= image.height as i32 - 1
-            && image
-                .get_pixel(x.try_into().unwrap(), y.try_into().unwrap())
-                .r
-                > 0.0
-    };
-
-    let path_start = (0..image.width as i32)
-        .into_iter()
-        .flat_map(|x| (0..image.height as i32).map(move |y| (x, y)))
-        .find_map(|(x, y)| {
-            (is_path(x, y)
-                && (is_path(x - 1, y) as i32
-                    + is_path(x, y - 1) as i32
-                    + is_path(x + 1, y) as i32
-                    + is_path(x, y + 1) as i32)
-                    <= 1)
-                .then(|| (x, y))
-        });
-
-    let (mut x, mut y) = path_start.unwrap();
-    let mut path = vec![(x, y)];
-    while let Some(next) = vec![(x - 1, y), (x + 1, y), (x, y - 1), (x, y + 1)]
-        .into_iter()
-        .find_map(|next_xy| {
-            (is_path(next_xy.0, next_xy.1) && !path.contains(&next_xy)).then(|| next_xy)
-        })
-    {
-        path.push(next);
-        (x, y) = next;
-    }
-    loop {
-        draw_texture_ex(
-            &path_texture,
-            0.0,
-            0.0,
-            WHITE,
-            DrawTextureParams {
-                dest_size: Some(Vec2::new(screen_width(), screen_height())),
-                ..Default::default()
-            },
-        );
-        for (i, (x, y)) in path.iter().enumerate() {
-            draw_text(
-                format!("{}", i).as_str(),
-                (*x as f32 + 0.5) * screen_width() / image.width as f32,
-                (*y as f32 + 0.5) * screen_height() / image.height as f32,
-                36.0,
-                RED,
-            );
-        }
-        next_frame().await;
-    }
     let local_ip = local_ip().unwrap();
     let socket_addr = format!("{}:34254", local_ip);
     dbg!(&socket_addr);
@@ -120,10 +71,20 @@ async fn main() {
                 },
             }
         }
+        let cell_w = screen_width() / game_state.grid_w as f32;
+        let cell_h = screen_height() / game_state.grid_h as f32;
+        let u32_to_screen_x = |x: u32| (x as f32 + 0.5) * cell_w;
+        let u32_to_screen_y = |y: u32| (y as f32 + 0.5) * cell_h;
+        let f32_to_screen_x = |x: f32| (x as f32 + 0.5) * cell_w;
+        let f32_to_screen_y = |y: f32| (y as f32 + 0.5) * cell_h;
+        let to_screen_size = |x: f32| x * cell_w;
+        let (screen_space_mouse_x, screen_space_mouse_y) = mouse_position();
+        let mouse_x = screen_space_mouse_x / cell_w - 0.5;
+        let mouse_y = screen_space_mouse_y / cell_h - 0.5;
+
         let mut commands = Vec::<ClientCommand>::new();
 
         clear_background(BLACK);
-        let (mouse_x, mouse_y) = mouse_position();
         if is_mouse_button_pressed(MouseButton::Left) {
             commands.push(ClientCommand::SpawnUnit(Vec2::new(mouse_x, mouse_y)));
         }
@@ -138,12 +99,31 @@ async fn main() {
                 )
                 .unwrap();
         }
+        for x in 0..game_state.grid_w {
+            for y in 0..game_state.grid_h {
+                draw_rectangle_ex(
+                    u32_to_screen_x(x),
+                    u32_to_screen_y(y),
+                    cell_w,
+                    cell_h,
+                    DrawRectangleParams {
+                        color: if game_state.path.contains(&(x as i32, y as i32)) {
+                            PATH_COLOR
+                        } else {
+                            GRASS_COLOR
+                        },
+                        offset: Vec2 { x: 0.5, y: 0.5 },
+                        ..Default::default()
+                    },
+                );
+            }
+        }
 
         for (_id, unit) in game_state.units.iter() {
             draw_circle(
-                unit.pos.x,
-                unit.pos.y,
-                UNIT_RADIUS,
+                f32_to_screen_x(unit.pos.x),
+                f32_to_screen_y(unit.pos.y),
+                to_screen_size(UNIT_RADIUS),
                 if unit.damage_animation > 0.0 {
                     RED
                 } else {
@@ -153,13 +133,31 @@ async fn main() {
         }
 
         for tower in game_state.towers.iter() {
-            draw_hexagon(tower.pos.x, tower.pos.y, 20.0, 0.0, false, RED, RED);
+            draw_hexagon(
+                f32_to_screen_x(tower.pos.x),
+                f32_to_screen_y(tower.pos.y),
+                20.0,
+                0.0,
+                false,
+                RED,
+                RED,
+            );
         }
         for projectile in &mut game_state.projectiles.iter() {
-            draw_circle(projectile.pos.x, projectile.pos.y, 4.0, GRAY);
+            draw_circle(
+                f32_to_screen_x(projectile.pos.x),
+                f32_to_screen_y(projectile.pos.y),
+                to_screen_size(PROJECTILE_RADIUS),
+                GRAY,
+            );
         }
 
-        draw_circle(game_state.target.x, game_state.target.y, 4.0, GREEN);
+        draw_circle(
+            f32_to_screen_x(game_state.target.x),
+            f32_to_screen_y(game_state.target.y),
+            4.0,
+            GREEN,
+        );
 
         next_frame().await
     }

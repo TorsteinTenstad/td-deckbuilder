@@ -4,8 +4,8 @@ use std::collections::HashMap;
 
 pub const SERVER_ADDR: &str = "192.168.1.120:7878";
 pub const TARGET_SERVER_FPS: f32 = 60.0;
-pub const UNIT_RADIUS: f32 = 10.0;
-pub const PROJECTILE_RADIUS: f32 = 4.0;
+pub const UNIT_RADIUS: f32 = 0.1;
+pub const PROJECTILE_RADIUS: f32 = 0.04;
 
 #[derive(Serialize, Deserialize)]
 #[serde(remote = "Vec2")]
@@ -31,6 +31,9 @@ pub struct GameState {
     pub projectiles: Vec<Projectile>,
     #[serde(with = "Vec2Def")]
     pub target: Vec2,
+    pub path: Vec<(i32, i32)>,
+    pub grid_w: u32,
+    pub grid_h: u32,
 }
 
 impl GameState {
@@ -38,17 +41,20 @@ impl GameState {
         GameState {
             server_tick: 0,
             units: HashMap::new(),
-            towers: vec![Vec2::new(100.0, 100.0), Vec2::new(200.0, 200.0)]
+            towers: vec![Vec2::new(1.0, 1.0), Vec2::new(2.0, 2.0)]
                 .into_iter()
                 .map(|pos| Tower {
-                    pos: pos,
+                    pos,
                     damage: 50.0,
                     cooldown: 0.5,
                     last_fire: 0.0,
                 })
                 .collect::<Vec<_>>(),
             projectiles: Vec::new(),
-            target: Vec2::new(100.0, 100.0),
+            target: Vec2::new(1.0, 1.0),
+            path: Vec::new(),
+            grid_h: 0,
+            grid_w: 0,
         }
     }
 }
@@ -58,6 +64,7 @@ pub struct Unit {
     #[serde(with = "Vec2Def")]
     pub pos: Vec2,
     pub health: f32,
+    pub speed: f32,
     pub damage_animation: f32,
     #[serde(with = "Vec2Def")]
     pub target: Vec2,
