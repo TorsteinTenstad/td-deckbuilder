@@ -4,7 +4,7 @@ use std::collections::HashMap;
 
 pub const SERVER_ADDR: &str = "192.168.1.120:7878";
 pub const TARGET_SERVER_FPS: f32 = 60.0;
-pub const UNIT_RADIUS: f32 = 0.1;
+pub const UNIT_RADIUS: f32 = 0.25;
 pub const PROJECTILE_RADIUS: f32 = 0.04;
 
 #[derive(Serialize, Deserialize)]
@@ -16,64 +16,84 @@ pub struct Vec2Def {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum ClientCommand {
-    #[serde(with = "Vec2Def")]
-    SpawnUnit(Vec2),
-    #[serde(with = "Vec2Def")]
-    SetTarget(Vec2),
+    SpawnUnit,
+    SpawnTower(i32, i32),
     JoinGame,
 }
 
 #[derive(Serialize, Deserialize)]
 pub struct GameState {
-    pub server_tick: u32,
-    pub units: HashMap<u64, Unit>,
-    pub towers: Vec<Tower>,
-    pub projectiles: Vec<Projectile>,
-    #[serde(with = "Vec2Def")]
-    pub target: Vec2,
+    pub dynamic_state: DynamicGameState,
+    pub static_state: StaticGameState,
+}
+#[derive(Serialize, Deserialize)]
+pub struct StaticGameState {
     pub path: Vec<(i32, i32)>,
     pub grid_w: u32,
     pub grid_h: u32,
 }
 
-impl GameState {
+impl StaticGameState {
     pub fn new() -> Self {
-        GameState {
-            server_tick: 0,
-            units: HashMap::new(),
-            towers: vec![Vec2::new(1.0, 1.0), Vec2::new(2.0, 2.0)]
-                .into_iter()
-                .map(|pos| Tower {
-                    pos,
-                    damage: 50.0,
-                    cooldown: 0.5,
-                    last_fire: 0.0,
-                })
-                .collect::<Vec<_>>(),
-            projectiles: Vec::new(),
-            target: Vec2::new(1.0, 1.0),
+        Self {
             path: Vec::new(),
             grid_h: 0,
             grid_w: 0,
+        }
+    }
+    pub fn path_to_world_pos(&self, path_pos: f32) -> Vec2 {
+        let (low_x, low_y) = self.path[(path_pos as usize).min(self.path.len() - 1)];
+        let (high_x, high_y) = self.path[(path_pos as usize + 1).min(self.path.len() - 1)];
+        let high_weight = path_pos.fract();
+        let low_weight = 1.0 - high_weight;
+        Vec2 {
+            x: low_x as f32 * low_weight + high_x as f32 * high_weight,
+            y: low_y as f32 * low_weight + high_y as f32 * high_weight,
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct DynamicGameState {
+    pub server_tick: u32,
+    pub units: HashMap<u64, Unit>,
+    pub towers: HashMap<u64, Tower>,
+    pub projectiles: Vec<Projectile>,
+}
+
+impl DynamicGameState {
+    pub fn new() -> Self {
+        Self {
+            server_tick: 0,
+            units: HashMap::new(),
+            towers: HashMap::new(),
+            projectiles: Vec::new(),
+        }
+    }
+}
+
+impl GameState {
+    pub fn new() -> Self {
+        GameState {
+            dynamic_state: DynamicGameState::new(),
+            static_state: StaticGameState::new(),
         }
     }
 }
 
 #[derive(Serialize, Deserialize)]
 pub struct Unit {
-    #[serde(with = "Vec2Def")]
-    pub pos: Vec2,
+    pub path_pos: f32,
     pub health: f32,
     pub speed: f32,
     pub damage_animation: f32,
-    #[serde(with = "Vec2Def")]
-    pub target: Vec2,
 }
 
 #[derive(Serialize, Deserialize)]
 pub struct Tower {
-    #[serde(with = "Vec2Def")]
-    pub pos: Vec2,
+    pub pos_x: i32,
+    pub pos_y: i32,
+    pub range: f32,
     pub damage: f32,
     pub cooldown: f32,
     pub last_fire: f32,
