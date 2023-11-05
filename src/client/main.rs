@@ -4,7 +4,7 @@ use local_ip_address::local_ip;
 use macroquad::prelude::{
     clear_background, draw_circle, draw_hexagon, is_key_down, is_mouse_button_down,
     is_mouse_button_released, mouse_position, next_frame, screen_height, screen_width, Color,
-    MouseButton, Vec2, BLACK, GRAY, LIGHTGRAY, RED, WHITE,
+    MouseButton, Vec2, BLACK, BLUE, GRAY, LIGHTGRAY, RED, WHITE,
 };
 use macroquad::shapes::{draw_circle_lines, draw_rectangle_ex, DrawRectangleParams};
 use macroquad::window::request_new_screen_size;
@@ -47,12 +47,18 @@ async fn main() {
 
     let mut static_game_state = StaticGameState::new();
     let mut dynamic_game_state = DynamicGameState::new();
+    let mut cards = vec![
+        Card::Unit,
+        Card::Unit,
+        Card::Tower,
+        Card::Tower,
+        Card::Tower,
+    ];
 
     let mut time = SystemTime::now();
     let mut selected_tower: Option<u64> = None;
 
     let card_border = 5.0;
-    let n = 5;
     let mut relative_splay_radius = 2.8;
     let mut card_delta_angle = 0.23;
     let card_visible_h = 0.8;
@@ -103,7 +109,7 @@ async fn main() {
         }
 
         let cell_w = screen_width() / static_game_state.grid_w as f32;
-        let cell_h = screen_height() / static_game_state.grid_h as f32;
+        let cell_h = (7.0 / 9.0) * screen_height() / static_game_state.grid_h as f32;
         let u32_to_screen_x = |x: u32| (x as f32 + 0.5) * cell_w;
         let u32_to_screen_y = |y: u32| (y as f32 + 0.5) * cell_h;
         let i32_to_screen_x = |x: i32| (x as f32 + 0.5) * cell_w;
@@ -114,6 +120,16 @@ async fn main() {
         let (screen_space_mouse_x, screen_space_mouse_y) = mouse_position();
         let mouse_world_x = screen_space_mouse_x / cell_w;
         let mouse_world_y = screen_space_mouse_y / cell_h;
+        let mouse_in_world = mouse_world_x >= 0.0
+            && mouse_world_x >= 0.0
+            && (mouse_world_x as u32) < static_game_state.grid_w
+            && (mouse_world_y as u32) < static_game_state.grid_h;
+        let mouse_over_occupied_tile = static_game_state
+            .path
+            .contains(&(mouse_world_x as i32, mouse_world_y as i32))
+            || dynamic_game_state.towers.iter().any(|(_id, tower)| {
+                tower.pos_x == mouse_world_x as i32 && tower.pos_y == mouse_world_y as i32
+            });
 
         clear_background(BLACK);
 
@@ -181,49 +197,42 @@ async fn main() {
                     20.0,
                     0.0,
                     false,
-                    RED,
-                    RED,
+                    BLUE,
+                    BLUE,
                 );
             }
-            let mut range_circle_preview: Option<(i32, i32, f32)> = None;
+            let mut range_circle_preview: Option<(i32, i32, f32, Color)> = None;
             if let Some((x, y)) = preview_tower_pos {
-                draw_hexagon(
-                    i32_to_screen_x(x),
-                    i32_to_screen_y(y),
-                    20.0,
-                    0.0,
-                    false,
-                    Color {
-                        r: 0.5,
-                        g: 0.5,
-                        b: 0.5,
-                        a: 0.5,
-                    },
-                    GRAY,
-                );
-                range_circle_preview = Some((x, y, 3.0));
+                if mouse_in_world {
+                    let color = if mouse_over_occupied_tile { RED } else { BLUE };
+                    draw_hexagon(
+                        i32_to_screen_x(x),
+                        i32_to_screen_y(y),
+                        20.0,
+                        0.0,
+                        false,
+                        GRAY,
+                        Color { a: 0.5, ..color },
+                    );
+                    range_circle_preview = Some((x, y, 3.0, color));
+                }
             } else if let Some(id) = selected_tower {
                 let tower = dynamic_game_state.towers.get(&id).unwrap();
-                range_circle_preview = Some((tower.pos_x, tower.pos_y, tower.range));
+                range_circle_preview = Some((tower.pos_x, tower.pos_y, tower.range, BLUE));
             }
-            if let Some((x, y, range)) = range_circle_preview {
+            if let Some((x, y, range, color)) = range_circle_preview {
                 draw_circle(
                     i32_to_screen_x(x),
                     i32_to_screen_y(y),
                     to_screen_size(range),
-                    Color {
-                        r: 1.0,
-                        g: 0.0,
-                        b: 0.0,
-                        a: 0.2,
-                    },
+                    Color { a: 0.2, ..color },
                 );
                 draw_circle_lines(
                     i32_to_screen_x(x),
                     i32_to_screen_y(y),
                     to_screen_size(range),
                     2.0,
-                    RED,
+                    color,
                 );
             }
             for projectile in &mut dynamic_game_state.projectiles.iter() {
@@ -297,12 +306,12 @@ async fn main() {
             );
             hovering
         };
-        let draw_in_hand_card_card = |i, n: i32, alpha, only_compute_hover| -> bool {
+        let draw_in_hand_card_card = |i, n, alpha, only_compute_hover| -> bool {
             let card_w = screen_width() / 12.0;
             let card_h = card_w * GOLDEN_RATIO;
             let x = screen_width() / 2.0;
             let y = screen_height() + (relative_splay_radius * card_h) - (card_visible_h * card_h);
-            let rotation = (i as f32 - ((n - 1) as f32 / 2.0)) * card_delta_angle;
+            let rotation = (i as f32 - ((cards.len() - 1) as f32 / 2.0)) * card_delta_angle;
             let offset = Vec2 {
                 x: 0.5,
                 y: relative_splay_radius,
@@ -325,12 +334,12 @@ async fn main() {
             draw_card(x, y, card_w, card_h, 0.0, 0.5 * Vec2::ONE, 1.0, false)
         };
 
-        let draw_highlighted_card = |i, n: i32| -> bool {
+        let draw_highlighted_card = |i| -> bool {
             let card_w = screen_width() / 10.0;
             let card_h = card_w * GOLDEN_RATIO;
             let x = screen_width() / 2.0
                 + ((relative_splay_radius * card_h) - (card_visible_h * card_h))
-                    * f32::sin((i as f32 - ((n - 1) as f32 / 2.0)) * card_delta_angle);
+                    * f32::sin((i as f32 - ((cards.len() - 1) as f32 / 2.0)) * card_delta_angle);
             let y = screen_height();
             draw_card(
                 x,
@@ -346,18 +355,11 @@ async fn main() {
 
         let highlighted_card_opt_clone = highlighted_card_opt.clone();
         highlighted_card_opt = None;
-        let cards = vec![
-            Card::Unit,
-            Card::Unit,
-            Card::Tower,
-            Card::Tower,
-            Card::Tower,
-        ];
         for (i, _card) in cards.iter().enumerate() {
             let is_selected = highlighted_card_opt_clone == Some(i);
             let hovering = draw_in_hand_card_card(
                 i,
-                n,
+                cards.len(),
                 if is_selected { 0.5 } else { 1.0 },
                 is_selected && !is_mouse_button_down(MouseButton::Left),
             );
@@ -367,26 +369,38 @@ async fn main() {
         }
         if let Some(highlighted_card) = highlighted_card_opt_clone {
             if is_mouse_button_released(MouseButton::Left) {
-                commands.push(ClientCommand::PlayCard(
-                    mouse_world_x,
-                    mouse_world_y,
-                    cards.get(highlighted_card).unwrap().clone(),
-                ));
+                if mouse_in_world
+                    && match cards.get(highlighted_card).unwrap() {
+                        Card::Unit => true,
+                        Card::Tower => !mouse_over_occupied_tile,
+                    }
+                {
+                    commands.push(ClientCommand::PlayCard(
+                        mouse_world_x,
+                        mouse_world_y,
+                        cards.get(highlighted_card).unwrap().clone(),
+                    ));
+                    cards.remove(highlighted_card);
+                }
                 preview_tower_pos = None;
             } else {
                 if is_mouse_button_down(MouseButton::Left) {
                     highlighted_card_opt = Some(highlighted_card);
-                    match cards.get(highlighted_card).unwrap() {
-                        Card::Unit => {
-                            draw_out_of_hand_card(mouse_position.x, mouse_position.y);
+                    if mouse_in_world {
+                        match cards.get(highlighted_card).unwrap() {
+                            Card::Unit => {
+                                draw_out_of_hand_card(mouse_position.x, mouse_position.y);
+                            }
+                            Card::Tower => {
+                                preview_tower_pos =
+                                    Some((mouse_world_x as i32, mouse_world_y as i32));
+                            }
                         }
-                        Card::Tower => {
-                            preview_tower_pos = Some((mouse_world_x as i32, mouse_world_y as i32));
-                            draw_highlighted_card(highlighted_card, n);
-                        }
+                    } else {
+                        draw_out_of_hand_card(mouse_position.x, mouse_position.y);
                     }
                 } else {
-                    let hovering = draw_highlighted_card(highlighted_card, n);
+                    let hovering = draw_highlighted_card(highlighted_card);
                     if hovering {
                         highlighted_card_opt = Some(highlighted_card);
                     }
