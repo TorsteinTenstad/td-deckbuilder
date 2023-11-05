@@ -1,14 +1,12 @@
+use common::card::Card;
 use common::*;
-use image::GenericImageView;
 use local_ip_address::local_ip;
 use macroquad::prelude::{
-    clear_background, draw_circle, draw_hexagon, is_key_down, is_key_pressed, is_mouse_button_down,
-    is_mouse_button_pressed, is_mouse_button_released, mouse_position, next_frame, screen_height,
-    screen_width, Color, MouseButton, Vec2, BLACK, GRAY, LIGHTGRAY, RED, WHITE,
+    clear_background, draw_circle, draw_hexagon, is_key_down, is_mouse_button_down,
+    is_mouse_button_released, mouse_position, next_frame, screen_height, screen_width, Color,
+    MouseButton, Vec2, BLACK, GRAY, LIGHTGRAY, RED, WHITE,
 };
-use macroquad::shapes::{
-    draw_circle_lines, draw_rectangle_ex, draw_rectangle_lines, DrawRectangleParams,
-};
+use macroquad::shapes::{draw_circle_lines, draw_rectangle_ex, DrawRectangleParams};
 use macroquad::window::request_new_screen_size;
 use std::net::UdpSocket;
 use std::time::SystemTime;
@@ -35,7 +33,6 @@ async fn main() {
 
     let local_ip = local_ip().unwrap();
     let socket_addr = format!("{}:34254", local_ip);
-    dbg!(&socket_addr);
     let udp_socket = UdpSocket::bind(socket_addr).unwrap();
     udp_socket.set_nonblocking(true).unwrap();
 
@@ -60,7 +57,10 @@ async fn main() {
     let mut card_delta_angle = 0.23;
     let card_visible_h = 0.8;
 
-    let mut selected_card_opt: Option<i32> = None;
+    let mut highlighted_card_opt: Option<usize> = None;
+    let mut preview_tower_pos: Option<(i32, i32)> = None;
+
+    let mut commands = Vec::<ClientCommand>::new();
 
     loop {
         let old_time = time;
@@ -112,31 +112,20 @@ async fn main() {
         let f32_to_screen_y = |y: f32| (y as f32 + 0.5) * cell_h;
         let to_screen_size = |x: f32| x * cell_w;
         let (screen_space_mouse_x, screen_space_mouse_y) = mouse_position();
-        let mouse_world_x = (screen_space_mouse_x / cell_w) as i32;
-        let mouse_world_y = (screen_space_mouse_y / cell_h) as i32;
-
-        let mut commands = Vec::<ClientCommand>::new();
+        let mouse_world_x = screen_space_mouse_x / cell_w;
+        let mouse_world_y = screen_space_mouse_y / cell_h;
 
         clear_background(BLACK);
 
-        let mut preview_tower_pos: Option<(i32, i32)> = None;
+        if is_mouse_button_released(MouseButton::Left) {
+            selected_tower = dynamic_game_state.towers.iter().find_map(|(id, tower)| {
+                (tower.pos_x == mouse_world_x as i32 && tower.pos_y == mouse_world_y as i32)
+                    .then_some(id.clone())
+            });
+        }
         //Send client commands
         {
-            if is_mouse_button_pressed(MouseButton::Left) {
-                commands.push(ClientCommand::SpawnUnit);
-            }
-            preview_tower_pos =
-                is_mouse_button_down(MouseButton::Right).then_some((mouse_world_x, mouse_world_y));
-            if is_mouse_button_released(MouseButton::Left) {
-                selected_tower = dynamic_game_state.towers.iter().find_map(|(id, tower)| {
-                    (tower.pos_x == mouse_world_x && tower.pos_y == mouse_world_y)
-                        .then_some(id.clone())
-                });
-            }
-            if is_mouse_button_released(MouseButton::Right) {
-                commands.push(ClientCommand::SpawnTower(mouse_world_x, mouse_world_y));
-            }
-            for command in commands {
+            for command in &commands {
                 udp_socket
                     .send_to(
                         &serde_json::to_string(&command).unwrap().as_bytes(),
@@ -144,6 +133,7 @@ async fn main() {
                     )
                     .unwrap();
             }
+            commands.clear();
         }
         //Draw board
         {
@@ -267,49 +257,39 @@ async fn main() {
 
         let mouse_position = Vec2::from_array(mouse_position().into());
 
-        let draw_card = |i: i32, selected: bool| -> bool {
-            let selected_mask = if selected { 1.0 } else { 0.0 };
-            let selected_size_modifier = 1.0 + 0.2 * selected_mask;
-            let card_w = selected_size_modifier * screen_width() / 12.0;
-            let card_h = card_w * GOLDEN_RATIO;
-            let relative_splay_radius = relative_splay_radius / selected_size_modifier;
-            let x = screen_width() / 2.0;
-            let y = screen_height() + (relative_splay_radius * card_h) - (card_visible_h * card_h);
-            let rotation = (i as f32 - ((n - 1) as f32 / 2.0)) * card_delta_angle;
-            let mut offset = Vec2 {
-                x: 0.5,
-                y: relative_splay_radius,
-            };
-            let local_mouse_pos = Vec2::from_angle(-rotation)
+        let draw_card = |x, y, w, h, rotation: f32, offset, alpha, only_compute_hover| -> bool {
+            let mut offset = offset;
+            let local_mouse_pos: Vec2 = Vec2::from_angle(-rotation)
                 .rotate(mouse_position - Vec2 { x, y })
-                + offset
-                    * Vec2 {
-                        x: card_w,
-                        y: card_h,
-                    };
+                + offset * Vec2 { x: w, y: h };
             let hovering = local_mouse_pos.cmpgt(Vec2::ZERO).all()
-                && local_mouse_pos.cmplt(Vec2::new(card_w, card_h)).all();
-
+                && local_mouse_pos.cmplt(Vec2::new(w, h)).all();
+            if only_compute_hover {
+                return hovering;
+            }
             draw_rectangle_ex(
                 x,
                 y,
-                card_w,
-                card_h,
+                w,
+                h,
                 DrawRectangleParams {
-                    color: if selected { RED } else { GRAY },
+                    color: Color { a: alpha, ..GRAY },
                     rotation,
                     offset,
                     ..Default::default()
                 },
             );
-            offset.y += (2.0 * relative_splay_radius - 1.0) * card_border / card_h;
+            offset.y += (2.0 * offset.y - 1.0) * card_border / h;
             draw_rectangle_ex(
                 x,
                 y,
-                card_w - 2.0 * card_border,
-                card_h - 2.0 * card_border,
+                w - 2.0 * card_border,
+                h - 2.0 * card_border,
                 DrawRectangleParams {
-                    color: LIGHTGRAY,
+                    color: Color {
+                        a: alpha,
+                        ..LIGHTGRAY
+                    },
                     rotation,
                     offset,
                     ..Default::default()
@@ -317,21 +297,100 @@ async fn main() {
             );
             hovering
         };
-        let selected_card_opt_clone = selected_card_opt.clone();
-        selected_card_opt = None;
-        for i in 0..n {
-            if selected_card_opt_clone == Some(i) {
-                continue;
-            }
-            let hovering = draw_card(i, false);
+        let draw_in_hand_card_card = |i, n: i32, alpha, only_compute_hover| -> bool {
+            let card_w = screen_width() / 12.0;
+            let card_h = card_w * GOLDEN_RATIO;
+            let x = screen_width() / 2.0;
+            let y = screen_height() + (relative_splay_radius * card_h) - (card_visible_h * card_h);
+            let rotation = (i as f32 - ((n - 1) as f32 / 2.0)) * card_delta_angle;
+            let offset = Vec2 {
+                x: 0.5,
+                y: relative_splay_radius,
+            };
+            draw_card(
+                x,
+                y,
+                card_w,
+                card_h,
+                rotation,
+                offset,
+                alpha,
+                only_compute_hover,
+            )
+        };
+
+        let draw_out_of_hand_card = |x, y| -> bool {
+            let card_w = screen_width() / 10.0;
+            let card_h = card_w * GOLDEN_RATIO;
+            draw_card(x, y, card_w, card_h, 0.0, 0.5 * Vec2::ONE, 1.0, false)
+        };
+
+        let draw_highlighted_card = |i, n: i32| -> bool {
+            let card_w = screen_width() / 10.0;
+            let card_h = card_w * GOLDEN_RATIO;
+            let x = screen_width() / 2.0
+                + ((relative_splay_radius * card_h) - (card_visible_h * card_h))
+                    * f32::sin((i as f32 - ((n - 1) as f32 / 2.0)) * card_delta_angle);
+            let y = screen_height();
+            draw_card(
+                x,
+                y,
+                card_w,
+                card_h,
+                0.0,
+                Vec2 { x: 0.5, y: 1.0 },
+                1.0,
+                false,
+            )
+        };
+
+        let highlighted_card_opt_clone = highlighted_card_opt.clone();
+        highlighted_card_opt = None;
+        let cards = vec![
+            Card::Unit,
+            Card::Unit,
+            Card::Tower,
+            Card::Tower,
+            Card::Tower,
+        ];
+        for (i, _card) in cards.iter().enumerate() {
+            let is_selected = highlighted_card_opt_clone == Some(i);
+            let hovering = draw_in_hand_card_card(
+                i,
+                n,
+                if is_selected { 0.5 } else { 1.0 },
+                is_selected && !is_mouse_button_down(MouseButton::Left),
+            );
             if hovering {
-                selected_card_opt = Some(i);
+                highlighted_card_opt = Some(i);
             }
         }
-        if let Some(selected_card) = selected_card_opt_clone {
-            let hovering = draw_card(selected_card, true);
-            if hovering {
-                selected_card_opt = Some(selected_card);
+        if let Some(highlighted_card) = highlighted_card_opt_clone {
+            if is_mouse_button_released(MouseButton::Left) {
+                commands.push(ClientCommand::PlayCard(
+                    mouse_world_x,
+                    mouse_world_y,
+                    cards.get(highlighted_card).unwrap().clone(),
+                ));
+                preview_tower_pos = None;
+            } else {
+                if is_mouse_button_down(MouseButton::Left) {
+                    highlighted_card_opt = Some(highlighted_card);
+                    match cards.get(highlighted_card).unwrap() {
+                        Card::Unit => {
+                            draw_out_of_hand_card(mouse_position.x, mouse_position.y);
+                        }
+                        Card::Tower => {
+                            preview_tower_pos = Some((mouse_world_x as i32, mouse_world_y as i32));
+                            draw_highlighted_card(highlighted_card, n);
+                        }
+                    }
+                } else {
+                    let hovering = draw_highlighted_card(highlighted_card, n);
+                    if hovering {
+                        highlighted_card_opt = Some(highlighted_card);
+                    }
+                }
             }
         }
         next_frame().await

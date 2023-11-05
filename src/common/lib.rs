@@ -1,7 +1,8 @@
 use macroquad::prelude::Vec2;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-
+pub mod card;
+use card::Card;
 pub const SERVER_ADDR: &str = "192.168.1.120:7878";
 pub const TARGET_SERVER_FPS: f32 = 60.0;
 pub const UNIT_RADIUS: f32 = 0.25;
@@ -16,8 +17,7 @@ pub struct Vec2Def {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum ClientCommand {
-    SpawnUnit,
-    SpawnTower(i32, i32),
+    PlayCard(f32, f32, Card),
     JoinGame,
 }
 

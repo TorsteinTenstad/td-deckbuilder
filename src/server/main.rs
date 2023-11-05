@@ -1,3 +1,4 @@
+use common::card::Card;
 use common::*;
 use image::GenericImageView;
 use macroquad::prelude::Vec2;
@@ -79,33 +80,35 @@ fn main() -> std::io::Result<()> {
             Ok((amt, client_addr)) => {
                 let command =
                     serde_json::from_slice::<ClientCommand>(&client_message_buf[..amt]).unwrap();
-                dbg!(&command);
                 match command {
-                    ClientCommand::SpawnUnit => {
-                        game_state.dynamic_state.units.insert(
-                            next_unit_id,
-                            Unit {
-                                path_pos: 0.0,
-                                speed: 1.0,
-                                health: 100.0,
-                                damage_animation: 0.0,
-                            },
-                        );
-                        next_unit_id += 1;
-                    }
-                    ClientCommand::SpawnTower(pos_x, pos_y) => {
-                        game_state.dynamic_state.towers.insert(
-                            rng.gen::<u64>(),
-                            Tower {
-                                pos_x,
-                                pos_y,
-                                range: 3.0,
-                                damage: 50.0,
-                                cooldown: 0.5,
-                                last_fire: 0.0,
-                            },
-                        );
-                    }
+                    ClientCommand::PlayCard(x, y, card) => match card {
+                        Card::Unit => {
+                            game_state.dynamic_state.units.insert(
+                                next_unit_id,
+                                Unit {
+                                    path_pos: 0.0,
+                                    speed: 1.0,
+                                    health: 100.0,
+                                    damage_animation: 0.0,
+                                },
+                            );
+                            next_unit_id += 1;
+                        }
+                        Card::Tower => {
+                            println!("tower at {}, {}", x, y);
+                            game_state.dynamic_state.towers.insert(
+                                rng.gen::<u64>(),
+                                Tower {
+                                    pos_x: x as i32,
+                                    pos_y: y as i32,
+                                    range: 3.0,
+                                    damage: 50.0,
+                                    cooldown: 0.5,
+                                    last_fire: 0.0,
+                                },
+                            );
+                        }
+                    },
                     ClientCommand::JoinGame => {
                         if !clients.contains(&client_addr) {
                             clients.push(client_addr);
