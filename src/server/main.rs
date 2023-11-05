@@ -3,12 +3,14 @@ use common::*;
 use image::GenericImageView;
 use macroquad::prelude::Vec2;
 use rand::Rng;
+use std::collections::HashMap;
 use std::net::{SocketAddr, UdpSocket};
 use std::time::{Duration, SystemTime};
 
 fn main() -> std::io::Result<()> {
     let mut rng = rand::thread_rng();
     let mut game_state = GameState::new();
+    let mut client_addresses = HashMap::<u64, SocketAddr>::new();
 
     let img = image::open("path.png").unwrap();
     game_state.static_state.grid_w = img.dimensions().0;
@@ -54,17 +56,11 @@ fn main() -> std::io::Result<()> {
         .set_read_timeout(Some(Duration::from_millis(10)))
         .unwrap();
     let mut next_unit_id = 0;
-    let mut clients = Vec::<SocketAddr>::new();
     let mut time = SystemTime::now();
     loop {
         let old_time = time;
         time = SystemTime::now();
         let dt = time.duration_since(old_time).unwrap().as_secs_f32();
-        println!(
-            "tick: {}, dt: {}ms",
-            game_state.dynamic_state.server_tick,
-            dt * 1000.0
-        );
 
         let client_message_buf = &mut [0; 50];
         let read_client_message = udp_socket.recv_from(client_message_buf);
@@ -110,8 +106,13 @@ fn main() -> std::io::Result<()> {
                         }
                     },
                     ClientCommand::JoinGame => {
-                        if !clients.contains(&client_addr) {
-                            clients.push(client_addr);
+                        let client_id = hash_client_addr(&client_addr);
+                        if !game_state.dynamic_state.clients.contains_key(&client_id) {
+                            game_state
+                                .dynamic_state
+                                .clients
+                                .insert(client_id, Client::new());
+                            client_addresses.insert(client_id, client_addr);
                         }
                     }
                 }
@@ -119,11 +120,14 @@ fn main() -> std::io::Result<()> {
         }
 
         let msg = serde_json::to_string(&game_state).unwrap();
-        for client in &clients {
-            udp_socket.send_to(msg.as_bytes(), client).unwrap();
+        for (_client_id, client_addr) in &client_addresses {
+            udp_socket.send_to(msg.as_bytes(), client_addr).unwrap();
         }
 
         game_state.dynamic_state.server_tick += 1;
+        for (_client_id, client) in game_state.dynamic_state.clients.iter_mut() {
+            client.card_draw_counter += dt;
+        }
 
         let mut units_to_remove = Vec::<u64>::new();
         for (id, unit) in game_state.dynamic_state.units.iter_mut() {

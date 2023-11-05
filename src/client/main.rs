@@ -47,13 +47,8 @@ async fn main() {
 
     let mut static_game_state = StaticGameState::new();
     let mut dynamic_game_state = DynamicGameState::new();
-    let mut cards = vec![
-        Card::Unit,
-        Card::Unit,
-        Card::Tower,
-        Card::Tower,
-        Card::Tower,
-    ];
+    let mut cards = Vec::<Card>::new();
+    let mut card_draw_counter = 0;
 
     let mut time = SystemTime::now();
     let mut selected_tower: Option<u64> = None;
@@ -104,6 +99,18 @@ async fn main() {
                             panic!()
                         }
                     },
+                }
+            }
+            if let Some(server_card_draw_counter) = dynamic_game_state
+                .clients
+                .get(&hash_client_addr(&udp_socket.local_addr().unwrap()))
+                .map(|client| client.card_draw_counter as i32)
+            {
+                while card_draw_counter < server_card_draw_counter {
+                    card_draw_counter += 1;
+                    if cards.len() < 10 {
+                        cards.push(Card::Unit);
+                    }
                 }
             }
         }
@@ -311,7 +318,7 @@ async fn main() {
             let card_h = card_w * GOLDEN_RATIO;
             let x = screen_width() / 2.0;
             let y = screen_height() + (relative_splay_radius * card_h) - (card_visible_h * card_h);
-            let rotation = (i as f32 - ((cards.len() - 1) as f32 / 2.0)) * card_delta_angle;
+            let rotation = (i as f32 - ((n - 1) as f32 / 2.0)) * card_delta_angle;
             let offset = Vec2 {
                 x: 0.5,
                 y: relative_splay_radius,
