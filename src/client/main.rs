@@ -54,8 +54,6 @@ async fn main() {
     let mut time = SystemTime::now();
     let mut selected_tower: Option<u64> = None;
 
-    let card_w = screen_width() / 8.0;
-    let card_h = card_w * GOLDEN_RATIO;
     let card_border = 5.0;
     let n = 5;
     let mut relative_splay_radius = 2.8;
@@ -270,16 +268,14 @@ async fn main() {
         let mouse_position = Vec2::from_array(mouse_position().into());
 
         let draw_card = |i: i32, selected: bool| -> bool {
+            let selected_mask = if selected { 1.0 } else { 0.0 };
+            let selected_size_modifier = 1.0 + 0.2 * selected_mask;
+            let card_w = selected_size_modifier * screen_width() / 12.0;
+            let card_h = card_w * GOLDEN_RATIO;
+            let relative_splay_radius = relative_splay_radius / selected_size_modifier;
             let x = screen_width() / 2.0;
-            let y = screen_height() + (relative_splay_radius - card_visible_h) * card_h;
+            let y = screen_height() + (relative_splay_radius * card_h) - (card_visible_h * card_h);
             let rotation = (i as f32 - ((n - 1) as f32 / 2.0)) * card_delta_angle;
-            if selected {
-                1.5
-            } else {
-                1.0
-            };
-            let relative_splay_radius =
-                relative_splay_radius + if selected { 1.0 - card_visible_h } else { 0.0 };
             let mut offset = Vec2 {
                 x: 0.5,
                 y: relative_splay_radius,
