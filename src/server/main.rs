@@ -1,7 +1,7 @@
 use common::card::Card;
 use common::*;
 use image::GenericImageView;
-use macroquad::prelude::Vec2;
+use macroquad::prelude::{Vec2, PURPLE, YELLOW};
 use rand::Rng;
 use std::collections::HashMap;
 use std::net::{SocketAddr, UdpSocket};
@@ -74,15 +74,26 @@ fn main() -> std::io::Result<()> {
                 }
             },
             Ok((amt, client_addr)) => {
+                let client_id = hash_client_addr(&client_addr);
+                let player = game_state.dynamic_state.players.get_mut(&client_id);
                 let command =
                     serde_json::from_slice::<ClientCommand>(&client_message_buf[..amt]).unwrap();
                 match command {
                     ClientCommand::PlayCard(x, y, card) => match card {
                         Card::Unit => {
+                            let player = player.unwrap();
                             game_state.dynamic_state.units.insert(
                                 next_unit_id,
                                 Unit {
-                                    path_pos: 0.0,
+                                    owner: client_id,
+                                    path_pos: match player.direction {
+                                        Direction::Positive => 0.0,
+                                        Direction::Negative => {
+                                            game_state.static_state.path.len() as f32
+                                        }
+                                    },
+                                    direction: player.direction.clone(),
+                                    radius: 0.25,
                                     speed: 1.0,
                                     health: 100.0,
                                     damage_animation: 0.0,
@@ -107,12 +118,18 @@ fn main() -> std::io::Result<()> {
                     },
                     ClientCommand::JoinGame => {
                         let client_id = hash_client_addr(&client_addr);
-                        if !game_state.dynamic_state.clients.contains_key(&client_id) {
-                            game_state
-                                .dynamic_state
-                                .clients
-                                .insert(client_id, Client::new());
+                        if !client_addresses.contains_key(&client_id) {
                             client_addresses.insert(client_id, client_addr);
+                            if let Some(available_config) =
+                                vec![(Direction::Positive, YELLOW), (Direction::Negative, PURPLE)]
+                                    .get(game_state.dynamic_state.players.len())
+                            {
+                                let (available_direction, available_color) = available_config;
+                                game_state.dynamic_state.players.insert(
+                                    client_id,
+                                    Player::new(available_direction.clone(), *available_color),
+                                );
+                            }
                         }
                     }
                 }
@@ -125,22 +142,35 @@ fn main() -> std::io::Result<()> {
         }
 
         game_state.dynamic_state.server_tick += 1;
-        for (_client_id, client) in game_state.dynamic_state.clients.iter_mut() {
+        for (_client_id, client) in game_state.dynamic_state.players.iter_mut() {
             client.card_draw_counter += dt;
         }
 
-        let mut units_to_remove = Vec::<u64>::new();
-        for (id, unit) in game_state.dynamic_state.units.iter_mut() {
-            if unit.health <= 0.0 && !units_to_remove.contains(id) {
-                units_to_remove.push(*id);
-            } else {
-                unit.path_pos += unit.speed * dt;
-                unit.damage_animation -= dt;
+        let occupied: Vec<(u64, f32, f32)> = game_state
+            .dynamic_state
+            .units
+            .iter_mut()
+            .map(|(id, unit)| {
+                (
+                    id.clone(),
+                    unit.path_pos - unit.radius,
+                    unit.path_pos + unit.radius,
+                )
+            })
+            .collect();
+        game_state.dynamic_state.units.retain(|id, unit| {
+            let owner = game_state.dynamic_state.players.get(&unit.owner).unwrap();
+            let direction = owner.direction.to_f32();
+            if !occupied.iter().any(|(occupied_id, start, end)| {
+                occupied_id != id
+                    && *start < unit.path_pos + unit.radius * direction
+                    && *end > unit.path_pos + unit.radius * direction
+            }) {
+                unit.path_pos += unit.speed * direction * dt;
             }
-        }
-        for id in units_to_remove {
-            game_state.dynamic_state.units.remove(&id);
-        }
+            unit.damage_animation -= dt;
+            unit.health > 0.0
+        });
 
         for (_id, tower) in game_state.dynamic_state.towers.iter_mut() {
             let tower_pos = Vec2 {
@@ -196,7 +226,7 @@ fn main() -> std::io::Result<()> {
                 for (_id, unit) in game_state.dynamic_state.units.iter_mut() {
                     if (game_state.static_state.path_to_world_pos(unit.path_pos) - projectile.pos)
                         .length()
-                        < UNIT_RADIUS + PROJECTILE_RADIUS
+                        < unit.radius + PROJECTILE_RADIUS
                     {
                         unit.health -= projectile.damage;
                         unit.damage_animation = 0.05;

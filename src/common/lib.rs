@@ -1,4 +1,7 @@
-use macroquad::prelude::Vec2;
+use macroquad::{
+    color,
+    prelude::{Color, Vec2},
+};
 use serde::{Deserialize, Serialize};
 use std::{
     collections::HashMap,
@@ -9,7 +12,6 @@ pub mod card;
 use card::Card;
 pub const SERVER_ADDR: &str = "192.168.1.120:7878";
 pub const TARGET_SERVER_FPS: f32 = 60.0;
-pub const UNIT_RADIUS: f32 = 0.25;
 pub const PROJECTILE_RADIUS: f32 = 0.04;
 
 pub fn hash_client_addr(addr: &SocketAddr) -> u64 {
@@ -24,16 +26,29 @@ pub struct Vec2Def {
     pub x: f32,
     pub y: f32,
 }
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct Client {
-    pub card_draw_counter: f32,
+#[derive(Serialize, Deserialize)]
+#[serde(remote = "Color")]
+pub struct ColorDef {
+    pub r: f32,
+    pub g: f32,
+    pub b: f32,
+    pub a: f32,
 }
 
-impl Client {
-    pub fn new() -> Self {
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Player {
+    pub card_draw_counter: f32,
+    pub direction: Direction,
+    #[serde(with = "ColorDef")]
+    pub color: Color,
+}
+
+impl Player {
+    pub fn new(direction: Direction, color: Color) -> Self {
         Self {
             card_draw_counter: 5.0,
+            direction,
+            color,
         }
     }
 }
@@ -82,7 +97,7 @@ pub struct DynamicGameState {
     pub units: HashMap<u64, Unit>,
     pub towers: HashMap<u64, Tower>,
     pub projectiles: Vec<Projectile>,
-    pub clients: HashMap<u64, Client>,
+    pub players: HashMap<u64, Player>,
 }
 
 impl DynamicGameState {
@@ -92,7 +107,7 @@ impl DynamicGameState {
             units: HashMap::new(),
             towers: HashMap::new(),
             projectiles: Vec::new(),
-            clients: HashMap::new(),
+            players: HashMap::new(),
         }
     }
 }
@@ -106,9 +121,25 @@ impl GameState {
     }
 }
 
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
+pub enum Direction {
+    Positive,
+    Negative,
+}
+impl Direction {
+    pub fn to_f32(&self) -> f32 {
+        match self {
+            Direction::Positive => 1.0,
+            Direction::Negative => -1.0,
+        }
+    }
+}
 #[derive(Serialize, Deserialize)]
 pub struct Unit {
+    pub owner: u64,
     pub path_pos: f32,
+    pub direction: Direction,
+    pub radius: f32,
     pub health: f32,
     pub speed: f32,
     pub damage_animation: f32,

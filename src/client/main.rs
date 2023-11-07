@@ -8,7 +8,7 @@ use macroquad::prelude::{
 };
 use macroquad::shapes::{draw_circle_lines, draw_rectangle_ex, DrawRectangleParams};
 use macroquad::window::request_new_screen_size;
-use std::net::UdpSocket;
+use std::net::{SocketAddr, UdpSocket};
 use std::time::SystemTime;
 
 const GOLDEN_RATIO: f32 = 1.61803398875;
@@ -32,8 +32,13 @@ async fn main() {
     request_new_screen_size(1280.0, 720.0);
 
     let local_ip = local_ip().unwrap();
-    let socket_addr = format!("{}:34254", local_ip);
-    let udp_socket = UdpSocket::bind(socket_addr).unwrap();
+
+    let udp_socket = std::iter::successors(Some(6968), |port| Some(port + 1))
+        .find_map(|port| {
+            let socket_addr = SocketAddr::new(local_ip, port);
+            UdpSocket::bind(socket_addr).ok()
+        })
+        .unwrap();
     udp_socket.set_nonblocking(true).unwrap();
 
     udp_socket
@@ -102,7 +107,7 @@ async fn main() {
                 }
             }
             if let Some(server_card_draw_counter) = dynamic_game_state
-                .clients
+                .players
                 .get(&hash_client_addr(&udp_socket.local_addr().unwrap()))
                 .map(|client| client.card_draw_counter as i32)
             {
@@ -179,8 +184,8 @@ async fn main() {
                     );
                 }
             }
-
             for (_id, unit) in dynamic_game_state.units.iter() {
+                let player = dynamic_game_state.players.get(&unit.owner);
                 let Vec2 {
                     x: world_x,
                     y: world_y,
@@ -188,11 +193,11 @@ async fn main() {
                 draw_circle(
                     f32_to_screen_x(world_x),
                     f32_to_screen_y(world_y),
-                    to_screen_size(UNIT_RADIUS),
+                    to_screen_size(unit.radius),
                     if unit.damage_animation > 0.0 {
                         RED
                     } else {
-                        WHITE
+                        player.map_or(WHITE, |player| player.color)
                     },
                 );
             }
