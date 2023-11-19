@@ -1,13 +1,23 @@
 use common::card::Card;
 use common::*;
 use local_ip_address::local_ip;
-use macroquad::prelude::{
-    clear_background, draw_circle, draw_hexagon, is_key_down, is_mouse_button_down,
-    is_mouse_button_released, mouse_position, next_frame, screen_height, screen_width, Color,
-    MouseButton, Vec2, BLACK, BLUE, GRAY, LIGHTGRAY, RED, WHITE,
+use macroquad::color::GREEN;
+use macroquad::prelude::Vec2;
+use macroquad::{
+    color::{Color, BLACK, BLUE, GRAY, LIGHTGRAY, PURPLE, RED, WHITE, YELLOW},
+    input::{
+        is_key_down, is_mouse_button_down, is_mouse_button_released, mouse_position, MouseButton,
+    },
+    shapes::{
+        draw_circle, draw_circle_lines, draw_hexagon, draw_rectangle_ex, DrawRectangleParams,
+    },
+    text::{draw_text_ex, TextParams},
+    window::request_new_screen_size,
+    window::{clear_background, next_frame, screen_height, screen_width},
 };
-use macroquad::shapes::{draw_circle_lines, draw_rectangle_ex, DrawRectangleParams};
-use macroquad::window::request_new_screen_size;
+mod draw;
+use draw::*;
+use rand::distributions::WeightedIndex;
 use std::net::{SocketAddr, UdpSocket};
 use std::time::SystemTime;
 
@@ -278,47 +288,78 @@ async fn main() {
 
         let mouse_position = Vec2::from_array(mouse_position().into());
 
-        let draw_card = |x, y, w, h, rotation: f32, offset, alpha, only_compute_hover| -> bool {
-            let mut offset = offset;
-            let local_mouse_pos: Vec2 = Vec2::from_angle(-rotation)
-                .rotate(mouse_position - Vec2 { x, y })
-                + offset * Vec2 { x: w, y: h };
-            let hovering = local_mouse_pos.cmpgt(Vec2::ZERO).all()
-                && local_mouse_pos.cmplt(Vec2::new(w, h)).all();
-            if only_compute_hover {
-                return hovering;
-            }
-            draw_rectangle_ex(
-                x,
-                y,
-                w,
-                h,
-                DrawRectangleParams {
-                    color: Color { a: alpha, ..GRAY },
-                    rotation,
-                    offset,
-                    ..Default::default()
-                },
-            );
-            offset.y += (2.0 * offset.y - 1.0) * card_border / h;
-            draw_rectangle_ex(
-                x,
-                y,
-                w - 2.0 * card_border,
-                h - 2.0 * card_border,
-                DrawRectangleParams {
-                    color: Color {
-                        a: alpha,
-                        ..LIGHTGRAY
+        let draw_card =
+            |card: &Card, x, y, w, h, rotation: f32, offset, alpha, only_compute_hover| -> bool {
+                draw_circle(x, y, 3.0, YELLOW);
+                let local_mouse_pos: Vec2 = Vec2::from_angle(-rotation)
+                    .rotate(mouse_position - Vec2 { x, y })
+                    + offset * Vec2 { x: w, y: h };
+                let hovering = local_mouse_pos.cmpgt(Vec2::ZERO).all()
+                    && local_mouse_pos.cmplt(Vec2::new(w, h)).all();
+                if only_compute_hover {
+                    return hovering;
+                }
+                draw_rectangle_ex(
+                    x,
+                    y,
+                    w,
+                    h,
+                    DrawRectangleParams {
+                        color: Color { a: alpha, ..GRAY },
+                        rotation,
+                        offset,
+                        ..Default::default()
                     },
+                );
+                let inner_offset = offset
+                    + Vec2 {
+                        x: 0.0,
+                        y: (2.0 * offset.y - 1.0) * card_border / h,
+                    };
+                draw_rectangle_ex(
+                    x,
+                    y,
+                    w - 2.0 * card_border,
+                    h - 2.0 * card_border,
+                    DrawRectangleParams {
+                        color: Color {
+                            a: alpha,
+                            ..LIGHTGRAY
+                        },
+                        rotation,
+                        offset: inner_offset,
+                        ..Default::default()
+                    },
+                );
+
+                let get_on_card_pos = |rel_x, rel_y| -> Vec2 {
+                    Vec2 { x, y }
+                        + Vec2::from_angle(rotation)
+                            .rotate(Vec2 { x: w, y: h } * (Vec2 { x: rel_x, y: rel_y } - offset))
+                };
+
+                let width_relative_margin = 0.1;
+                let energy_indicator_pos =
+                    get_on_card_pos(width_relative_margin, width_relative_margin * w / h);
+                draw_circle(
+                    energy_indicator_pos.x,
+                    energy_indicator_pos.y,
+                    w / 6.0,
+                    PURPLE,
+                );
+                draw_text_with_origin(
+                    format!("{}", card.energy_cost()).as_str(),
+                    energy_indicator_pos.x,
+                    energy_indicator_pos.y,
+                    24.0,
                     rotation,
-                    offset,
-                    ..Default::default()
-                },
-            );
-            hovering
-        };
-        let draw_in_hand_card_card = |i, n, alpha, only_compute_hover| -> bool {
+                    WHITE,
+                    TextOriginX::Center,
+                    TextOriginY::AbsoluteCenter,
+                );
+                hovering
+            };
+        let draw_in_hand_card_card = |card, i, n, alpha, only_compute_hover| -> bool {
             let card_w = screen_width() / 12.0;
             let card_h = card_w * GOLDEN_RATIO;
             let x = screen_width() / 2.0;
@@ -329,6 +370,7 @@ async fn main() {
                 y: relative_splay_radius,
             };
             draw_card(
+                card,
                 x,
                 y,
                 card_w,
@@ -340,13 +382,13 @@ async fn main() {
             )
         };
 
-        let draw_out_of_hand_card = |x, y| -> bool {
+        let draw_out_of_hand_card = |card, x, y| -> bool {
             let card_w = screen_width() / 10.0;
             let card_h = card_w * GOLDEN_RATIO;
-            draw_card(x, y, card_w, card_h, 0.0, 0.5 * Vec2::ONE, 1.0, false)
+            draw_card(card, x, y, card_w, card_h, 0.0, 0.5 * Vec2::ONE, 1.0, false)
         };
 
-        let draw_highlighted_card = |i| -> bool {
+        let draw_highlighted_card = |card, i| -> bool {
             let card_w = screen_width() / 10.0;
             let card_h = card_w * GOLDEN_RATIO;
             let x = screen_width() / 2.0
@@ -354,6 +396,7 @@ async fn main() {
                     * f32::sin((i as f32 - ((cards.len() - 1) as f32 / 2.0)) * card_delta_angle);
             let y = screen_height();
             draw_card(
+                card,
                 x,
                 y,
                 card_w,
@@ -367,9 +410,10 @@ async fn main() {
 
         let highlighted_card_opt_clone = highlighted_card_opt.clone();
         highlighted_card_opt = None;
-        for (i, _card) in cards.iter().enumerate() {
+        for (i, card) in cards.iter().enumerate() {
             let is_selected = highlighted_card_opt_clone == Some(i);
             let hovering = draw_in_hand_card_card(
+                card,
                 i,
                 cards.len(),
                 if is_selected { 0.5 } else { 1.0 },
@@ -401,7 +445,11 @@ async fn main() {
                     if mouse_in_world {
                         match cards.get(highlighted_card).unwrap() {
                             Card::Unit => {
-                                draw_out_of_hand_card(mouse_position.x, mouse_position.y);
+                                draw_out_of_hand_card(
+                                    cards.get(highlighted_card).unwrap(),
+                                    mouse_position.x,
+                                    mouse_position.y,
+                                );
                             }
                             Card::Tower => {
                                 preview_tower_pos =
@@ -409,10 +457,17 @@ async fn main() {
                             }
                         }
                     } else {
-                        draw_out_of_hand_card(mouse_position.x, mouse_position.y);
+                        draw_out_of_hand_card(
+                            cards.get(highlighted_card).unwrap(),
+                            mouse_position.x,
+                            mouse_position.y,
+                        );
                     }
                 } else {
-                    let hovering = draw_highlighted_card(highlighted_card);
+                    let hovering = draw_highlighted_card(
+                        cards.get(highlighted_card).unwrap(),
+                        highlighted_card,
+                    );
                     if hovering {
                         highlighted_card_opt = Some(highlighted_card);
                     }
