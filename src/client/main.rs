@@ -149,16 +149,24 @@ async fn main() {
         let mouse_over_occupied_tile = static_game_state
             .path
             .contains(&(mouse_world_x as i32, mouse_world_y as i32))
-            || dynamic_game_state.towers.iter().any(|(_id, tower)| {
-                tower.pos_x == mouse_world_x as i32 && tower.pos_y == mouse_world_y as i32
+            || dynamic_game_state.entities.iter().any(|(_id, entity)| {
+                if let Kinematics::Static(StaticKinematics { pos }) = entity.movement {
+                    pos.x as i32 == mouse_world_x as i32 && pos.y as i32 == mouse_world_y as i32
+                } else {
+                    false
+                }
             });
 
         clear_background(BLACK);
 
         if is_mouse_button_released(MouseButton::Left) {
-            selected_tower = dynamic_game_state.towers.iter().find_map(|(id, tower)| {
-                (tower.pos_x == mouse_world_x as i32 && tower.pos_y == mouse_world_y as i32)
-                    .then_some(id.clone())
+            selected_tower = dynamic_game_state.entities.iter().find_map(|(id, entity)| {
+                if let Kinematics::Static(StaticKinematics { pos }) = entity.movement {
+                    (pos.x as i32 == mouse_world_x as i32 && pos.y as i32 == mouse_world_y as i32)
+                        .then_some(id.clone())
+                } else {
+                    None
+                }
             });
         }
         //Send client commands
@@ -194,35 +202,48 @@ async fn main() {
                     );
                 }
             }
-            for (_id, unit) in dynamic_game_state.units.iter() {
+            for (_id, unit) in dynamic_game_state.entities.iter() {
                 let player = dynamic_game_state.players.get(&unit.owner);
-                let Vec2 {
-                    x: world_x,
-                    y: world_y,
-                } = static_game_state.path_to_world_pos(unit.path_pos);
-                draw_circle(
-                    f32_to_screen_x(world_x),
-                    f32_to_screen_y(world_y),
-                    to_screen_size(unit.radius),
-                    if unit.damage_animation > 0.0 {
-                        RED
-                    } else {
-                        player.map_or(WHITE, |player| player.color)
-                    },
-                );
+                match unit.movement {
+                    Kinematics::Static(StaticKinematics { pos }) => {
+                        draw_hexagon(
+                            f32_to_screen_x(pos.x),
+                            f32_to_screen_y(pos.y),
+                            20.0,
+                            0.0,
+                            false,
+                            BLUE,
+                            BLUE,
+                        );
+                    }
+                    Kinematics::Path(PathKinematics {
+                        path_pos,
+                        direction: _,
+                        speed: _,
+                    }) => {
+                        let Vec2 { x, y } = static_game_state.path_to_world_pos(path_pos);
+                        draw_circle(
+                            f32_to_screen_x(x),
+                            f32_to_screen_y(y),
+                            to_screen_size(unit.radius),
+                            if unit.damage_animation > 0.0 {
+                                RED
+                            } else {
+                                player.map_or(WHITE, |player| player.color)
+                            },
+                        );
+                    }
+                    Kinematics::Free(FreeKinematics { pos, .. }) => {
+                        draw_circle(
+                            f32_to_screen_x(pos.x),
+                            f32_to_screen_y(pos.y),
+                            to_screen_size(PROJECTILE_RADIUS),
+                            GRAY,
+                        );
+                    }
+                }
             }
 
-            for (_id, tower) in dynamic_game_state.towers.iter() {
-                draw_hexagon(
-                    i32_to_screen_x(tower.pos_x),
-                    i32_to_screen_y(tower.pos_y),
-                    20.0,
-                    0.0,
-                    false,
-                    BLUE,
-                    BLUE,
-                );
-            }
             let mut range_circle_preview: Option<(i32, i32, f32, Color)> = None;
             if let Some((x, y)) = preview_tower_pos {
                 if mouse_in_world {
@@ -238,10 +259,13 @@ async fn main() {
                     );
                     range_circle_preview = Some((x, y, 3.0, color));
                 }
-            } else if let Some(id) = selected_tower {
-                let tower = dynamic_game_state.towers.get(&id).unwrap();
-                range_circle_preview = Some((tower.pos_x, tower.pos_y, tower.range, BLUE));
             }
+            /*
+            else if let Some(id) = selected_tower {
+                let tower = dynamic_game_state.entities.get(&id).unwrap();
+                range_circle_preview = Some((tower., tower.pos_y, tower.range, BLUE));
+            }
+            */
             if let Some((x, y, range, color)) = range_circle_preview {
                 draw_circle(
                     i32_to_screen_x(x),
@@ -255,14 +279,6 @@ async fn main() {
                     to_screen_size(range),
                     2.0,
                     color,
-                );
-            }
-            for projectile in &mut dynamic_game_state.projectiles.iter() {
-                draw_circle(
-                    f32_to_screen_x(projectile.pos.x),
-                    f32_to_screen_y(projectile.pos.y),
-                    to_screen_size(PROJECTILE_RADIUS),
-                    GRAY,
                 );
             }
         }

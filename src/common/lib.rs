@@ -20,7 +20,7 @@ pub fn hash_client_addr(addr: &SocketAddr) -> u64 {
     hasher.finish()
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 #[serde(remote = "Vec2")]
 pub struct Vec2Def {
     pub x: f32,
@@ -94,9 +94,7 @@ impl StaticGameState {
 #[derive(Serialize, Deserialize)]
 pub struct DynamicGameState {
     pub server_tick: u32,
-    pub units: HashMap<u64, Unit>,
-    pub towers: HashMap<u64, Tower>,
-    pub projectiles: Vec<Projectile>,
+    pub entities: HashMap<u64, Entity>,
     pub players: HashMap<u64, Player>,
 }
 
@@ -104,9 +102,7 @@ impl DynamicGameState {
     pub fn new() -> Self {
         Self {
             server_tick: 0,
-            units: HashMap::new(),
-            towers: HashMap::new(),
-            projectiles: Vec::new(),
+            entities: HashMap::new(),
             players: HashMap::new(),
         }
     }
@@ -134,35 +130,51 @@ impl Direction {
         }
     }
 }
-#[derive(Serialize, Deserialize)]
-pub struct Unit {
+#[derive(Clone, Serialize, Deserialize)]
+pub struct Entity {
     pub owner: u64,
-    pub path_pos: f32,
-    pub direction: Direction,
+    pub movement: Kinematics,
     pub radius: f32,
     pub health: f32,
-    pub speed: f32,
     pub damage_animation: f32,
+    pub ranged_attack: Option<RangedAttack>,
+    pub seconds_left_to_live: Option<f32>,
 }
 
-#[derive(Serialize, Deserialize)]
-pub struct Tower {
-    pub pos_x: i32,
-    pub pos_y: i32,
+#[derive(Clone, Serialize, Deserialize)]
+pub enum Kinematics {
+    Static(StaticKinematics),
+    Free(FreeKinematics),
+    Path(PathKinematics),
+}
+
+#[derive(Clone, Serialize, Deserialize)]
+pub struct StaticKinematics {
+    #[serde(with = "Vec2Def")]
+    pub pos: Vec2,
+}
+
+#[derive(Clone, Serialize, Deserialize)]
+pub struct FreeKinematics {
+    #[serde(with = "Vec2Def")]
+    pub pos: Vec2,
+    #[serde(with = "Vec2Def")]
+    pub velocity: Vec2,
+    pub target_entity_id: Option<u64>,
+    pub speed: f32,
+}
+
+#[derive(Clone, Serialize, Deserialize)]
+pub struct PathKinematics {
+    pub path_pos: f32,
+    pub direction: Direction,
+    pub speed: f32,
+}
+
+#[derive(Clone, Serialize, Deserialize)]
+pub struct RangedAttack {
     pub range: f32,
     pub damage: f32,
     pub cooldown: f32,
     pub last_fire: f32,
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct Projectile {
-    #[serde(with = "Vec2Def")]
-    pub pos: Vec2,
-    pub target_id: u64,
-    pub speed: f32,
-    #[serde(with = "Vec2Def")]
-    pub velocity: Vec2,
-    pub damage: f32,
-    pub seconds_left_to_live: f32,
 }

@@ -51,11 +51,20 @@ fn main() -> std::io::Result<()> {
         (x, y) = next;
     }
 
+    let get_pos = |entity: &Entity| -> Vec2 {
+        match entity.movement {
+            Kinematics::Path(PathKinematics { path_pos, .. }) => {
+                game_state.static_state.path_to_world_pos(path_pos)
+            }
+            Kinematics::Static(StaticKinematics { pos }) => pos,
+            Kinematics::Free(FreeKinematics { pos, .. }) => pos,
+        }
+    };
+
     let udp_socket = UdpSocket::bind(SERVER_ADDR).unwrap();
     udp_socket
         .set_read_timeout(Some(Duration::from_millis(10)))
         .unwrap();
-    let mut next_unit_id = 0;
     let mut time = SystemTime::now();
     loop {
         let old_time = time;
@@ -82,36 +91,54 @@ fn main() -> std::io::Result<()> {
                     ClientCommand::PlayCard(x, y, card) => match card {
                         Card::Unit => {
                             let player = player.unwrap();
-                            game_state.dynamic_state.units.insert(
-                                next_unit_id,
-                                Unit {
+                            game_state.dynamic_state.entities.insert(
+                                rng.gen::<u64>(),
+                                Entity {
                                     owner: client_id,
-                                    path_pos: match player.direction {
-                                        Direction::Positive => 0.0,
-                                        Direction::Negative => {
-                                            game_state.static_state.path.len() as f32
-                                        }
+                                    movement: Kinematics::Path {
+                                        0: PathKinematics {
+                                            direction: player.direction.clone(),
+                                            speed: 1.0,
+                                            path_pos: match player.direction {
+                                                Direction::Positive => 0.0,
+                                                Direction::Negative => {
+                                                    game_state.static_state.path.len() as f32
+                                                }
+                                            },
+                                        },
                                     },
-                                    direction: player.direction.clone(),
                                     radius: 0.25,
-                                    speed: 1.0,
                                     health: 100.0,
                                     damage_animation: 0.0,
+                                    ranged_attack: None,
+                                    seconds_left_to_live: None,
                                 },
                             );
-                            next_unit_id += 1;
                         }
                         Card::Tower => {
                             println!("tower at {}, {}", x, y);
-                            game_state.dynamic_state.towers.insert(
+                            game_state.dynamic_state.entities.insert(
                                 rng.gen::<u64>(),
-                                Tower {
-                                    pos_x: x as i32,
-                                    pos_y: y as i32,
-                                    range: 3.0,
-                                    damage: 50.0,
-                                    cooldown: 0.5,
-                                    last_fire: 0.0,
+                                Entity {
+                                    owner: client_id,
+                                    movement: Kinematics::Static {
+                                        0: StaticKinematics {
+                                            pos: Vec2 {
+                                                x: x as f32,
+                                                y: y as f32,
+                                            },
+                                        },
+                                    },
+                                    radius: 0.25,
+                                    health: 100.0,
+                                    damage_animation: 0.0,
+                                    ranged_attack: Some(RangedAttack {
+                                        range: 3.0,
+                                        damage: 50.0,
+                                        cooldown: 0.5,
+                                        last_fire: 0.0,
+                                    }),
+                                    seconds_left_to_live: None,
                                 },
                             );
                         }
@@ -146,95 +173,111 @@ fn main() -> std::io::Result<()> {
             client.card_draw_counter += dt;
         }
 
-        let occupied: Vec<(u64, f32, f32)> = game_state
+        let mut new_entities = HashMap::<u64, Entity>::new();
+        game_state.dynamic_state.entities = game_state
             .dynamic_state
-            .units
-            .iter_mut()
-            .map(|(id, unit)| {
-                (
-                    id.clone(),
-                    unit.path_pos - unit.radius,
-                    unit.path_pos + unit.radius,
-                )
-            })
-            .collect();
-        game_state.dynamic_state.units.retain(|id, unit| {
-            let owner = game_state.dynamic_state.players.get(&unit.owner).unwrap();
-            let direction = owner.direction.to_f32();
-            if !occupied.iter().any(|(occupied_id, start, end)| {
-                occupied_id != id
-                    && *start < unit.path_pos + unit.radius * direction
-                    && *end > unit.path_pos + unit.radius * direction
-            }) {
-                unit.path_pos += unit.speed * direction * dt;
-            }
-            unit.damage_animation -= dt;
-            unit.health > 0.0
-        });
+            .entities
+            .iter()
+            .filter_map(|(id, entity)| {
+                let owner = game_state.dynamic_state.players.get(&entity.owner).unwrap();
+                let entity_pos = get_pos(entity);
+                let mut entity = entity.clone();
 
-        for (_id, tower) in game_state.dynamic_state.towers.iter_mut() {
-            let tower_pos = Vec2 {
-                x: tower.pos_x as f32,
-                y: tower.pos_y as f32,
-            };
-            if tower.last_fire < 0.0 {
-                if let Some((id, _unit)) = game_state
-                    .dynamic_state
-                    .units
-                    .iter()
-                    .filter(|(_, unit)| {
-                        (tower_pos - game_state.static_state.path_to_world_pos(unit.path_pos))
-                            .length()
-                            < tower.range
-                    })
-                    .min_by_key(|(_, unit)| {
-                        (game_state.static_state.path_to_world_pos(unit.path_pos) - tower_pos)
-                            .length_squared();
-                    })
-                {
-                    tower.last_fire = tower.cooldown;
-                    game_state.dynamic_state.projectiles.push(Projectile {
-                        pos: tower_pos,
-                        target_id: *id,
-                        speed: 5.0,
-                        velocity: Vec2::new(0.0, 0.0),
-                        damage: tower.damage,
-                        seconds_left_to_live: 3.0,
-                    });
+                match &mut entity.movement {
+                    Kinematics::Path(PathKinematics {
+                        path_pos,
+                        direction,
+                        speed,
+                    }) => {
+                        if !game_state.dynamic_state.entities.iter().any(
+                            |(other_id, other_entity)| {
+                                id != other_id
+                                    && (get_pos(other_entity) - entity_pos).length_squared()
+                                        < (entity.radius + other_entity.radius).powi(2)
+                            },
+                        ) {
+                            *path_pos += *speed * direction.to_f32() * dt;
+                        }
+                    }
+                    Kinematics::Static(StaticKinematics { pos: _ }) => {}
+                    Kinematics::Free(FreeKinematics {
+                        mut pos,
+                        mut velocity,
+                        target_entity_id,
+                        speed,
+                    }) => {
+                        velocity = target_entity_id
+                            .and_then(|target_entity_id| {
+                                game_state
+                                    .dynamic_state
+                                    .entities
+                                    .get(&target_entity_id)
+                                    .map(|target_entity| {
+                                        (get_pos(target_entity) - pos).normalize_or_zero() * *speed
+                                    })
+                            })
+                            .unwrap_or(velocity);
+
+                        pos += velocity * dt;
+                    }
+                };
+
+                match entity.ranged_attack.as_mut() {
+                    Some(RangedAttack {
+                        range,
+                        damage,
+                        cooldown,
+                        mut last_fire,
+                    }) => {
+                        if last_fire < 0.0 {
+                            if let Some((target_entity_id, _entity)) = game_state
+                                .dynamic_state
+                                .entities
+                                .iter()
+                                .filter(|(_, entity)| entity.owner != entity.owner)
+                                .map(|(id, entity)| {
+                                    (id, (entity_pos - get_pos(entity)).length_squared())
+                                })
+                                .min_by(|(_, length_squared_a), (_, length_squared_b)| {
+                                    length_squared_a.partial_cmp(length_squared_b).unwrap()
+                                })
+                                .filter(|(id, length_squared)| length_squared < &range.powi(2))
+                            {
+                                last_fire = *cooldown;
+                                new_entities.insert(
+                                    rng.gen::<u64>(),
+                                    Entity {
+                                        owner: entity.owner,
+                                        movement: Kinematics::Free(FreeKinematics {
+                                            pos: entity_pos,
+                                            velocity: Vec2::new(0.0, 0.0),
+                                            target_entity_id: Some(target_entity_id.clone()),
+                                            speed: 5.0,
+                                        }),
+                                        seconds_left_to_live: Some(3.0),
+                                        radius: PROJECTILE_RADIUS,
+                                        health: 1.0,
+                                        damage_animation: 0.0,
+                                        ranged_attack: None,
+                                    },
+                                );
+                            }
+                        } else {
+                            last_fire -= dt;
+                        }
+                    }
+                    None => {}
                 }
-            } else {
-                tower.last_fire -= dt;
-            }
-        }
-        game_state
-            .dynamic_state
-            .projectiles
-            .retain_mut(|projectile| {
-                if let Some(target_unit) = game_state
-                    .dynamic_state
-                    .units
-                    .get_mut(&projectile.target_id)
-                {
-                    projectile.velocity = (game_state
-                        .static_state
-                        .path_to_world_pos(target_unit.path_pos)
-                        - projectile.pos)
-                        .normalize_or_zero()
-                        * projectile.speed;
-                }
-                projectile.pos += projectile.velocity * dt;
-                for (_id, unit) in game_state.dynamic_state.units.iter_mut() {
-                    if (game_state.static_state.path_to_world_pos(unit.path_pos) - projectile.pos)
-                        .length()
-                        < unit.radius + PROJECTILE_RADIUS
-                    {
-                        unit.health -= projectile.damage;
-                        unit.damage_animation = 0.05;
-                        return false;
+
+                entity.damage_animation -= dt;
+                if let Some(seconds_left_to_live) = &mut entity.seconds_left_to_live {
+                    *seconds_left_to_live -= dt;
+                    if seconds_left_to_live < &mut 0.0 {
+                        entity.health = 0.0;
                     }
                 }
-                projectile.seconds_left_to_live -= dt;
-                projectile.seconds_left_to_live > 0.0
-            });
+                (entity.health > 0.0).then_some((id.clone(), entity))
+            })
+            .collect();
     }
 }
