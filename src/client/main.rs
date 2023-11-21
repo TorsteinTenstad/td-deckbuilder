@@ -1,7 +1,6 @@
 use common::card::Card;
 use common::*;
 use local_ip_address::local_ip;
-use macroquad::color::GREEN;
 use macroquad::prelude::Vec2;
 use macroquad::{
     color::{Color, BLACK, BLUE, GRAY, LIGHTGRAY, PURPLE, RED, WHITE, YELLOW},
@@ -17,7 +16,6 @@ use macroquad::{
 };
 mod draw;
 use draw::*;
-use rand::distributions::WeightedIndex;
 use std::net::{SocketAddr, UdpSocket};
 use std::time::SystemTime;
 

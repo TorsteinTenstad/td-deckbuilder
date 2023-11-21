@@ -1,7 +1,4 @@
-use macroquad::{
-    color,
-    prelude::{Color, Vec2},
-};
+use macroquad::prelude::{Color, Vec2};
 use serde::{Deserialize, Serialize};
 use std::{
     collections::HashMap,
@@ -138,6 +135,7 @@ pub struct Entity {
     pub health: f32,
     pub damage_animation: f32,
     pub ranged_attack: Option<RangedAttack>,
+    pub melee_attack: Option<MeleeAttack>,
     pub seconds_left_to_live: Option<f32>,
 }
 
@@ -175,6 +173,13 @@ pub struct PathKinematics {
 pub struct RangedAttack {
     pub range: f32,
     pub damage: f32,
-    pub cooldown: f32,
-    pub last_fire: f32,
+    pub fire_rate: f32,
+    pub cooldown_timer: f32,
+}
+
+#[derive(Clone, Serialize, Deserialize)]
+pub struct MeleeAttack {
+    pub damage: f32,
+    pub fire_rate: f32,
+    pub cooldown_timer: f32,
 }

@@ -4,12 +4,14 @@ use macroquad::{
     text::{camera_font_scale, draw_text_ex, measure_text, TextDimensions, TextParams},
 };
 
+#[allow(dead_code)]
 pub enum TextOriginX {
     Left,
     Center,
     Right,
 }
 
+#[allow(dead_code)]
 pub enum TextOriginY {
     Top,
     Center,
