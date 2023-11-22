@@ -52,10 +52,11 @@ pub struct Cards {
 impl Cards {
     pub fn new() -> Self {
         let mut deck = Vec::new();
-        for _ in 0..5 {
-            deck.push(Card::BasicGroundUnit);
+        for _ in 0..3 {
+            deck.push(Card::BasicUnit);
             deck.push(Card::BasicTower);
             deck.push(Card::BasicSwarmer);
+            deck.push(Card::BasicRanger);
         }
         shuffle_vec(&mut deck);
         Self {
@@ -495,9 +496,8 @@ async fn main() {
             if is_mouse_button_released(MouseButton::Left) {
                 if mouse_in_world
                     && match cards.hand.get(highlighted_card).unwrap() {
-                        Card::BasicGroundUnit => true,
                         Card::BasicTower => !mouse_over_occupied_tile,
-                        Card::BasicSwarmer => true,
+                        Card::BasicRanger | Card::BasicSwarmer | Card::BasicUnit => true,
                     }
                 {
                     commands.push(ClientCommand::PlayCard(
@@ -514,18 +514,11 @@ async fn main() {
                     highlighted_card_opt = Some(highlighted_card);
                     if mouse_in_world {
                         match cards.hand.get(highlighted_card).unwrap() {
-                            Card::BasicGroundUnit => {
-                                draw_out_of_hand_card(
-                                    cards.hand.get(highlighted_card).unwrap(),
-                                    mouse_position.x,
-                                    mouse_position.y,
-                                );
-                            }
                             Card::BasicTower => {
                                 preview_tower_pos =
                                     Some((mouse_world_x as i32, mouse_world_y as i32));
                             }
-                            Card::BasicSwarmer => {
+                            Card::BasicRanger | Card::BasicSwarmer | Card::BasicUnit => {
                                 draw_out_of_hand_card(
                                     cards.hand.get(highlighted_card).unwrap(),
                                     mouse_position.x,

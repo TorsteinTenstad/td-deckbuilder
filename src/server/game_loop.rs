@@ -144,7 +144,7 @@ pub fn update_entity(
             can_target,
             range,
             damage,
-            fire_rate,
+            attack_rate,
             cooldown_timer,
             die_on_hit,
         }) => {
@@ -166,7 +166,7 @@ pub fn update_entity(
                 .map(|(id, _signed_distance)| id)
             {
                 if *cooldown_timer <= 0.0 {
-                    *cooldown_timer = 1.0 / *fire_rate;
+                    *cooldown_timer = 1.0 / *attack_rate;
                     if *die_on_hit {
                         entity.health = 0.0;
                     };
