@@ -2,8 +2,9 @@ use common::card::Card;
 use common::*;
 use local_ip_address::local_ip;
 use macroquad::prelude::Vec2;
+use macroquad::shapes::draw_rectangle;
 use macroquad::{
-    color::{Color, BLACK, BLUE, GRAY, LIGHTGRAY, PURPLE, RED, WHITE, YELLOW},
+    color::{Color, BLACK, BLUE, GRAY, LIGHTGRAY, RED, WHITE, YELLOW},
     input::{
         is_key_down, is_mouse_button_down, is_mouse_button_released, mouse_position, MouseButton,
     },
@@ -67,7 +68,7 @@ impl Cards {
     }
 
     pub fn draw(&mut self) -> Option<Card> {
-        if self.hand.len() >= 7 {
+        if self.hand.len() >= 10 {
             return None;
         }
         if self.deck.is_empty() {
@@ -119,15 +120,15 @@ async fn main() {
     let mut cards = Cards::new();
     let mut card_draw_counter = 0;
     let card_border = 5.0;
-    let mut relative_splay_radius = 2.8;
-    let mut card_delta_angle = 0.23;
+    let mut relative_splay_radius = 4.5;
+    let mut card_delta_angle = 0.1;
     let card_visible_h = 0.8;
 
     let mut highlighted_card_opt: Option<usize> = None;
     let mut preview_tower_pos: Option<(i32, i32)> = None;
 
     let mut commands = Vec::<ClientCommand>::new();
-
+    let player_id = hash_client_addr(&udp_socket.local_addr().unwrap());
     loop {
         let old_time = time;
         time = SystemTime::now();
@@ -147,7 +148,7 @@ async fn main() {
                 match received_message {
                     Ok((amt, _src)) => {
                         let buf = &mut buf[..amt];
-                        let received_game_state = serde_json::from_slice::<GameState>(buf).unwrap();
+                        let received_game_state = serde_json::from_slice::<GameState>(buf).unwrap(); //TODO: handle error
                         if received_game_state.dynamic_state.server_tick
                             > dynamic_game_state.server_tick
                         {
@@ -168,8 +169,8 @@ async fn main() {
             }
             if let Some(server_card_draw_counter) = dynamic_game_state
                 .players
-                .get(&hash_client_addr(&udp_socket.local_addr().unwrap()))
-                .map(|client| client.card_draw_counter as i32)
+                .get(&player_id)
+                .map(|player| player.card_draw_counter as i32)
             {
                 while card_draw_counter < server_card_draw_counter {
                     card_draw_counter += 1;
@@ -320,6 +321,38 @@ async fn main() {
                 );
             }
         }
+
+        if let Some(player) = dynamic_game_state.players.get(&player_id) {
+            let margin = 10.0;
+            let outline_w = 5.0;
+            let w = 25.0;
+            let h = 100.0;
+            let draw_progress = player.card_draw_counter;
+            draw_progress_bar(
+                screen_width() - w - margin,
+                screen_height() - h - margin,
+                w,
+                h,
+                outline_w,
+                draw_progress,
+                YELLOW,
+                WHITE,
+                BLACK,
+            );
+            let energy_progress = player.energy_counter;
+            draw_progress_bar(
+                screen_width() - 2.0 * w - 2.0 * margin,
+                screen_height() - h - margin,
+                w,
+                h,
+                outline_w,
+                energy_progress,
+                BLUE,
+                WHITE,
+                BLACK,
+            );
+        }
+
         //Card drawing parameter adjustment
         {
             if is_key_down(macroquad::prelude::KeyCode::L) {
@@ -392,7 +425,7 @@ async fn main() {
                             .rotate(Vec2 { x: w, y: h } * (Vec2 { x: rel_x, y: rel_y } - offset))
                 };
 
-                let card_name_pos = get_on_card_pos(0.5, 0.1);
+                let card_name_pos = get_on_card_pos(0.5, 0.2);
                 draw_text_with_origin(
                     card.name(),
                     card_name_pos.x,
@@ -412,7 +445,7 @@ async fn main() {
                     energy_indicator_pos.x,
                     energy_indicator_pos.y,
                     w / 6.0,
-                    PURPLE,
+                    BLUE,
                 );
                 draw_text_with_origin(
                     format!("{}", card.energy_cost()).as_str(),

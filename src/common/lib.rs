@@ -36,6 +36,7 @@ pub struct ColorDef {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Player {
     pub card_draw_counter: f32,
+    pub energy_counter: f32,
     pub direction: Direction,
     #[serde(with = "Vec2Def")]
     pub unit_start_pos: Vec2,
@@ -47,6 +48,7 @@ impl Player {
     pub fn new(direction: Direction, unit_start_pos: Vec2, color: Color) -> Self {
         Self {
             card_draw_counter: 5.0,
+            energy_counter: 0.0,
             direction,
             unit_start_pos,
             color,

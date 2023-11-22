@@ -1,7 +1,6 @@
-use common::card::Card;
 use common::*;
 use image::GenericImageView;
-use macroquad::prelude::{Vec2, PURPLE, YELLOW};
+use macroquad::prelude::{PURPLE, YELLOW};
 use rand::Rng;
 use std::collections::HashMap;
 use std::net::{SocketAddr, UdpSocket};
@@ -122,7 +121,8 @@ fn main() -> std::io::Result<()> {
 
         game_state.dynamic_state.server_tick += 1;
         for (_client_id, client) in game_state.dynamic_state.players.iter_mut() {
-            client.card_draw_counter += dt;
+            client.card_draw_counter += dt / 5.0;
+            client.energy_counter += dt / 3.0;
         }
 
         let mut other_entities_external_effects = HashMap::<u64, EntityExternalEffects>::new();
