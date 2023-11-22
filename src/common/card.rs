@@ -12,9 +12,9 @@ pub enum Card {
 impl Card {
     pub fn name(&self) -> &'static str {
         match self {
-            Card::BasicTower => "Basic Tower",
-            Card::BasicGroundUnit => "Basic Ground Unit",
-            Card::BasicSwarmer => "Basic Swarmer",
+            Card::BasicTower => "Tower",
+            Card::BasicGroundUnit => "Ground Unit",
+            Card::BasicSwarmer => "Swarmer",
         }
     }
     pub fn energy_cost(&self) -> u32 {

@@ -2,8 +2,9 @@ use std::collections::HashMap;
 
 use common::{
     Behavior, BulletBehavior, Entity, EntityExternalEffects, MeleeAttack, PathUnitBehavior,
-    RangedAttack, StaticGameState,
+    RangedAttack, StaticGameState, SwarmerBehavior,
 };
+use macroquad::math::Vec2;
 
 pub fn update_entity(
     id: &u64,
@@ -58,6 +59,43 @@ pub fn update_entity(
 
             entity.pos += *velocity * dt;
         }
+        Behavior::Swarmer(SwarmerBehavior {
+            can_target,
+            target_entity_id,
+            speed,
+        }) => {
+                if let Some(target_entity) = target_entity_id.and_then(|id|other_entities.get(&id)) {
+                    let pos_delta = target_entity.pos - entity.pos;
+                    let range = if let Some(melee_attack) = &entity.melee_attack {
+                        melee_attack.range.unwrap_or(entity.radius)
+                    } else {
+                        entity.radius
+                    };
+                    if pos_delta.length() < target_entity.radius + range{
+                        let angle = 2.0* *speed*dt/(pos_delta.length()*std::f32::consts::PI);
+                        entity.pos = target_entity.pos + Vec2::from_angle(std::f32::consts::PI + angle).rotate(pos_delta);
+                    } else {
+                        entity.pos += pos_delta.normalize_or_zero() * *speed * dt
+                    }
+                
+            }else {
+                *target_entity_id = other_entities
+                    .iter()
+                    .filter(|(_, other_entity)| other_entity.owner != entity.owner)
+                    .filter(|(_, other_entity)|can_target.contains(&other_entity.tag))
+                    .map(|(id, other_entity)| {
+                        (
+                            id,
+                            (other_entity.pos - entity.pos).length_squared()
+                                - (entity.radius + other_entity.radius).powi(2),
+                        )
+                    })
+                    .min_by(|(_id_a, signed_distance_a), (_id_b, signed_distance_b)| {
+                        signed_distance_a.partial_cmp(signed_distance_b).unwrap()
+                    })
+                    .map(|(id, _signed_distance)| *id);
+            }
+        }
         Behavior::None => {}
     };
 
@@ -103,6 +141,8 @@ pub fn update_entity(
 
     match entity.melee_attack.as_mut() {
         Some(MeleeAttack {
+            can_target,
+            range,
             damage,
             fire_rate,
             cooldown_timer,
@@ -111,11 +151,12 @@ pub fn update_entity(
             if let Some(target_entity) = other_entities
                 .iter()
                 .filter(|(_id, other_entity)| other_entity.owner != entity.owner)
+                .filter(|(_id, other_entity)| can_target.contains(&other_entity.tag))
                 .map(|(id, other_entity)| {
                     (
                         id,
                         (other_entity.pos - entity.pos).length_squared()
-                            - (entity.radius + other_entity.radius).powi(2),
+                            - (range.unwrap_or(entity.radius) + other_entity.radius).powi(2),
                     )
                 })
                 .filter(|(_id, signed_distance)| signed_distance < &0.0)

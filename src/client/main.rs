@@ -55,6 +55,7 @@ impl Cards {
         for _ in 0..5 {
             deck.push(Card::BasicGroundUnit);
             deck.push(Card::BasicTower);
+            deck.push(Card::BasicSwarmer);
         }
         shuffle_vec(&mut deck);
         Self {
@@ -244,6 +245,11 @@ async fn main() {
             }
             for (_id, entity) in dynamic_game_state.entities.iter() {
                 let player = dynamic_game_state.players.get(&entity.owner);
+                let color = if entity.damage_animation > 0.0 {
+                    RED
+                } else {
+                    player.map_or(WHITE, |player| player.color)
+                };
                 match entity.tag {
                     EntityTag::Tower => {
                         draw_hexagon(
@@ -252,8 +258,8 @@ async fn main() {
                             20.0,
                             0.0,
                             false,
-                            player.map_or(WHITE, |player| player.color),
-                            player.map_or(WHITE, |player| player.color),
+                            color,
+                            color,
                         );
                     }
                     EntityTag::Unit | EntityTag::Swarmer => {
@@ -261,11 +267,7 @@ async fn main() {
                             f32_to_screen_x(entity.pos.x),
                             f32_to_screen_y(entity.pos.y),
                             to_screen_size(entity.radius),
-                            if entity.damage_animation > 0.0 {
-                                RED
-                            } else {
-                                player.map_or(WHITE, |player| player.color)
-                            },
+                            color,
                         );
                     }
                     EntityTag::Bullet => {
@@ -389,9 +391,22 @@ async fn main() {
                             .rotate(Vec2 { x: w, y: h } * (Vec2 { x: rel_x, y: rel_y } - offset))
                 };
 
+                let card_name_pos = get_on_card_pos(0.5, 0.1);
+                draw_text_with_origin(
+                    card.name(),
+                    card_name_pos.x,
+                    card_name_pos.y,
+                    20.0,
+                    rotation,
+                    BLACK,
+                    TextOriginX::Center,
+                    TextOriginY::Top,
+                );
+
                 let width_relative_margin = 0.1;
                 let energy_indicator_pos =
                     get_on_card_pos(width_relative_margin, width_relative_margin * w / h);
+
                 draw_circle(
                     energy_indicator_pos.x,
                     energy_indicator_pos.y,

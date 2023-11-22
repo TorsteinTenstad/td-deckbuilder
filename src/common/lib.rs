@@ -4,6 +4,7 @@ use std::{
     collections::HashMap,
     hash::{Hash, Hasher},
     net::SocketAddr,
+    vec,
 };
 pub mod card;
 use card::Card;
@@ -192,6 +193,8 @@ impl Entity {
             damage_animation: 0.0,
             ranged_attack: None,
             melee_attack: Some(MeleeAttack {
+                can_target: vec![EntityTag::Unit],
+                range: None,
                 damage,
                 fire_rate,
                 cooldown_timer: 0.0,
@@ -245,8 +248,8 @@ impl Entity {
             tag: EntityTag::Swarmer,
             owner,
             pos,
-            behavior: Behavior::Bullet(BulletBehavior {
-                velocity: Vec2::ZERO,
+            behavior: Behavior::Swarmer(SwarmerBehavior {
+                can_target: vec![EntityTag::Tower],
                 target_entity_id: None,
                 speed,
             }),
@@ -254,6 +257,8 @@ impl Entity {
             health,
             damage_animation: 0.0,
             melee_attack: Some(MeleeAttack {
+                range: Some(0.25),
+                can_target: vec![EntityTag::Tower],
                 damage,
                 fire_rate,
                 cooldown_timer: 0.0,
@@ -286,6 +291,8 @@ impl Entity {
             damage_animation: 0.0,
             ranged_attack: None,
             melee_attack: Some(MeleeAttack {
+                can_target: vec![EntityTag::Unit, EntityTag::Swarmer],
+                range: None,
                 damage,
                 fire_rate: 0.5,
                 cooldown_timer: 0.0,
@@ -303,6 +310,7 @@ pub struct EntityExternalEffects {
 pub enum Behavior {
     Bullet(BulletBehavior),
     PathUnit(PathUnitBehavior),
+    Swarmer(SwarmerBehavior),
     None,
 }
 
@@ -328,6 +336,13 @@ pub struct PathUnitBehavior {
 }
 
 #[derive(Clone, Serialize, Deserialize)]
+pub struct SwarmerBehavior {
+    pub can_target: Vec<EntityTag>,
+    pub target_entity_id: Option<u64>,
+    pub speed: f32,
+}
+
+#[derive(Clone, Serialize, Deserialize)]
 pub struct RangedAttack {
     pub can_target: Vec<EntityTag>,
     pub range: f32,
@@ -338,6 +353,8 @@ pub struct RangedAttack {
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct MeleeAttack {
+    pub can_target: Vec<EntityTag>,
+    pub range: Option<f32>,
     pub damage: f32,
     pub fire_rate: f32,
     pub cooldown_timer: f32,
