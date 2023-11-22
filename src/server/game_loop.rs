@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use common::{
     Entity, EntityExternalEffects, FreeKinematics, Kinematics, MeleeAttack, PathKinematics,
-    RangedAttack, StaticGameState, StaticKinematics, PROJECTILE_RADIUS,
+    RangedAttack, StaticGameState, StaticKinematics,
 };
 use macroquad::math::Vec2;
 
@@ -17,7 +17,7 @@ pub fn update_entity(
 ) -> Vec<(u64, Entity)> {
     let mut new_entities = Vec::new();
     let get_pos = |entity: &Entity| -> Vec2 {
-        match entity.movement {
+        match entity.kinematics {
             Kinematics::Path(PathKinematics { path_pos, .. }) => {
                 static_game_state.path_to_world_pos(path_pos)
             }
@@ -28,18 +28,31 @@ pub fn update_entity(
     let entity_pos = get_pos(entity);
     let mut entity = entity.clone();
 
-    match &mut entity.movement {
+    match &mut entity.kinematics {
         Kinematics::Path(PathKinematics {
             path_pos,
             direction,
             speed,
         }) => {
             if !other_entities.iter().any(|(other_id, other_entity)| {
-                id != other_id
-                    && (get_pos(other_entity) - entity_pos).length_squared()
-                        < (entity.radius + other_entity.radius).powi(2)
+                other_id != id
+                    && matches!(
+                        &other_entity.kinematics,
+                        Kinematics::Path(PathKinematics {
+                            path_pos: other_path_pos, ..
+                        }) if {
+                                let world_space_path_pos_delta =
+                                 direction.to_f32()*(other_path_pos-
+                                *path_pos )* static_game_state.path.len() as f32;
+                                world_space_path_pos_delta > 0.0 && world_space_path_pos_delta < (other_entity.radius + entity.radius)
+                        }
+                    )
             }) {
-                *path_pos += *speed * direction.to_f32() * dt;
+                print!("{}\t", path_pos);
+                *path_pos = (*path_pos * static_game_state.path.len() as f32
+                + *speed * direction.to_f32() * dt)
+                / static_game_state.path.len() as f32;
+                println!("{}", path_pos);
             }
         }
         Kinematics::Static(StaticKinematics { pos: _ }) => {}
@@ -63,6 +76,7 @@ pub fn update_entity(
 
     match entity.ranged_attack.as_mut() {
         Some(RangedAttack {
+            can_target,
             range,
             damage,
             fire_rate,
@@ -72,6 +86,12 @@ pub fn update_entity(
                 if let Some((target_entity_id, _entity)) = other_entities
                     .iter()
                     .filter(|(_, other_entity)| other_entity.owner != entity.owner)
+                    .filter(|(_, other_entity)| {
+                        other_entity
+                            .tag
+                            .as_ref()
+                            .is_some_and(|tag| can_target.contains(&tag))
+                    })
                     .map(|(id, other_entity)| {
                         (id, (entity_pos - get_pos(other_entity)).length_squared())
                     })
@@ -83,26 +103,13 @@ pub fn update_entity(
                     *cooldown_timer = 1.0 / *fire_rate;
                     new_entities.push((
                         rng.gen::<u64>(),
-                        Entity {
-                            owner: entity.owner,
-                            movement: Kinematics::Free(FreeKinematics {
-                                pos: entity_pos,
-                                velocity: Vec2::new(0.0, 0.0),
-                                target_entity_id: Some(target_entity_id.clone()),
-                                speed: 5.0,
-                            }),
-                            seconds_left_to_live: Some(3.0),
-                            radius: PROJECTILE_RADIUS,
-                            health: 1.0,
-                            damage_animation: 0.0,
-                            ranged_attack: None,
-                            melee_attack: Some(MeleeAttack {
-                                damage: *damage,
-                                fire_rate: 0.5,
-                                cooldown_timer: 0.0,
-                                die_on_hit: true,
-                            }),
-                        },
+                        Entity::new_bullet(
+                            entity.owner,
+                            entity_pos,
+                            *target_entity_id,
+                            *damage,
+                            5.0,
+                        ),
                     ));
                 }
             } else {

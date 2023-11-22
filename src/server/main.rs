@@ -84,60 +84,20 @@ fn main() -> std::io::Result<()> {
                             let player = player.unwrap();
                             game_state.dynamic_state.entities.insert(
                                 rng.gen::<u64>(),
-                                Entity {
-                                    owner: client_id,
-                                    movement: Kinematics::Path {
-                                        0: PathKinematics {
-                                            direction: player.direction.clone(),
-                                            speed: 1.0,
-                                            path_pos: match player.direction {
-                                                Direction::Positive => 0.0,
-                                                Direction::Negative => {
-                                                    game_state.static_state.path.len() as f32
-                                                }
-                                            },
-                                        },
-                                    },
-                                    radius: 0.25,
-                                    health: 100.0,
-                                    damage_animation: 0.0,
-                                    ranged_attack: None,
-                                    melee_attack: Some(MeleeAttack {
-                                        damage: 10.0,
-                                        fire_rate: 0.5,
-                                        cooldown_timer: 0.0,
-                                        die_on_hit: false,
-                                    }),
-                                    seconds_left_to_live: None,
-                                },
+                                Entity::new_unit(
+                                    client_id,
+                                    player.direction.clone(),
+                                    1.0,
+                                    100.0,
+                                    10.0,
+                                    1.0,
+                                ),
                             );
                         }
                         Card::Tower => {
-                            println!("tower at {}, {}", x, y);
                             game_state.dynamic_state.entities.insert(
                                 rng.gen::<u64>(),
-                                Entity {
-                                    owner: client_id,
-                                    movement: Kinematics::Static {
-                                        0: StaticKinematics {
-                                            pos: Vec2 {
-                                                x: x as i32 as f32,
-                                                y: y as i32 as f32,
-                                            },
-                                        },
-                                    },
-                                    radius: 0.25,
-                                    health: 100.0,
-                                    damage_animation: 0.0,
-                                    ranged_attack: Some(RangedAttack {
-                                        range: 3.0,
-                                        damage: 50.0,
-                                        fire_rate: 0.5,
-                                        cooldown_timer: 0.0,
-                                    }),
-                                    melee_attack: None,
-                                    seconds_left_to_live: None,
-                                },
+                                Entity::new_tower(client_id, x, y, 3.0, 100.0, 50.0, 0.5),
                             );
                         }
                     },

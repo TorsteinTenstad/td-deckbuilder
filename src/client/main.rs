@@ -196,7 +196,7 @@ async fn main() {
             .path
             .contains(&(mouse_world_x as i32, mouse_world_y as i32))
             || dynamic_game_state.entities.iter().any(|(_id, entity)| {
-                if let Kinematics::Static(StaticKinematics { pos }) = entity.movement {
+                if let Kinematics::Static(StaticKinematics { pos }) = entity.kinematics {
                     pos.x as i32 == mouse_world_x as i32 && pos.y as i32 == mouse_world_y as i32
                 } else {
                     false
@@ -207,7 +207,7 @@ async fn main() {
 
         if is_mouse_button_released(MouseButton::Left) {
             selected_entity = dynamic_game_state.entities.iter().find_map(|(id, entity)| {
-                if let Kinematics::Static(StaticKinematics { pos }) = entity.movement {
+                if let Kinematics::Static(StaticKinematics { pos }) = entity.kinematics {
                     (pos.x as i32 == mouse_world_x as i32 && pos.y as i32 == mouse_world_y as i32)
                         .then_some(id.clone())
                 } else {
@@ -250,7 +250,7 @@ async fn main() {
             }
             for (_id, unit) in dynamic_game_state.entities.iter() {
                 let player = dynamic_game_state.players.get(&unit.owner);
-                match unit.movement {
+                match unit.kinematics {
                     Kinematics::Static(StaticKinematics { pos }) => {
                         draw_hexagon(
                             f32_to_screen_x(pos.x),
