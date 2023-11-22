@@ -75,32 +75,20 @@ fn main() -> std::io::Result<()> {
             },
             Ok((amt, client_addr)) => {
                 let client_id = hash_client_addr(&client_addr);
-                let player = game_state.dynamic_state.players.get_mut(&client_id);
                 let command =
                     serde_json::from_slice::<ClientCommand>(&client_message_buf[..amt]).unwrap();
                 match command {
-                    ClientCommand::PlayCard(x, y, card) => match card {
-                        Card::Unit => {
-                            let player = player.unwrap();
-                            game_state.dynamic_state.entities.insert(
-                                rng.gen::<u64>(),
-                                Entity::new_unit(
-                                    client_id,
-                                    player.direction.clone(),
-                                    1.0,
-                                    100.0,
-                                    10.0,
-                                    1.0,
-                                ),
-                            );
-                        }
-                        Card::Tower => {
-                            game_state.dynamic_state.entities.insert(
-                                rng.gen::<u64>(),
-                                Entity::new_tower(client_id, x, y, 3.0, 100.0, 50.0, 0.5),
-                            );
-                        }
-                    },
+                    ClientCommand::PlayCard(x, y, card) => {
+                        let player = game_state
+                            .dynamic_state
+                            .players
+                            .get_mut(&client_id)
+                            .unwrap();
+                        game_state
+                            .dynamic_state
+                            .entities
+                            .insert(rng.gen(), card.to_entity(client_id, player, x, y));
+                    }
                     ClientCommand::JoinGame => {
                         let client_id = hash_client_addr(&client_addr);
                         if !client_addresses.contains_key(&client_id) {
@@ -112,7 +100,13 @@ fn main() -> std::io::Result<()> {
                                 let (available_direction, available_color) = available_config;
                                 game_state.dynamic_state.players.insert(
                                     client_id,
-                                    Player::new(available_direction.clone(), *available_color),
+                                    Player::new(
+                                        available_direction.clone(),
+                                        game_state.static_state.path_to_world_pos(
+                                            available_direction.to_start_path_pos(),
+                                        ),
+                                        *available_color,
+                                    ),
                                 );
                             }
                         }

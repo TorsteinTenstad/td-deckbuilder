@@ -53,8 +53,8 @@ impl Cards {
     pub fn new() -> Self {
         let mut deck = Vec::new();
         for _ in 0..5 {
-            deck.push(Card::Unit);
-            deck.push(Card::Tower);
+            deck.push(Card::BasicGroundUnit);
+            deck.push(Card::BasicTower);
         }
         shuffle_vec(&mut deck);
         Self {
@@ -196,24 +196,18 @@ async fn main() {
             .path
             .contains(&(mouse_world_x as i32, mouse_world_y as i32))
             || dynamic_game_state.entities.iter().any(|(_id, entity)| {
-                if let Kinematics::Static(StaticKinematics { pos }) = entity.kinematics {
-                    pos.x as i32 == mouse_world_x as i32 && pos.y as i32 == mouse_world_y as i32
-                } else {
-                    false
-                }
+                entity.tag == EntityTag::Tower
+                    && entity.pos.x as i32 == mouse_world_x as i32
+                    && entity.pos.y as i32 == mouse_world_y as i32
             });
 
         clear_background(BLACK);
 
         if is_mouse_button_released(MouseButton::Left) {
-            selected_entity = dynamic_game_state.entities.iter().find_map(|(id, entity)| {
-                if let Kinematics::Static(StaticKinematics { pos }) = entity.kinematics {
-                    (pos.x as i32 == mouse_world_x as i32 && pos.y as i32 == mouse_world_y as i32)
-                        .then_some(id.clone())
-                } else {
-                    None
-                }
-            });
+            selected_entity = dynamic_game_state
+                .entities
+                .iter()
+                .find_map(|(id, entity)| None);
         }
         //Send client commands
         {
@@ -248,13 +242,13 @@ async fn main() {
                     );
                 }
             }
-            for (_id, unit) in dynamic_game_state.entities.iter() {
-                let player = dynamic_game_state.players.get(&unit.owner);
-                match unit.kinematics {
-                    Kinematics::Static(StaticKinematics { pos }) => {
+            for (_id, entity) in dynamic_game_state.entities.iter() {
+                let player = dynamic_game_state.players.get(&entity.owner);
+                match entity.tag {
+                    EntityTag::Tower => {
                         draw_hexagon(
-                            f32_to_screen_x(pos.x),
-                            f32_to_screen_y(pos.y),
+                            f32_to_screen_x(entity.pos.x),
+                            f32_to_screen_y(entity.pos.y),
                             20.0,
                             0.0,
                             false,
@@ -262,27 +256,22 @@ async fn main() {
                             player.map_or(WHITE, |player| player.color),
                         );
                     }
-                    Kinematics::Path(PathKinematics {
-                        path_pos,
-                        direction: _,
-                        speed: _,
-                    }) => {
-                        let Vec2 { x, y } = static_game_state.path_to_world_pos(path_pos);
+                    EntityTag::Unit | EntityTag::Swarmer => {
                         draw_circle(
-                            f32_to_screen_x(x),
-                            f32_to_screen_y(y),
-                            to_screen_size(unit.radius),
-                            if unit.damage_animation > 0.0 {
+                            f32_to_screen_x(entity.pos.x),
+                            f32_to_screen_y(entity.pos.y),
+                            to_screen_size(entity.radius),
+                            if entity.damage_animation > 0.0 {
                                 RED
                             } else {
                                 player.map_or(WHITE, |player| player.color)
                             },
                         );
                     }
-                    Kinematics::Free(FreeKinematics { pos, .. }) => {
+                    EntityTag::Bullet => {
                         draw_circle(
-                            f32_to_screen_x(pos.x),
-                            f32_to_screen_y(pos.y),
+                            f32_to_screen_x(entity.pos.x),
+                            f32_to_screen_y(entity.pos.y),
                             to_screen_size(PROJECTILE_RADIUS),
                             GRAY,
                         );
@@ -491,8 +480,9 @@ async fn main() {
             if is_mouse_button_released(MouseButton::Left) {
                 if mouse_in_world
                     && match cards.hand.get(highlighted_card).unwrap() {
-                        Card::Unit => true,
-                        Card::Tower => !mouse_over_occupied_tile,
+                        Card::BasicGroundUnit => true,
+                        Card::BasicTower => !mouse_over_occupied_tile,
+                        Card::BasicSwarmer => true,
                     }
                 {
                     commands.push(ClientCommand::PlayCard(
@@ -509,16 +499,23 @@ async fn main() {
                     highlighted_card_opt = Some(highlighted_card);
                     if mouse_in_world {
                         match cards.hand.get(highlighted_card).unwrap() {
-                            Card::Unit => {
+                            Card::BasicGroundUnit => {
                                 draw_out_of_hand_card(
                                     cards.hand.get(highlighted_card).unwrap(),
                                     mouse_position.x,
                                     mouse_position.y,
                                 );
                             }
-                            Card::Tower => {
+                            Card::BasicTower => {
                                 preview_tower_pos =
                                     Some((mouse_world_x as i32, mouse_world_y as i32));
+                            }
+                            Card::BasicSwarmer => {
+                                draw_out_of_hand_card(
+                                    cards.hand.get(highlighted_card).unwrap(),
+                                    mouse_position.x,
+                                    mouse_position.y,
+                                );
                             }
                         }
                     } else {

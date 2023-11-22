@@ -4,7 +4,6 @@ use std::{
     collections::HashMap,
     hash::{Hash, Hasher},
     net::SocketAddr,
-    path,
 };
 pub mod card;
 use card::Card;
@@ -37,15 +36,18 @@ pub struct ColorDef {
 pub struct Player {
     pub card_draw_counter: f32,
     pub direction: Direction,
+    #[serde(with = "Vec2Def")]
+    pub unit_start_pos: Vec2,
     #[serde(with = "ColorDef")]
     pub color: Color,
 }
 
 impl Player {
-    pub fn new(direction: Direction, color: Color) -> Self {
+    pub fn new(direction: Direction, unit_start_pos: Vec2, color: Color) -> Self {
         Self {
             card_draw_counter: 5.0,
             direction,
+            unit_start_pos,
             color,
         }
     }
@@ -147,13 +149,16 @@ pub enum EntityTag {
     Tower,
     Unit,
     Swarmer,
+    Bullet,
 }
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct Entity {
-    pub tag: Option<EntityTag>,
+    pub tag: EntityTag,
     pub owner: u64,
-    pub kinematics: Kinematics,
+    pub behavior: Behavior,
+    #[serde(with = "Vec2Def")]
+    pub pos: Vec2,
     pub radius: f32,
     pub health: f32,
     pub damage_animation: f32,
@@ -172,15 +177,16 @@ impl Entity {
         fire_rate: f32,
     ) -> Self {
         Self {
-            tag: Some(EntityTag::Unit),
+            tag: EntityTag::Unit,
             owner,
-            kinematics: Kinematics::Path {
-                0: PathKinematics {
+            behavior: Behavior::PathUnit {
+                0: PathUnitBehavior {
                     path_pos: direction.to_start_path_pos(),
                     direction,
                     speed,
                 },
             },
+            pos: Vec2::ZERO,
             radius: 0.25,
             health,
             damage_animation: 0.0,
@@ -205,15 +211,12 @@ impl Entity {
         fire_rate: f32,
     ) -> Self {
         Self {
-            tag: Some(EntityTag::Tower),
+            tag: EntityTag::Tower,
             owner,
-            kinematics: Kinematics::Static {
-                0: StaticKinematics {
-                    pos: Vec2 {
-                        x: x as i32 as f32, // snap to grid
-                        y: y as i32 as f32, // snap to grid
-                    },
-                },
+            behavior: Behavior::None,
+            pos: Vec2 {
+                x: x as i32 as f32, // snap to grid
+                y: y as i32 as f32, // snap to grid
             },
             radius: 0.25,
             health,
@@ -230,6 +233,37 @@ impl Entity {
         }
     }
 
+    pub fn new_swarmer(
+        owner: u64,
+        pos: Vec2,
+        speed: f32,
+        health: f32,
+        damage: f32,
+        fire_rate: f32,
+    ) -> Self {
+        Self {
+            tag: EntityTag::Swarmer,
+            owner,
+            pos,
+            behavior: Behavior::Bullet(BulletBehavior {
+                velocity: Vec2::ZERO,
+                target_entity_id: None,
+                speed,
+            }),
+            radius: 0.15,
+            health,
+            damage_animation: 0.0,
+            melee_attack: Some(MeleeAttack {
+                damage,
+                fire_rate,
+                cooldown_timer: 0.0,
+                die_on_hit: false,
+            }),
+            ranged_attack: None,
+            seconds_left_to_live: None,
+        }
+    }
+
     pub fn new_bullet(
         owner: u64,
         pos: Vec2,
@@ -238,14 +272,14 @@ impl Entity {
         speed: f32,
     ) -> Self {
         Self {
-            tag: None,
+            tag: EntityTag::Bullet,
             owner,
-            kinematics: Kinematics::Free(FreeKinematics {
-                pos,
+            behavior: Behavior::Bullet(BulletBehavior {
                 velocity: Vec2::new(0.0, 0.0),
                 target_entity_id: Some(target_entity_id),
                 speed,
             }),
+            pos,
             seconds_left_to_live: Some(3.0),
             radius: PROJECTILE_RADIUS,
             health: 1.0,
@@ -266,10 +300,10 @@ pub struct EntityExternalEffects {
 }
 
 #[derive(Clone, Serialize, Deserialize)]
-pub enum Kinematics {
-    Static(StaticKinematics),
-    Free(FreeKinematics),
-    Path(PathKinematics),
+pub enum Behavior {
+    Bullet(BulletBehavior),
+    PathUnit(PathUnitBehavior),
+    None,
 }
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -279,9 +313,7 @@ pub struct StaticKinematics {
 }
 
 #[derive(Clone, Serialize, Deserialize)]
-pub struct FreeKinematics {
-    #[serde(with = "Vec2Def")]
-    pub pos: Vec2,
+pub struct BulletBehavior {
     #[serde(with = "Vec2Def")]
     pub velocity: Vec2,
     pub target_entity_id: Option<u64>,
@@ -289,7 +321,7 @@ pub struct FreeKinematics {
 }
 
 #[derive(Clone, Serialize, Deserialize)]
-pub struct PathKinematics {
+pub struct PathUnitBehavior {
     pub path_pos: f32,
     pub direction: Direction,
     pub speed: f32,

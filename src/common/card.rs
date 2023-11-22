@@ -1,22 +1,44 @@
 use serde::{Deserialize, Serialize};
 
+use crate::{Entity, Player};
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Card {
-    Tower,
-    Unit,
+    BasicTower,
+    BasicGroundUnit,
+    BasicSwarmer,
 }
 
 impl Card {
     pub fn name(&self) -> &'static str {
         match self {
-            Card::Tower => "Tower",
-            Card::Unit => "Unit",
+            Card::BasicTower => "Basic Tower",
+            Card::BasicGroundUnit => "Basic Ground Unit",
+            Card::BasicSwarmer => "Basic Swarmer",
         }
     }
     pub fn energy_cost(&self) -> u32 {
         match self {
-            Card::Tower => 5,
-            Card::Unit => 3,
+            Card::BasicTower => 3,
+            Card::BasicGroundUnit => 1,
+            Card::BasicSwarmer => 2,
+        }
+    }
+
+    pub fn to_entity(&self, player_id: u64, player: &Player, x: f32, y: f32) -> Entity {
+        match self {
+            Card::BasicTower => Entity::new_tower(player_id, x, y, 3.0, 100.0, 10.0, 2.0),
+            Card::BasicGroundUnit => {
+                Entity::new_unit(player_id, player.direction.clone(), 1.0, 100.0, 10.0, 2.0)
+            }
+            Card::BasicSwarmer => Entity::new_swarmer(
+                player_id,
+                player.unit_start_pos.clone(),
+                1.0,
+                20.0,
+                10.0,
+                2.0,
+            ),
         }
     }
 }

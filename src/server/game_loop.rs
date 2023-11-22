@@ -1,10 +1,9 @@
 use std::collections::HashMap;
 
 use common::{
-    Entity, EntityExternalEffects, FreeKinematics, Kinematics, MeleeAttack, PathKinematics,
-    RangedAttack, StaticGameState, StaticKinematics,
+    Behavior, BulletBehavior, Entity, EntityExternalEffects, MeleeAttack, PathUnitBehavior,
+    RangedAttack, StaticGameState,
 };
-use macroquad::math::Vec2;
 
 pub fn update_entity(
     id: &u64,
@@ -16,20 +15,10 @@ pub fn update_entity(
     rng: &mut impl rand::Rng,
 ) -> Vec<(u64, Entity)> {
     let mut new_entities = Vec::new();
-    let get_pos = |entity: &Entity| -> Vec2 {
-        match entity.kinematics {
-            Kinematics::Path(PathKinematics { path_pos, .. }) => {
-                static_game_state.path_to_world_pos(path_pos)
-            }
-            Kinematics::Static(StaticKinematics { pos }) => pos,
-            Kinematics::Free(FreeKinematics { pos, .. }) => pos,
-        }
-    };
-    let entity_pos = get_pos(entity);
     let mut entity = entity.clone();
 
-    match &mut entity.kinematics {
-        Kinematics::Path(PathKinematics {
+    match &mut entity.behavior {
+        Behavior::PathUnit(PathUnitBehavior {
             path_pos,
             direction,
             speed,
@@ -37,8 +26,8 @@ pub fn update_entity(
             if !other_entities.iter().any(|(other_id, other_entity)| {
                 other_id != id
                     && matches!(
-                        &other_entity.kinematics,
-                        Kinematics::Path(PathKinematics {
+                        &other_entity.behavior,
+                        Behavior::PathUnit(PathUnitBehavior {
                             path_pos: other_path_pos, ..
                         }) if {
                                 let world_space_path_pos_delta =
@@ -48,16 +37,13 @@ pub fn update_entity(
                         }
                     )
             }) {
-                print!("{}\t", path_pos);
                 *path_pos = (*path_pos * static_game_state.path.len() as f32
                 + *speed * direction.to_f32() * dt)
                 / static_game_state.path.len() as f32;
-                println!("{}", path_pos);
+                entity.pos = static_game_state.path_to_world_pos(*path_pos);
             }
         }
-        Kinematics::Static(StaticKinematics { pos: _ }) => {}
-        Kinematics::Free(FreeKinematics {
-            pos,
+        Behavior::Bullet(BulletBehavior {
             velocity,
             target_entity_id,
             speed,
@@ -65,13 +51,14 @@ pub fn update_entity(
             *velocity = target_entity_id
                 .and_then(|target_entity_id| {
                     other_entities.get(&target_entity_id).map(|target_entity| {
-                        (get_pos(target_entity) - *pos).normalize_or_zero() * *speed
+                        (target_entity.pos - entity.pos).normalize_or_zero() * *speed
                     })
                 })
                 .unwrap_or(*velocity);
 
-            *pos += *velocity * dt;
+            entity.pos += *velocity * dt;
         }
+        Behavior::None => {}
     };
 
     match entity.ranged_attack.as_mut() {
@@ -86,14 +73,9 @@ pub fn update_entity(
                 if let Some((target_entity_id, _entity)) = other_entities
                     .iter()
                     .filter(|(_, other_entity)| other_entity.owner != entity.owner)
-                    .filter(|(_, other_entity)| {
-                        other_entity
-                            .tag
-                            .as_ref()
-                            .is_some_and(|tag| can_target.contains(&tag))
-                    })
+                    .filter(|(_, other_entity)| can_target.contains(&other_entity.tag))
                     .map(|(id, other_entity)| {
-                        (id, (entity_pos - get_pos(other_entity)).length_squared())
+                        (id, (entity.pos - other_entity.pos).length_squared())
                     })
                     .filter(|(_id, length_squared)| length_squared < &range.powi(2))
                     .min_by(|(_, length_squared_a), (_, length_squared_b)| {
@@ -105,7 +87,7 @@ pub fn update_entity(
                         rng.gen::<u64>(),
                         Entity::new_bullet(
                             entity.owner,
-                            entity_pos,
+                            entity.pos,
                             *target_entity_id,
                             *damage,
                             5.0,
@@ -132,7 +114,7 @@ pub fn update_entity(
                 .map(|(id, other_entity)| {
                     (
                         id,
-                        (get_pos(other_entity) - entity_pos).length_squared()
+                        (other_entity.pos - entity.pos).length_squared()
                             - (entity.radius + other_entity.radius).powi(2),
                     )
                 })
