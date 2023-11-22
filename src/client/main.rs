@@ -10,12 +10,12 @@ use macroquad::{
     shapes::{
         draw_circle, draw_circle_lines, draw_hexagon, draw_rectangle_ex, DrawRectangleParams,
     },
-    text::{draw_text_ex, TextParams},
     window::request_new_screen_size,
     window::{clear_background, next_frame, screen_height, screen_width},
 };
 mod draw;
 use draw::*;
+use rand::Rng;
 use std::net::{SocketAddr, UdpSocket};
 use std::time::SystemTime;
 
@@ -34,6 +34,56 @@ const PATH_COLOR: Color = Color {
     b: 0.627,
     a: 1.0,
 };
+
+fn shuffle_vec<T>(vec: &mut Vec<T>) {
+    let mut rng = rand::thread_rng();
+    for i in 0..vec.len() {
+        let j = rng.gen_range(0..vec.len());
+        vec.swap(i, j);
+    }
+}
+
+pub struct Cards {
+    hand: Vec<Card>,
+    deck: Vec<Card>,
+    played: Vec<Card>,
+}
+
+impl Cards {
+    pub fn new() -> Self {
+        let mut deck = Vec::new();
+        for _ in 0..5 {
+            deck.push(Card::Unit);
+            deck.push(Card::Tower);
+        }
+        shuffle_vec(&mut deck);
+        Self {
+            hand: Vec::new(),
+            deck,
+            played: Vec::new(),
+        }
+    }
+
+    pub fn draw(&mut self) -> Option<Card> {
+        if self.hand.len() >= 7 {
+            return None;
+        }
+        if self.deck.is_empty() {
+            self.deck = self.played.clone();
+            self.played.clear();
+            shuffle_vec(&mut self.deck);
+        }
+        let card = self.deck.pop().unwrap();
+        self.hand.push(card.clone());
+        Some(card)
+    }
+
+    pub fn move_card_form_hand_to_played(&mut self, index: usize) -> Card {
+        let card = self.hand.remove(index);
+        self.played.push(card.clone());
+        card
+    }
+}
 
 #[macroquad::main("Client")]
 async fn main() {
@@ -60,12 +110,12 @@ async fn main() {
 
     let mut static_game_state = StaticGameState::new();
     let mut dynamic_game_state = DynamicGameState::new();
-    let mut cards = Vec::<Card>::new();
-    let mut card_draw_counter = 0;
 
     let mut time = SystemTime::now();
-    let mut selected_tower: Option<u64> = None;
+    let mut selected_entity: Option<u64> = None;
 
+    let mut cards = Cards::new();
+    let mut card_draw_counter = 0;
     let card_border = 5.0;
     let mut relative_splay_radius = 2.8;
     let mut card_delta_angle = 0.23;
@@ -121,9 +171,7 @@ async fn main() {
             {
                 while card_draw_counter < server_card_draw_counter {
                     card_draw_counter += 1;
-                    if cards.len() < 10 {
-                        cards.push(Card::Unit);
-                    }
+                    cards.draw();
                 }
             }
         }
@@ -158,7 +206,7 @@ async fn main() {
         clear_background(BLACK);
 
         if is_mouse_button_released(MouseButton::Left) {
-            selected_tower = dynamic_game_state.entities.iter().find_map(|(id, entity)| {
+            selected_entity = dynamic_game_state.entities.iter().find_map(|(id, entity)| {
                 if let Kinematics::Static(StaticKinematics { pos }) = entity.movement {
                     (pos.x as i32 == mouse_world_x as i32 && pos.y as i32 == mouse_world_y as i32)
                         .then_some(id.clone())
@@ -210,8 +258,8 @@ async fn main() {
                             20.0,
                             0.0,
                             false,
-                            BLUE,
-                            BLUE,
+                            player.map_or(WHITE, |player| player.color),
+                            player.map_or(WHITE, |player| player.color),
                         );
                     }
                     Kinematics::Path(PathKinematics {
@@ -407,7 +455,9 @@ async fn main() {
             let card_h = card_w * GOLDEN_RATIO;
             let x = screen_width() / 2.0
                 + ((relative_splay_radius * card_h) - (card_visible_h * card_h))
-                    * f32::sin((i as f32 - ((cards.len() - 1) as f32 / 2.0)) * card_delta_angle);
+                    * f32::sin(
+                        (i as f32 - ((cards.hand.len() - 1) as f32 / 2.0)) * card_delta_angle,
+                    );
             let y = screen_height();
             draw_card(
                 card,
@@ -424,12 +474,12 @@ async fn main() {
 
         let highlighted_card_opt_clone = highlighted_card_opt.clone();
         highlighted_card_opt = None;
-        for (i, card) in cards.iter().enumerate() {
+        for (i, card) in cards.hand.iter().enumerate() {
             let is_selected = highlighted_card_opt_clone == Some(i);
             let hovering = draw_in_hand_card_card(
                 card,
                 i,
-                cards.len(),
+                cards.hand.len(),
                 if is_selected { 0.5 } else { 1.0 },
                 is_selected && !is_mouse_button_down(MouseButton::Left),
             );
@@ -440,7 +490,7 @@ async fn main() {
         if let Some(highlighted_card) = highlighted_card_opt_clone {
             if is_mouse_button_released(MouseButton::Left) {
                 if mouse_in_world
-                    && match cards.get(highlighted_card).unwrap() {
+                    && match cards.hand.get(highlighted_card).unwrap() {
                         Card::Unit => true,
                         Card::Tower => !mouse_over_occupied_tile,
                     }
@@ -448,19 +498,20 @@ async fn main() {
                     commands.push(ClientCommand::PlayCard(
                         mouse_world_x,
                         mouse_world_y,
-                        cards.get(highlighted_card).unwrap().clone(),
+                        cards
+                            .move_card_form_hand_to_played(highlighted_card)
+                            .clone(),
                     ));
-                    cards.remove(highlighted_card);
                 }
                 preview_tower_pos = None;
             } else {
                 if is_mouse_button_down(MouseButton::Left) {
                     highlighted_card_opt = Some(highlighted_card);
                     if mouse_in_world {
-                        match cards.get(highlighted_card).unwrap() {
+                        match cards.hand.get(highlighted_card).unwrap() {
                             Card::Unit => {
                                 draw_out_of_hand_card(
-                                    cards.get(highlighted_card).unwrap(),
+                                    cards.hand.get(highlighted_card).unwrap(),
                                     mouse_position.x,
                                     mouse_position.y,
                                 );
@@ -472,14 +523,14 @@ async fn main() {
                         }
                     } else {
                         draw_out_of_hand_card(
-                            cards.get(highlighted_card).unwrap(),
+                            cards.hand.get(highlighted_card).unwrap(),
                             mouse_position.x,
                             mouse_position.y,
                         );
                     }
                 } else {
                     let hovering = draw_highlighted_card(
-                        cards.get(highlighted_card).unwrap(),
+                        cards.hand.get(highlighted_card).unwrap(),
                         highlighted_card,
                     );
                     if hovering {

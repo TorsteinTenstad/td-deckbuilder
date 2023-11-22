@@ -139,6 +139,10 @@ pub struct Entity {
     pub seconds_left_to_live: Option<f32>,
 }
 
+pub struct EntityExternalEffects {
+    pub health: f32,
+}
+
 #[derive(Clone, Serialize, Deserialize)]
 pub enum Kinematics {
     Static(StaticKinematics),
@@ -182,4 +186,5 @@ pub struct MeleeAttack {
     pub damage: f32,
     pub fire_rate: f32,
     pub cooldown_timer: f32,
+    pub die_on_hit: bool,
 }

@@ -106,6 +106,7 @@ fn main() -> std::io::Result<()> {
                                         damage: 10.0,
                                         fire_rate: 0.5,
                                         cooldown_timer: 0.0,
+                                        die_on_hit: false,
                                     }),
                                     seconds_left_to_live: None,
                                 },
@@ -120,8 +121,8 @@ fn main() -> std::io::Result<()> {
                                     movement: Kinematics::Static {
                                         0: StaticKinematics {
                                             pos: Vec2 {
-                                                x: x as f32,
-                                                y: y as f32,
+                                                x: x as i32 as f32,
+                                                y: y as i32 as f32,
                                             },
                                         },
                                     },
@@ -170,6 +171,7 @@ fn main() -> std::io::Result<()> {
             client.card_draw_counter += dt;
         }
 
+        let mut other_entities_external_effects = HashMap::<u64, EntityExternalEffects>::new();
         game_state.dynamic_state.entities = game_state
             .dynamic_state
             .entities
@@ -179,11 +181,18 @@ fn main() -> std::io::Result<()> {
                     &id,
                     &entity,
                     &game_state.dynamic_state.entities,
+                    &mut other_entities_external_effects,
                     dt,
                     &game_state.static_state,
                     &mut rng,
                 )
             })
             .collect();
+        for (id, entity) in game_state.dynamic_state.entities.iter_mut() {
+            if let Some(external_effects) = other_entities_external_effects.get(id) {
+                entity.health += external_effects.health;
+                entity.damage_animation = 0.1;
+            }
+        }
     }
 }
