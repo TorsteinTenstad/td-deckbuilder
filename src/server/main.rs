@@ -128,8 +128,8 @@ fn main() -> std::io::Result<()> {
 
         game_state.dynamic_state.server_tick += 1;
         for (_client_id, client) in game_state.dynamic_state.players.iter_mut() {
-            client.card_draw_counter += dt / 5.0;
-            client.energy_counter += dt / 3.0;
+            client.card_draw_counter += dt / 12.0;
+            client.energy_counter += dt / 8.0;
         }
 
         let mut other_entities_external_effects = HashMap::<u64, EntityExternalEffects>::new();

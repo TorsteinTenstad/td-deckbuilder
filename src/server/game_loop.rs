@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use common::{
     Behavior, BulletBehavior, Entity, EntityExternalEffects, MeleeAttack, PathUnitBehavior,
-    RangedAttack, StaticGameState, SwarmerBehavior,
+    RangedAttack, StaticGameState, Drone,
 };
 use macroquad::math::Vec2;
 
@@ -59,7 +59,7 @@ pub fn update_entity(
 
             entity.pos += *velocity * dt;
         }
-        Behavior::Swarmer(SwarmerBehavior {
+        Behavior::Drone(Drone {
             can_target,
             target_entity_id,
             speed,

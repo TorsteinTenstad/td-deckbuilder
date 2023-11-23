@@ -58,11 +58,15 @@ pub struct Cards {
 impl Cards {
     pub fn new() -> Self {
         let mut deck = Vec::new();
-        for _ in 0..3 {
-            deck.push(Card::BasicUnit);
-            deck.push(Card::BasicTower);
-            deck.push(Card::BasicSwarmer);
-            deck.push(Card::BasicRanger);
+        for (quantity, card) in vec![
+            (3, Card::BasicTower),
+            (5, Card::BasicUnit),
+            (3, Card::BasicDrone),
+            (3, Card::BasicRanger),
+        ] {
+            for _ in 0..quantity {
+                deck.push(card.clone());
+            }
         }
         shuffle_vec(&mut deck);
         Self {
@@ -172,6 +176,7 @@ async fn main() {
     let mut highlighted_card_opt: Option<usize> = None;
     let mut preview_tower_pos: Option<(f32, f32)> = None;
 
+    let mut frames_since_last_received = 0;
     let mut commands = Vec::<ClientCommand>::new();
     let player_id = hash_client_addr(&udp_socket.local_addr().unwrap());
     loop {
@@ -180,13 +185,13 @@ async fn main() {
         let dt = time.duration_since(old_time).unwrap().as_secs_f32();
         // Receive game state
         {
-            let mut did_receive = false;
+            frames_since_last_received += 1;
             loop {
-                let mut buf = [0; 5000];
+                let mut buf = [0; 20000];
                 let received_message = udp_socket.recv_from(&mut buf);
                 match received_message {
                     Ok((amt, _src)) => {
-                        did_receive = true;
+                        frames_since_last_received = 0;
                         let buf = &mut buf[..amt];
                         let log = |prefix: &str| {
                             let timestamp = SystemTime::now()
@@ -238,7 +243,7 @@ async fn main() {
                     player.energy_counter as i32,
                 );
             }
-            if !did_receive {
+            if frames_since_last_received > 60 {
                 send_join_game_command();
             }
         }
@@ -339,16 +344,15 @@ async fn main() {
                             color,
                         );
                     }
-                    EntityTag::Swarmer => {
+                    EntityTag::Drone => {
                         draw_poly(
                             f32_to_screen_x(entity.pos.x),
                             f32_to_screen_y(entity.pos.y),
                             3,
                             to_screen_size(entity.radius),
                             360.0
-                                * if let Behavior::Swarmer(SwarmerBehavior {
-                                    target_entity_id,
-                                    ..
+                                * if let Behavior::Drone(Drone {
+                                    target_entity_id, ..
                                 }) = entity.behavior
                                 {
                                     if let Some(target_entity) = target_entity_id
@@ -695,7 +699,7 @@ async fn main() {
                 if mouse_in_world
                     && match cards.hand.get(highlighted_card).unwrap() {
                         Card::BasicTower => !mouse_over_occupied_tile,
-                        Card::BasicRanger | Card::BasicSwarmer | Card::BasicUnit => true,
+                        Card::BasicRanger | Card::BasicDrone | Card::BasicUnit => true,
                     }
                 {
                     if let Some(card) = cards.try_move_card_form_hand_to_played(highlighted_card) {
@@ -718,7 +722,7 @@ async fn main() {
                                     mouse_world_y as i32 as f32 + 0.5,
                                 ));
                             }
-                            Card::BasicRanger | Card::BasicSwarmer | Card::BasicUnit => {
+                            Card::BasicRanger | Card::BasicDrone | Card::BasicUnit => {
                                 draw_out_of_hand_card(
                                     cards.hand.get(highlighted_card).unwrap(),
                                     mouse_position.x,

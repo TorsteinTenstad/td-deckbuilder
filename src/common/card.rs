@@ -6,7 +6,7 @@ use crate::{Entity, Player};
 pub enum Card {
     BasicTower,
     BasicUnit,
-    BasicSwarmer,
+    BasicDrone,
     BasicRanger,
 }
 
@@ -15,7 +15,7 @@ impl Card {
         match self {
             Card::BasicTower => "Tower",
             Card::BasicUnit => "Ground Unit",
-            Card::BasicSwarmer => "Swarmer",
+            Card::BasicDrone => "Drone",
             Card::BasicRanger => "Ranger",
         }
     }
@@ -23,14 +23,14 @@ impl Card {
         match self {
             Card::BasicTower => 3,
             Card::BasicUnit => 1,
-            Card::BasicSwarmer => 2,
+            Card::BasicDrone => 1,
             Card::BasicRanger => 1,
         }
     }
 
     pub fn to_entity(&self, player_id: u64, player: &Player, x: f32, y: f32) -> Entity {
         match self {
-            Card::BasicTower => Entity::new_tower(player_id, x, y, 3.0, 100.0, 10.0, 0.5),
+            Card::BasicTower => Entity::new_tower(player_id, x, y, 3.0, 100.0, 2.0, 0.5),
             Card::BasicUnit => Entity::new_unit(
                 player_id,
                 player.direction.clone(),
@@ -42,12 +42,12 @@ impl Card {
                 0.0,
                 0.0,
             ),
-            Card::BasicSwarmer => Entity::new_swarmer(
+            Card::BasicDrone => Entity::new_drone(
                 player_id,
                 player.unit_start_pos.clone(),
                 1.0,
-                20.0,
-                10.0,
+                25.0,
+                1.0,
                 0.5,
             ),
             Card::BasicRanger => Entity::new_unit(
@@ -58,7 +58,7 @@ impl Card {
                 0.0,
                 0.0,
                 3.0,
-                10.0,
+                5.0,
                 0.5,
             ),
         }

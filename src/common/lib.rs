@@ -154,7 +154,7 @@ impl Direction {
 pub enum EntityTag {
     Tower,
     Unit,
-    Swarmer,
+    Drone,
     Bullet,
 }
 
@@ -200,7 +200,7 @@ impl Entity {
             health,
             damage_animation: 0.0,
             ranged_attack: Some(RangedAttack {
-                can_target: vec![EntityTag::Unit, EntityTag::Swarmer],
+                can_target: vec![EntityTag::Unit, EntityTag::Drone],
                 range,
                 damage: ranged_damage,
                 fire_interval,
@@ -250,7 +250,7 @@ impl Entity {
         }
     }
 
-    pub fn new_swarmer(
+    pub fn new_drone(
         owner: u64,
         pos: Vec2,
         speed: f32,
@@ -259,10 +259,10 @@ impl Entity {
         attack_interval: f32,
     ) -> Self {
         Self {
-            tag: EntityTag::Swarmer,
+            tag: EntityTag::Drone,
             owner,
             pos,
-            behavior: Behavior::Swarmer(SwarmerBehavior {
+            behavior: Behavior::Drone(Drone {
                 can_target: vec![EntityTag::Tower],
                 target_entity_id: None,
                 speed,
@@ -305,7 +305,7 @@ impl Entity {
             damage_animation: 0.0,
             ranged_attack: None,
             melee_attack: Some(MeleeAttack {
-                can_target: vec![EntityTag::Unit, EntityTag::Swarmer],
+                can_target: vec![EntityTag::Unit, EntityTag::Drone],
                 range: None,
                 damage,
                 attack_interval: 0.5,
@@ -324,7 +324,7 @@ pub struct EntityExternalEffects {
 pub enum Behavior {
     Bullet(BulletBehavior),
     PathUnit(PathUnitBehavior),
-    Swarmer(SwarmerBehavior),
+    Drone(Drone),
     None,
 }
 
@@ -350,7 +350,7 @@ pub struct PathUnitBehavior {
 }
 
 #[derive(Clone, Serialize, Deserialize)]
-pub struct SwarmerBehavior {
+pub struct Drone {
     pub can_target: Vec<EntityTag>,
     pub target_entity_id: Option<u64>,
     pub speed: f32,
