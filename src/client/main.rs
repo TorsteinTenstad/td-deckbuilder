@@ -2,6 +2,8 @@ use common::card::Card;
 use common::*;
 use local_ip_address::local_ip;
 use macroquad::prelude::Vec2;
+use macroquad::shapes::{draw_poly, draw_triangle};
+use macroquad::texture::{draw_texture_ex, load_texture, DrawTextureParams, Texture2D};
 use macroquad::{
     color::{Color, BLACK, BLUE, GRAY, LIGHTGRAY, RED, WHITE, YELLOW},
     input::{
@@ -16,6 +18,7 @@ use macroquad::{
 mod draw;
 use draw::*;
 use rand::Rng;
+use std::collections::HashMap;
 use std::net::{SocketAddr, UdpSocket};
 use std::time::SystemTime;
 
@@ -115,6 +118,23 @@ impl Cards {
 #[macroquad::main("Client")]
 async fn main() {
     request_new_screen_size(1280.0, 720.0);
+    let mut textures: HashMap<String, Texture2D> = HashMap::new();
+    for texture_id in vec![
+        "hourglass",
+        "hourglass_bow",
+        "hourglass_sword",
+        "range",
+        "shield",
+        "sword",
+        "bow",
+    ] {
+        textures.insert(
+            texture_id.to_string(),
+            load_texture(format!("assets/textures/{}.png", texture_id).as_str())
+                .await
+                .unwrap(),
+        );
+    }
 
     let local_ip = local_ip().unwrap();
 
@@ -311,11 +331,36 @@ async fn main() {
                             color,
                         );
                     }
-                    EntityTag::Unit | EntityTag::Swarmer => {
+                    EntityTag::Unit => {
                         draw_circle(
                             f32_to_screen_x(entity.pos.x),
                             f32_to_screen_y(entity.pos.y),
                             to_screen_size(entity.radius),
+                            color,
+                        );
+                    }
+                    EntityTag::Swarmer => {
+                        draw_poly(
+                            f32_to_screen_x(entity.pos.x),
+                            f32_to_screen_y(entity.pos.y),
+                            3,
+                            to_screen_size(entity.radius),
+                            360.0
+                                * if let Behavior::Swarmer(SwarmerBehavior {
+                                    target_entity_id,
+                                    ..
+                                }) = entity.behavior
+                                {
+                                    if let Some(target_entity) = target_entity_id
+                                        .and_then(|id| dynamic_game_state.entities.get(&id))
+                                    {
+                                        (target_entity.pos - entity.pos).angle_between(Vec2::NEG_X)
+                                    } else {
+                                        0.0
+                                    }
+                                } else {
+                                    0.0
+                                },
                             color,
                         );
                     }
@@ -474,7 +519,7 @@ async fn main() {
                             .rotate(Vec2 { x: w, y: h } * (Vec2 { x: rel_x, y: rel_y } - offset))
                 };
 
-                let card_name_pos = get_on_card_pos(0.5, 0.2);
+                let card_name_pos = get_on_card_pos(0.9, 0.1);
                 draw_text_with_origin(
                     card.name(),
                     card_name_pos.x,
@@ -482,7 +527,7 @@ async fn main() {
                     20.0,
                     rotation,
                     BLACK,
-                    TextOriginX::Center,
+                    TextOriginX::Right,
                     TextOriginY::Top,
                 );
 
@@ -490,10 +535,81 @@ async fn main() {
                 let energy_indicator_pos =
                     get_on_card_pos(width_relative_margin, width_relative_margin * w / h);
 
+                let mut icons: Vec<(&str, f32)> = Vec::new();
+                let entity = card.to_entity(
+                    0,
+                    &Player::new(Direction::Positive, Vec2::ZERO, BLACK),
+                    0.0,
+                    0.0,
+                );
+
+                icons.push(("shield", entity.health));
+                if let Some(RangedAttack {
+                    range,
+                    damage,
+                    fire_interval,
+                    ..
+                }) = entity.ranged_attack
+                {
+                    icons.push(("bow", damage));
+                    icons.push(("range", range));
+                    icons.push(("hourglass_bow", fire_interval));
+                }
+                if let Some(MeleeAttack {
+                    damage,
+                    attack_interval,
+                    ..
+                }) = entity.melee_attack
+                {
+                    icons.push(("sword", damage));
+                    icons.push(("hourglass_sword", attack_interval));
+                };
+
+                for (i, (texture_id, value)) in
+                    icons.iter().filter(|(_, value)| *value > 0.001).enumerate()
+                {
+                    let width_relative_icon_size = 0.2;
+                    let on_card_icon_pos = get_on_card_pos(
+                        width_relative_margin,
+                        2.0 * width_relative_margin + i as f32 * (width_relative_icon_size),
+                    );
+                    let on_card_value_pos = get_on_card_pos(
+                        2.0 * width_relative_margin + width_relative_icon_size,
+                        2.0 * width_relative_margin
+                            + (i as f32 + 0.25) * (width_relative_icon_size),
+                    );
+                    let icon_size = Vec2::splat(w * width_relative_icon_size);
+                    let texture = textures
+                        .get(*texture_id)
+                        .expect(format!("Texture \"{}\" not found", texture_id).as_str());
+                    draw_texture_ex(
+                        texture,
+                        on_card_icon_pos.x,
+                        on_card_icon_pos.y,
+                        WHITE,
+                        DrawTextureParams {
+                            rotation,
+                            dest_size: Some(icon_size),
+                            pivot: Some(on_card_icon_pos + icon_size / 2.0),
+                            ..Default::default()
+                        },
+                    );
+                    draw_text_with_origin(
+                        format!("{}", value).as_str(),
+                        on_card_value_pos.x,
+                        on_card_value_pos.y,
+                        26.0,
+                        rotation,
+                        BLACK,
+                        TextOriginX::Left,
+                        TextOriginY::AbsoluteCenter,
+                    );
+                }
+
                 draw_circle(
                     energy_indicator_pos.x,
                     energy_indicator_pos.y,
-                    w / 6.0,
+                    w / 8.0,
                     BLUE,
                 );
                 draw_text_with_origin(
