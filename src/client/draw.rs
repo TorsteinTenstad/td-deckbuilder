@@ -72,14 +72,15 @@ pub fn draw_progress_bar(
     w: f32,
     h: f32,
     outline_w: f32,
-    progress: f32,
+    bar_progress: f32,
+    count: i32,
     fill_color: Color,
     outline_color: Color,
     background_color: Color,
 ) {
     let inner_w = w - 2.0 * outline_w;
     let inner_h = h - 2.0 * outline_w;
-    let filled_h = inner_h * progress.fract();
+    let filled_h = inner_h * bar_progress.fract();
     draw_rectangle(x, y, w, h, outline_color);
     draw_rectangle(
         x + outline_w,
@@ -96,7 +97,7 @@ pub fn draw_progress_bar(
         fill_color,
     );
     draw_text_with_origin(
-        format!("{}", progress as i32).as_str(),
+        format!("{}", count).as_str(),
         x + w / 2.0,
         y - outline_w,
         24.0,

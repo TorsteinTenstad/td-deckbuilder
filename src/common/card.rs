@@ -19,7 +19,7 @@ impl Card {
             Card::BasicRanger => "Ranger",
         }
     }
-    pub fn energy_cost(&self) -> u32 {
+    pub fn energy_cost(&self) -> i32 {
         match self {
             Card::BasicTower => 3,
             Card::BasicUnit => 1,

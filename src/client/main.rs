@@ -45,6 +45,9 @@ fn shuffle_vec<T>(vec: &mut Vec<T>) {
 }
 
 pub struct Cards {
+    card_draw_counter: i32,
+    energy_counter: i32,
+    energy: i32,
     hand: Vec<Card>,
     deck: Vec<Card>,
     played: Vec<Card>,
@@ -61,9 +64,27 @@ impl Cards {
         }
         shuffle_vec(&mut deck);
         Self {
+            card_draw_counter: 0,
+            energy_counter: 0,
+            energy: 0,
             hand: Vec::new(),
             deck,
             played: Vec::new(),
+        }
+    }
+
+    pub fn sync_with_server_counters(
+        &mut self,
+        server_card_draw_counter: i32,
+        server_energy_counter: i32,
+    ) {
+        while self.card_draw_counter < server_card_draw_counter {
+            self.draw();
+            self.card_draw_counter += 1;
+        }
+        while self.energy_counter < server_energy_counter {
+            self.energy = (self.energy + 1).min(10);
+            self.energy_counter += 1;
         }
     }
 
@@ -81,10 +102,14 @@ impl Cards {
         Some(card)
     }
 
-    pub fn move_card_form_hand_to_played(&mut self, index: usize) -> Card {
+    pub fn try_move_card_form_hand_to_played(&mut self, index: usize) -> Option<Card> {
+        if self.energy < self.hand.get(index).unwrap().energy_cost() {
+            return None;
+        }
         let card = self.hand.remove(index);
+        self.energy -= card.energy_cost();
         self.played.push(card.clone());
-        card
+        Some(card)
     }
 }
 
@@ -118,7 +143,6 @@ async fn main() {
     let mut selected_entity: Option<u64> = None;
 
     let mut cards = Cards::new();
-    let mut card_draw_counter = 0;
     let card_border = 5.0;
     let mut relative_splay_radius = 4.5;
     let mut card_delta_angle = 0.1;
@@ -167,15 +191,11 @@ async fn main() {
                     },
                 }
             }
-            if let Some(server_card_draw_counter) = dynamic_game_state
-                .players
-                .get(&player_id)
-                .map(|player| player.card_draw_counter as i32)
-            {
-                while card_draw_counter < server_card_draw_counter {
-                    card_draw_counter += 1;
-                    cards.draw();
-                }
+            if let Some(player) = dynamic_game_state.players.get(&player_id) {
+                cards.sync_with_server_counters(
+                    player.card_draw_counter as i32,
+                    player.energy_counter as i32,
+                );
             }
         }
 
@@ -335,6 +355,7 @@ async fn main() {
                 h,
                 outline_w,
                 draw_progress,
+                cards.hand.len() as i32,
                 YELLOW,
                 WHITE,
                 BLACK,
@@ -347,6 +368,7 @@ async fn main() {
                 h,
                 outline_w,
                 energy_progress,
+                cards.energy,
                 BLUE,
                 WHITE,
                 BLACK,
@@ -533,13 +555,13 @@ async fn main() {
                         Card::BasicRanger | Card::BasicSwarmer | Card::BasicUnit => true,
                     }
                 {
-                    commands.push(ClientCommand::PlayCard(
-                        mouse_world_x,
-                        mouse_world_y,
-                        cards
-                            .move_card_form_hand_to_played(highlighted_card)
-                            .clone(),
-                    ));
+                    if let Some(card) = cards.try_move_card_form_hand_to_played(highlighted_card) {
+                        commands.push(ClientCommand::PlayCard(
+                            mouse_world_x,
+                            mouse_world_y,
+                            card.clone(),
+                        ));
+                    }
                 }
                 preview_tower_pos = None;
             } else {
