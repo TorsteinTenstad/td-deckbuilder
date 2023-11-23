@@ -2,7 +2,6 @@ use common::card::Card;
 use common::*;
 use local_ip_address::local_ip;
 use macroquad::prelude::Vec2;
-use macroquad::shapes::draw_rectangle;
 use macroquad::{
     color::{Color, BLACK, BLUE, GRAY, LIGHTGRAY, RED, WHITE, YELLOW},
     input::{
@@ -172,7 +171,27 @@ async fn main() {
                 match received_message {
                     Ok((amt, _src)) => {
                         let buf = &mut buf[..amt];
-                        let received_game_state = serde_json::from_slice::<GameState>(buf).unwrap(); //TODO: handle error
+                        let log = |prefix: &str| {
+                            let timestamp = SystemTime::now()
+                                .duration_since(SystemTime::UNIX_EPOCH)
+                                .unwrap()
+                                .as_secs();
+                            std::fs::write(
+                                format!("{}client_recv_{}.json", prefix, timestamp),
+                                &buf,
+                            )
+                            .unwrap();
+                        };
+                        if is_key_down(macroquad::prelude::KeyCode::F11) {
+                            log("");
+                        }
+                        let deserialization_result = serde_json::from_slice::<GameState>(buf); //TODO: handle error
+                        if let Err(e) = deserialization_result {
+                            log("error_");
+                            dbg!(e);
+                            panic!()
+                        }
+                        let received_game_state = deserialization_result.unwrap();
                         if received_game_state.dynamic_state.server_tick
                             > dynamic_game_state.server_tick
                         {
@@ -226,14 +245,12 @@ async fn main() {
 
         if is_mouse_button_released(MouseButton::Left) {
             selected_entity_id = dynamic_game_state.entities.iter().find_map(|(id, entity)| {
-                ((dbg!(
-                    entity.pos
-                        - Vec2 {
-                            x: mouse_world_x,
-                            y: mouse_world_y,
-                        }
-                )
-                .length())
+                ((entity.pos
+                    - Vec2 {
+                        x: mouse_world_x,
+                        y: mouse_world_y,
+                    })
+                .length()
                     < entity.radius)
                     .then(|| *id)
             });

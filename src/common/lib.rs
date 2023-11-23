@@ -177,10 +177,10 @@ impl Entity {
         speed: f32,
         health: f32,
         damage: f32,
-        attack_rate: f32,
+        attack_interval: f32,
         range: f32,
         ranged_damage: f32,
-        fire_rate: f32,
+        fire_interval: f32,
     ) -> Self {
         Self {
             tag: EntityTag::Unit,
@@ -200,14 +200,14 @@ impl Entity {
                 can_target: vec![EntityTag::Unit, EntityTag::Swarmer],
                 range,
                 damage: ranged_damage,
-                fire_rate,
+                fire_interval,
                 cooldown_timer: 0.0,
             }),
             melee_attack: Some(MeleeAttack {
                 can_target: vec![EntityTag::Unit],
                 range: None,
                 damage,
-                attack_rate,
+                attack_interval,
                 cooldown_timer: 0.0,
                 die_on_hit: false,
             }),
@@ -222,7 +222,7 @@ impl Entity {
         range: f32,
         health: f32,
         damage: f32,
-        fire_rate: f32,
+        fire_interval: f32,
     ) -> Self {
         Self {
             tag: EntityTag::Tower,
@@ -239,7 +239,7 @@ impl Entity {
                 can_target: vec![EntityTag::Unit],
                 range,
                 damage,
-                fire_rate,
+                fire_interval,
                 cooldown_timer: 0.0,
             }),
             melee_attack: None,
@@ -253,7 +253,7 @@ impl Entity {
         speed: f32,
         health: f32,
         damage: f32,
-        attack_rate: f32,
+        attack_interval: f32,
     ) -> Self {
         Self {
             tag: EntityTag::Swarmer,
@@ -271,7 +271,7 @@ impl Entity {
                 range: Some(0.25),
                 can_target: vec![EntityTag::Tower],
                 damage,
-                attack_rate,
+                attack_interval,
                 cooldown_timer: 0.0,
                 die_on_hit: false,
             }),
@@ -305,7 +305,7 @@ impl Entity {
                 can_target: vec![EntityTag::Unit, EntityTag::Swarmer],
                 range: None,
                 damage,
-                attack_rate: 0.5,
+                attack_interval: 0.5,
                 cooldown_timer: 0.0,
                 die_on_hit: true,
             }),
@@ -358,7 +358,7 @@ pub struct RangedAttack {
     pub can_target: Vec<EntityTag>,
     pub range: f32,
     pub damage: f32,
-    pub fire_rate: f32,
+    pub fire_interval: f32,
     pub cooldown_timer: f32,
 }
 
@@ -367,7 +367,7 @@ pub struct MeleeAttack {
     pub can_target: Vec<EntityTag>,
     pub range: Option<f32>,
     pub damage: f32,
-    pub attack_rate: f32,
+    pub attack_interval: f32,
     pub cooldown_timer: f32,
     pub die_on_hit: bool,
 }

@@ -30,14 +30,14 @@ impl Card {
 
     pub fn to_entity(&self, player_id: u64, player: &Player, x: f32, y: f32) -> Entity {
         match self {
-            Card::BasicTower => Entity::new_tower(player_id, x, y, 3.0, 100.0, 10.0, 2.0),
+            Card::BasicTower => Entity::new_tower(player_id, x, y, 3.0, 100.0, 10.0, 0.5),
             Card::BasicUnit => Entity::new_unit(
                 player_id,
                 player.direction.clone(),
                 1.0,
                 100.0,
                 10.0,
-                2.0,
+                0.5,
                 0.0,
                 0.0,
                 0.0,
@@ -48,7 +48,7 @@ impl Card {
                 1.0,
                 20.0,
                 10.0,
-                2.0,
+                0.5,
             ),
             Card::BasicRanger => Entity::new_unit(
                 player_id,
@@ -59,7 +59,7 @@ impl Card {
                 0.0,
                 3.0,
                 10.0,
-                2.0,
+                0.5,
             ),
         }
     }

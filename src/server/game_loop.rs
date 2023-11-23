@@ -104,7 +104,7 @@ pub fn update_entity(
             can_target,
             range,
             damage,
-            fire_rate,
+            fire_interval,
             cooldown_timer,
         }) => {
             if *cooldown_timer <= 0.0 {
@@ -120,7 +120,7 @@ pub fn update_entity(
                         length_squared_a.partial_cmp(length_squared_b).unwrap()
                     })
                 {
-                    *cooldown_timer = 1.0 / *fire_rate;
+                    *cooldown_timer = *fire_interval;
                     new_entities.push((
                         rng.gen::<u64>(),
                         Entity::new_bullet(
@@ -144,7 +144,7 @@ pub fn update_entity(
             can_target,
             range,
             damage,
-            attack_rate,
+            attack_interval,
             cooldown_timer,
             die_on_hit,
         }) => {
@@ -166,7 +166,7 @@ pub fn update_entity(
                 .map(|(id, _signed_distance)| id)
             {
                 if *cooldown_timer <= 0.0 {
-                    *cooldown_timer = 1.0 / *attack_rate;
+                    *cooldown_timer = *attack_interval;
                     if *die_on_hit {
                         entity.health = 0.0;
                     };
