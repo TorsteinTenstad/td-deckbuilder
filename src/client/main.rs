@@ -126,14 +126,16 @@ async fn main() {
         .unwrap();
     udp_socket.set_nonblocking(true).unwrap();
 
-    udp_socket
-        .send_to(
-            &serde_json::to_string(&ClientCommand::JoinGame)
-                .unwrap()
-                .as_bytes(),
-            SERVER_ADDR,
-        )
-        .unwrap();
+    let send_join_game_command = || -> () {
+        udp_socket
+            .send_to(
+                &serde_json::to_string(&ClientCommand::JoinGame)
+                    .unwrap()
+                    .as_bytes(),
+                SERVER_ADDR,
+            )
+            .unwrap();
+    };
 
     let mut static_game_state = StaticGameState::new();
     let mut dynamic_game_state = DynamicGameState::new();
@@ -156,20 +158,15 @@ async fn main() {
         let old_time = time;
         time = SystemTime::now();
         let dt = time.duration_since(old_time).unwrap().as_secs_f32();
-        if dt > 0.019 {
-            println!(
-                "tick: {}, dt: {}ms",
-                dynamic_game_state.server_tick,
-                dt * 1000.0
-            );
-        }
         // Receive game state
         {
+            let mut did_receive = false;
             loop {
                 let mut buf = [0; 5000];
                 let received_message = udp_socket.recv_from(&mut buf);
                 match received_message {
                     Ok((amt, _src)) => {
+                        did_receive = true;
                         let buf = &mut buf[..amt];
                         let log = |prefix: &str| {
                             let timestamp = SystemTime::now()
@@ -194,7 +191,12 @@ async fn main() {
                         let received_game_state = deserialization_result.unwrap();
                         if received_game_state.dynamic_state.server_tick
                             > dynamic_game_state.server_tick
+                            || received_game_state.static_state.game_id != static_game_state.game_id
                         {
+                            if received_game_state.static_state.game_id != static_game_state.game_id
+                            {
+                                cards = Cards::new();
+                            }
                             dynamic_game_state = received_game_state.dynamic_state;
                             static_game_state = received_game_state.static_state;
                         }
@@ -215,6 +217,9 @@ async fn main() {
                     player.card_draw_counter as i32,
                     player.energy_counter as i32,
                 );
+            }
+            if !did_receive {
+                send_join_game_command();
             }
         }
 

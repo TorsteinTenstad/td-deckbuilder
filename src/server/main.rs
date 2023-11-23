@@ -61,52 +61,59 @@ fn main() -> std::io::Result<()> {
         time = SystemTime::now();
         let dt = time.duration_since(old_time).unwrap().as_secs_f32();
 
-        let client_message_buf = &mut [0; 50];
-        let read_client_message = udp_socket.recv_from(client_message_buf);
-        match read_client_message {
-            Err(e) => match e.kind() {
-                std::io::ErrorKind::ConnectionReset => {}
-                std::io::ErrorKind::TimedOut => {}
-                _ => {
-                    dbg!(e);
-                    panic!()
-                }
-            },
-            Ok((amt, client_addr)) => {
-                let client_id = hash_client_addr(&client_addr);
-                let command =
-                    serde_json::from_slice::<ClientCommand>(&client_message_buf[..amt]).unwrap();
-                match command {
-                    ClientCommand::PlayCard(x, y, card) => {
-                        let player = game_state
-                            .dynamic_state
-                            .players
-                            .get_mut(&client_id)
-                            .unwrap();
-                        game_state
-                            .dynamic_state
-                            .entities
-                            .insert(rng.gen(), card.to_entity(client_id, player, x, y));
+        loop {
+            let client_message_buf = &mut [0; 50];
+            let read_client_message = udp_socket.recv_from(client_message_buf);
+            match read_client_message {
+                Err(e) => match e.kind() {
+                    std::io::ErrorKind::ConnectionReset => {}
+                    std::io::ErrorKind::TimedOut => {
+                        break;
                     }
-                    ClientCommand::JoinGame => {
-                        let client_id = hash_client_addr(&client_addr);
-                        if !client_addresses.contains_key(&client_id) {
-                            client_addresses.insert(client_id, client_addr);
-                            if let Some(available_config) =
-                                vec![(Direction::Positive, YELLOW), (Direction::Negative, PURPLE)]
-                                    .get(game_state.dynamic_state.players.len())
-                            {
-                                let (available_direction, available_color) = available_config;
-                                game_state.dynamic_state.players.insert(
-                                    client_id,
-                                    Player::new(
-                                        available_direction.clone(),
-                                        game_state.static_state.path_to_world_pos(
-                                            available_direction.to_start_path_pos(),
+                    _ => {
+                        dbg!(e);
+                        panic!()
+                    }
+                },
+                Ok((amt, client_addr)) => {
+                    let client_id = hash_client_addr(&client_addr);
+                    let command =
+                        serde_json::from_slice::<ClientCommand>(&client_message_buf[..amt])
+                            .unwrap();
+                    match command {
+                        ClientCommand::PlayCard(x, y, card) => {
+                            let player = game_state
+                                .dynamic_state
+                                .players
+                                .get_mut(&client_id)
+                                .unwrap();
+                            game_state
+                                .dynamic_state
+                                .entities
+                                .insert(rng.gen(), card.to_entity(client_id, player, x, y));
+                        }
+                        ClientCommand::JoinGame => {
+                            let client_id = hash_client_addr(&client_addr);
+                            if !client_addresses.contains_key(&client_id) {
+                                client_addresses.insert(client_id, client_addr);
+                                if let Some(available_config) = vec![
+                                    (Direction::Positive, YELLOW),
+                                    (Direction::Negative, PURPLE),
+                                ]
+                                .get(game_state.dynamic_state.players.len())
+                                {
+                                    let (available_direction, available_color) = available_config;
+                                    game_state.dynamic_state.players.insert(
+                                        client_id,
+                                        Player::new(
+                                            available_direction.clone(),
+                                            game_state.static_state.path_to_world_pos(
+                                                available_direction.to_start_path_pos(),
+                                            ),
+                                            *available_color,
                                         ),
-                                        *available_color,
-                                    ),
-                                );
+                                    );
+                                }
                             }
                         }
                     }

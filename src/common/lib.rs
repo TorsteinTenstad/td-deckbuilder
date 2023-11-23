@@ -1,4 +1,5 @@
 use macroquad::prelude::{Color, Vec2};
+use rand::Rng;
 use serde::{Deserialize, Serialize};
 use std::{
     collections::HashMap,
@@ -69,6 +70,7 @@ pub struct GameState {
 }
 #[derive(Serialize, Deserialize)]
 pub struct StaticGameState {
+    pub game_id: u64,
     pub path: Vec<(i32, i32)>,
     pub grid_w: u32,
     pub grid_h: u32,
@@ -77,6 +79,7 @@ pub struct StaticGameState {
 impl StaticGameState {
     pub fn new() -> Self {
         Self {
+            game_id: rand::thread_rng().gen(),
             path: Vec::new(),
             grid_h: 0,
             grid_w: 0,
