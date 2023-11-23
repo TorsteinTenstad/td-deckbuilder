@@ -95,8 +95,8 @@ impl StaticGameState {
         let high_weight = path_pos.fract();
         let low_weight = 1.0 - high_weight;
         Vec2 {
-            x: *low_x as f32 * low_weight + *high_x as f32 * high_weight,
-            y: *low_y as f32 * low_weight + *high_y as f32 * high_weight,
+            x: *low_x as f32 * low_weight + *high_x as f32 * high_weight + 0.5,
+            y: *low_y as f32 * low_weight + *high_y as f32 * high_weight + 0.5,
         }
     }
 }
@@ -229,8 +229,8 @@ impl Entity {
             owner,
             behavior: Behavior::None,
             pos: Vec2 {
-                x: x as i32 as f32, // snap to grid
-                y: y as i32 as f32, // snap to grid
+                x: x as i32 as f32 + 0.5, // snap to grid
+                y: y as i32 as f32 + 0.5, // snap to grid
             },
             radius: 0.25,
             health,

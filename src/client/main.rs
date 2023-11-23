@@ -140,7 +140,7 @@ async fn main() {
     let mut dynamic_game_state = DynamicGameState::new();
 
     let mut time = SystemTime::now();
-    let mut selected_entity: Option<u64> = None;
+    let mut selected_entity_id: Option<u64> = None;
 
     let mut cards = Cards::new();
     let card_border = 5.0;
@@ -149,7 +149,7 @@ async fn main() {
     let card_visible_h = 0.8;
 
     let mut highlighted_card_opt: Option<usize> = None;
-    let mut preview_tower_pos: Option<(i32, i32)> = None;
+    let mut preview_tower_pos: Option<(f32, f32)> = None;
 
     let mut commands = Vec::<ClientCommand>::new();
     let player_id = hash_client_addr(&udp_socket.local_addr().unwrap());
@@ -201,12 +201,10 @@ async fn main() {
 
         let cell_w = screen_width() / static_game_state.grid_w as f32;
         let cell_h = (7.0 / 9.0) * screen_height() / static_game_state.grid_h as f32;
-        let u32_to_screen_x = |x: u32| (x as f32 + 0.5) * cell_w;
-        let u32_to_screen_y = |y: u32| (y as f32 + 0.5) * cell_h;
-        let i32_to_screen_x = |x: i32| (x as f32 + 0.5) * cell_w;
-        let i32_to_screen_y = |y: i32| (y as f32 + 0.5) * cell_h;
-        let f32_to_screen_x = |x: f32| (x as f32 + 0.5) * cell_w;
-        let f32_to_screen_y = |y: f32| (y as f32 + 0.5) * cell_h;
+        let u32_to_screen_x = |x: u32| (x as f32) * cell_w;
+        let u32_to_screen_y = |y: u32| (y as f32) * cell_h;
+        let f32_to_screen_x = |x: f32| (x as f32) * cell_w;
+        let f32_to_screen_y = |y: f32| (y as f32) * cell_h;
         let to_screen_size = |x: f32| x * cell_w;
         let (screen_space_mouse_x, screen_space_mouse_y) = mouse_position();
         let mouse_world_x = screen_space_mouse_x / cell_w;
@@ -227,10 +225,18 @@ async fn main() {
         clear_background(BLACK);
 
         if is_mouse_button_released(MouseButton::Left) {
-            selected_entity = dynamic_game_state
-                .entities
-                .iter()
-                .find_map(|(id, entity)| None);
+            selected_entity_id = dynamic_game_state.entities.iter().find_map(|(id, entity)| {
+                ((dbg!(
+                    entity.pos
+                        - Vec2 {
+                            x: mouse_world_x,
+                            y: mouse_world_y,
+                        }
+                )
+                .length())
+                    < entity.radius)
+                    .then(|| *id)
+            });
         }
         //Send client commands
         {
@@ -259,7 +265,6 @@ async fn main() {
                             } else {
                                 GRASS_COLOR
                             },
-                            offset: Vec2 { x: 0.5, y: 0.5 },
                             ..Default::default()
                         },
                     );
@@ -303,38 +308,38 @@ async fn main() {
                 }
             }
 
-            let mut range_circle_preview: Option<(i32, i32, f32, Color)> = None;
+            let mut range_circle_preview: Option<(f32, f32, f32, Color)> = None;
             if let Some((x, y)) = preview_tower_pos {
                 if mouse_in_world {
                     let color = if mouse_over_occupied_tile { RED } else { BLUE };
                     draw_hexagon(
-                        i32_to_screen_x(x),
-                        i32_to_screen_y(y),
+                        f32_to_screen_x(x),
+                        f32_to_screen_y(y),
                         20.0,
                         0.0,
                         false,
                         GRAY,
                         Color { a: 0.5, ..color },
                     );
-                    range_circle_preview = Some((x, y, 3.0, color));
+                    range_circle_preview = Some((x as f32, y as f32, 3.0, color));
+                }
+            } else if let Some(entity) =
+                selected_entity_id.and_then(|id| dynamic_game_state.entities.get(&id))
+            {
+                if let Some(RangedAttack { range, .. }) = entity.ranged_attack {
+                    range_circle_preview = Some((entity.pos.x, entity.pos.y, range, BLUE));
                 }
             }
-            /*
-            else if let Some(id) = selected_tower {
-                let tower = dynamic_game_state.entities.get(&id).unwrap();
-                range_circle_preview = Some((tower., tower.pos_y, tower.range, BLUE));
-            }
-            */
             if let Some((x, y, range, color)) = range_circle_preview {
                 draw_circle(
-                    i32_to_screen_x(x),
-                    i32_to_screen_y(y),
+                    f32_to_screen_x(x),
+                    f32_to_screen_y(y),
                     to_screen_size(range),
                     Color { a: 0.2, ..color },
                 );
                 draw_circle_lines(
-                    i32_to_screen_x(x),
-                    i32_to_screen_y(y),
+                    f32_to_screen_x(x),
+                    f32_to_screen_y(y),
                     to_screen_size(range),
                     2.0,
                     color,
@@ -570,8 +575,10 @@ async fn main() {
                     if mouse_in_world {
                         match cards.hand.get(highlighted_card).unwrap() {
                             Card::BasicTower => {
-                                preview_tower_pos =
-                                    Some((mouse_world_x as i32, mouse_world_y as i32));
+                                preview_tower_pos = Some((
+                                    mouse_world_x as i32 as f32 + 0.5,
+                                    mouse_world_y as i32 as f32 + 0.5,
+                                ));
                             }
                             Card::BasicRanger | Card::BasicSwarmer | Card::BasicUnit => {
                                 draw_out_of_hand_card(
