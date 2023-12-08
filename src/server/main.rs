@@ -9,7 +9,7 @@ mod game_loop;
 
 fn main() -> std::io::Result<()> {
     let mut rng = rand::thread_rng();
-    let mut game_state = GameState::new();
+    let mut game_state = ServerGameState::new();
     let mut client_addresses = HashMap::<u64, SocketAddr>::new();
 
     let img = image::open("path.png").unwrap();
@@ -105,7 +105,7 @@ fn main() -> std::io::Result<()> {
                                     let (available_direction, available_color) = available_config;
                                     game_state.dynamic_state.players.insert(
                                         client_id,
-                                        Player::new(
+                                        ServerPlayer::new(
                                             available_direction.clone(),
                                             game_state.static_state.path_to_world_pos(
                                                 available_direction.to_start_path_pos(),

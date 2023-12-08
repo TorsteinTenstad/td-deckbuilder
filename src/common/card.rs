@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::{Entity, Player};
+use crate::{Entity, ServerPlayer};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Card {
@@ -28,7 +28,7 @@ impl Card {
         }
     }
 
-    pub fn to_entity(&self, player_id: u64, player: &Player, x: f32, y: f32) -> Entity {
+    pub fn to_entity(&self, player_id: u64, player: &ServerPlayer, x: f32, y: f32) -> Entity {
         match self {
             Card::BasicTower => Entity::new_tower(player_id, x, y, 3.0, 100.0, 2.0, 0.5),
             Card::BasicUnit => Entity::new_unit(

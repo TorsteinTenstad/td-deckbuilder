@@ -35,7 +35,7 @@ pub struct ColorDef {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct Player {
+pub struct ServerPlayer {
     pub card_draw_counter: f32,
     pub energy_counter: f32,
     pub direction: Direction,
@@ -45,7 +45,7 @@ pub struct Player {
     pub color: Color,
 }
 
-impl Player {
+impl ServerPlayer {
     pub fn new(direction: Direction, unit_start_pos: Vec2, color: Color) -> Self {
         Self {
             card_draw_counter: 5.0,
@@ -64,7 +64,7 @@ pub enum ClientCommand {
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct GameState {
+pub struct ServerGameState {
     pub dynamic_state: DynamicGameState,
     pub static_state: StaticGameState,
 }
@@ -108,7 +108,7 @@ impl StaticGameState {
 pub struct DynamicGameState {
     pub server_tick: u32,
     pub entities: HashMap<u64, Entity>,
-    pub players: HashMap<u64, Player>,
+    pub players: HashMap<u64, ServerPlayer>,
 }
 
 impl DynamicGameState {
@@ -121,9 +121,9 @@ impl DynamicGameState {
     }
 }
 
-impl GameState {
+impl ServerGameState {
     pub fn new() -> Self {
-        GameState {
+        ServerGameState {
             dynamic_state: DynamicGameState::new(),
             static_state: StaticGameState::new(),
         }
