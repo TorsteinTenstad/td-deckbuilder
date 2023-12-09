@@ -1,5 +1,15 @@
-use common::card::Card;
+use common::{card::Card, ClientCommand};
+use macroquad::{
+    input::{is_mouse_button_down, is_mouse_button_released},
+    miniquad::MouseButton,
+};
 use rand::Rng;
+
+use crate::{
+    draw::{draw_highlighted_card, draw_in_hand_card, draw_out_of_hand_card},
+    input::{mouse_position_vec, mouse_world_position},
+    ClientGameState,
+};
 
 fn shuffle_vec<T>(vec: &mut Vec<T>) {
     let mut rng = rand::thread_rng();
@@ -79,5 +89,91 @@ impl Hand {
         self.energy -= card.energy_cost();
         self.played.push(card.clone());
         Some(card)
+    }
+}
+
+pub fn player_step(state: &mut ClientGameState) {
+    let input = &state.input;
+
+    let highlighted_card_opt_clone = state.highlighted_card_opt.clone();
+    state.highlighted_card_opt = None;
+
+    for (i, card) in state.hand.hand.iter().enumerate() {
+        let is_selected = highlighted_card_opt_clone == Some(i);
+
+        // let hovering = card_is_hovering(x, y, w, h, rotation, offset);
+        // if !(is_selected && !is_mouse_button_down(MouseButton::Left)) {
+        draw_in_hand_card(
+            card,
+            i,
+            state.hand.hand.len(),
+            if is_selected { 0.5 } else { 1.0 },
+            state.relative_splay_radius,
+            state.card_delta_angle,
+            &state.textures,
+        );
+        // }
+        // if hovering {
+        //     state.highlighted_card_opt = Some(i);
+        // }
+    }
+
+    let mouse_pos = mouse_position_vec();
+    let mouse_world_pos = mouse_world_position();
+
+    if let Some(highlighted_card) = highlighted_card_opt_clone {
+        let card = state.hand.hand.get(highlighted_card).unwrap();
+
+        if is_mouse_button_released(MouseButton::Left) {
+            if input.mouse_in_world
+                && match card {
+                    Card::BasicTower => !input.mouse_over_occupied_tile,
+                    Card::BasicRanger | Card::BasicDrone | Card::BasicUnit => true,
+                }
+            {
+                if let Some(card) = state
+                    .hand
+                    .try_move_card_from_hand_to_played(highlighted_card)
+                {
+                    state.commands.push(ClientCommand::PlayCard(
+                        mouse_world_pos.x,
+                        mouse_world_pos.y,
+                        card.clone(),
+                    ));
+                }
+            }
+            state.preview_tower_pos = None;
+        } else {
+            if is_mouse_button_down(MouseButton::Left) {
+                state.highlighted_card_opt = Some(highlighted_card);
+                if input.mouse_in_world {
+                    match card {
+                        Card::BasicTower => {
+                            state.preview_tower_pos = Some((
+                                mouse_world_pos.x as i32 as f32 + 0.5,
+                                mouse_world_pos.y as i32 as f32 + 0.5,
+                            ));
+                        }
+                        Card::BasicRanger | Card::BasicDrone | Card::BasicUnit => {
+                            draw_out_of_hand_card(card, mouse_pos.x, mouse_pos.y, &state.textures);
+                        }
+                    }
+                } else {
+                    draw_out_of_hand_card(card, mouse_pos.x, mouse_pos.y, &state.textures);
+                }
+            } else {
+                draw_highlighted_card(
+                    card,
+                    highlighted_card,
+                    state.relative_splay_radius,
+                    state.card_delta_angle,
+                    &state.textures,
+                    state.hand.hand.len(),
+                );
+                // if hovering {
+                //     state.highlighted_card_opt = Some(highlighted_card);
+                // }
+            }
+        }
     }
 }

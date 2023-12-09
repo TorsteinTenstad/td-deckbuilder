@@ -1,3 +1,4 @@
+use common::{Entity, EntityTag};
 use macroquad::{
     input::{is_key_down, is_mouse_button_released, mouse_position},
     math::Vec2,
@@ -6,7 +7,7 @@ use macroquad::{
 
 use crate::{
     draw::{cell_h, cell_w},
-    tower_at_tile, ClientGameState,
+    ClientGameState,
 };
 
 #[derive(Default)]
@@ -30,6 +31,14 @@ pub fn mouse_world_position() -> Vec2 {
 
 pub fn pos_in_rect(pos: Vec2, x0: f32, y0: f32, x1: f32, y1: f32) -> bool {
     x0 <= pos.x && pos.x <= x1 && y0 <= pos.y && pos.y <= y1
+}
+
+pub fn tower_at_tile(state: &ClientGameState, pos: Vec2) -> Option<&Entity> {
+    state.dynamic_game_state.entities.values().find(|entity| {
+        entity.tag == EntityTag::Tower
+            && entity.pos.x as i32 == pos.x as i32
+            && entity.pos.y as i32 == pos.y as i32
+    })
 }
 
 pub fn main_input(state: &mut ClientGameState) {
