@@ -1,9 +1,27 @@
-use std::time::SystemTime;
+use std::{
+    net::{SocketAddr, UdpSocket},
+    time::SystemTime,
+};
 
-use common::{ClientCommand, ServerGameState, SERVER_ADDR};
+use common::{hash_client_addr, ClientCommand, ServerGameState, SERVER_ADDR};
+use local_ip_address::local_ip;
 use macroquad::input::is_key_down;
 
 use crate::{ClientGameState, Hand};
+
+pub fn udp_init_socket() -> (UdpSocket, u64) {
+    let local_ip = local_ip().unwrap();
+    let udp_socket = std::iter::successors(Some(6968), |port| Some(port + 1))
+        .find_map(|port| {
+            let socket_addr = SocketAddr::new(local_ip, port);
+            UdpSocket::bind(socket_addr).ok()
+        })
+        .unwrap();
+    udp_socket.set_nonblocking(true).unwrap();
+    let player_id = hash_client_addr(&udp_socket.local_addr().unwrap());
+
+    (udp_socket, player_id)
+}
 
 pub fn udp_update_game_state(state: &mut ClientGameState) {
     loop {

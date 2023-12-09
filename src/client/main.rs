@@ -38,15 +38,7 @@ pub struct ClientGameState {
 
 impl ClientGameState {
     pub fn new() -> Self {
-        let local_ip = local_ip().unwrap();
-        let udp_socket = std::iter::successors(Some(6968), |port| Some(port + 1))
-            .find_map(|port| {
-                let socket_addr = SocketAddr::new(local_ip, port);
-                UdpSocket::bind(socket_addr).ok()
-            })
-            .unwrap();
-        udp_socket.set_nonblocking(true).unwrap();
-        let player_id = hash_client_addr(&udp_socket.local_addr().unwrap());
+        let (udp_socket, player_id) = udp_init_socket();
 
         Self {
             static_game_state: StaticGameState::new(),
