@@ -77,6 +77,7 @@ pub fn udp_update_game_state(state: &mut ClientGameState) {
             player.energy_counter as i32,
         );
     }
+
     if state.frames_since_last_received > 60 {
         state
             .udp_socket
@@ -88,6 +89,7 @@ pub fn udp_update_game_state(state: &mut ClientGameState) {
             )
             .unwrap();
     }
+    state.frames_since_last_received += 1;
 }
 
 pub fn udp_send_commands(state: &mut ClientGameState) {
