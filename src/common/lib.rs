@@ -68,6 +68,7 @@ pub struct ServerGameState {
     pub dynamic_state: DynamicGameState,
     pub static_state: StaticGameState,
 }
+
 #[derive(Serialize, Deserialize)]
 pub struct StaticGameState {
     pub game_id: u64,
@@ -262,7 +263,7 @@ impl Entity {
             tag: EntityTag::Drone,
             owner,
             pos,
-            behavior: Behavior::Drone(Drone {
+            behavior: Behavior::Drone(DroneBehavior {
                 can_target: vec![EntityTag::Tower],
                 target_entity_id: None,
                 speed,
@@ -324,7 +325,7 @@ pub struct EntityExternalEffects {
 pub enum Behavior {
     Bullet(BulletBehavior),
     PathUnit(PathUnitBehavior),
-    Drone(Drone),
+    Drone(DroneBehavior),
     None,
 }
 
@@ -350,7 +351,7 @@ pub struct PathUnitBehavior {
 }
 
 #[derive(Clone, Serialize, Deserialize)]
-pub struct Drone {
+pub struct DroneBehavior {
     pub can_target: Vec<EntityTag>,
     pub target_entity_id: Option<u64>,
     pub speed: f32,

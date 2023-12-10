@@ -111,7 +111,7 @@ pub fn main_draw(state: &ClientGameState) {
                 draw_circle(pos_x, pos_y, r, color);
             }
             EntityTag::Drone => {
-                let rotation = if let Behavior::Drone(Drone {
+                let rotation = if let Behavior::Drone(DroneBehavior {
                     target_entity_id, ..
                 }) = entity.behavior
                 {
