@@ -4,13 +4,14 @@ use macroquad::{
     math::Vec2,
     shapes::{
         draw_circle, draw_circle_lines, draw_hexagon, draw_poly, draw_rectangle, draw_rectangle_ex,
-        DrawRectangleParams,
+        DrawRectangleParams, draw_line,
     },
     text::{camera_font_scale, draw_text_ex, measure_text, TextDimensions, TextParams},
     texture::{draw_texture_ex, load_texture, DrawTextureParams, Texture2D},
     window::{clear_background, screen_height, screen_width},
 };
 use std::collections::HashMap;
+use itertools::Itertools;
 
 use crate::{input::mouse_position_vec, ClientGameState};
 
@@ -53,20 +54,26 @@ pub fn cell_w() -> f32 {
 pub fn cell_h() -> f32 {
     (7.0 / 9.0) * screen_height() / 7.0 // state.static_game_state.grid_h as f32; TODO
 }
-pub fn u32_to_screen_x(x: u32) -> f32 {
-    (x as f32) * cell_w()
+
+
+fn to_screen_x<T>(x: T) -> f32
+where
+    T: Into<f32>,
+{
+    x.into() * cell_w()
 }
-pub fn u32_to_screen_y(y: u32) -> f32 {
-    (y as f32) * cell_h()
+fn to_screen_y<T>(y: T) -> f32
+where
+    T: Into<f32>,
+{
+    y.into() * cell_w()
 }
-pub fn f32_to_screen_x(x: f32) -> f32 {
-    (x as f32) * cell_w()
-}
-pub fn f32_to_screen_y(y: f32) -> f32 {
-    (y as f32) * cell_h()
-}
-pub fn to_screen_size(x: f32) -> f32 {
-    x * cell_w()
+
+fn to_screen_size<T>(size: T) -> f32
+where
+    T: Into<f32>,
+{
+    size.into() * cell_w()
 }
 
 pub fn main_draw(state: &ClientGameState) {
@@ -74,21 +81,21 @@ pub fn main_draw(state: &ClientGameState) {
     clear_background(BLACK);
     for x in 0..state.static_game_state.grid_w {
         for y in 0..state.static_game_state.grid_h {
-            draw_rectangle_ex(
-                u32_to_screen_x(x),
-                u32_to_screen_y(y),
+            draw_rectangle(
+                to_screen_x(x as f32),
+                to_screen_y(y as f32),
                 cell_w(),
                 cell_h(),
-                DrawRectangleParams {
-                    color: if state.static_game_state.path.contains(&(x as i32, y as i32)) {
-                        PATH_COLOR
-                    } else {
-                        GRASS_COLOR
-                    },
-                    ..Default::default()
-                },
+                GRASS_COLOR
             );
         }
+    }
+    for ((x1, y1), (x2, y2)) in state.static_game_state.path.iter().tuple_windows(){
+        let x1 = to_screen_x(*x1 as f32);
+        let y1 = to_screen_x(*y1 as f32);
+        let x2 = to_screen_x(*x2 as f32);
+        let y2 = to_screen_x(*y2 as f32);
+        draw_line(x1, y1, x2, y2, 5.0, PATH_COLOR);
     }
 
     // entities
@@ -99,8 +106,8 @@ pub fn main_draw(state: &ClientGameState) {
         } else {
             player.map_or(WHITE, |player| player.color)
         };
-        let pos_x = f32_to_screen_x(entity.pos.x);
-        let pos_y = f32_to_screen_y(entity.pos.y);
+        let pos_x = to_screen_x(entity.pos.x);
+        let pos_y = to_screen_y(entity.pos.y);
         let r = to_screen_size(entity.radius);
 
         match entity.tag {
@@ -143,8 +150,8 @@ pub fn main_draw(state: &ClientGameState) {
                 BLUE
             };
             draw_hexagon(
-                f32_to_screen_x(x),
-                f32_to_screen_y(y),
+                to_screen_x(x),
+                to_screen_y(y),
                 20.0,
                 0.0,
                 false,
@@ -162,8 +169,8 @@ pub fn main_draw(state: &ClientGameState) {
         }
     }
     if let Some((x, y, range, color)) = range_circle_preview {
-        let x = f32_to_screen_x(x);
-        let y = f32_to_screen_y(y);
+        let x = to_screen_x(x);
+        let y = to_screen_y(y);
         let r = to_screen_size(range);
 
         draw_circle(x, y, r, Color { a: 0.2, ..color });
