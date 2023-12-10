@@ -6,7 +6,9 @@ use macroquad::{
 use rand::Rng;
 
 use crate::{
-    draw::{draw_highlighted_card, draw_in_hand_card, draw_out_of_hand_card},
+    draw::{
+        card_is_hovering, card_transform, draw_card, draw_highlighted_card, draw_out_of_hand_card,
+    },
     input::{mouse_position_vec, mouse_world_position},
     ClientGameState,
 };
@@ -101,21 +103,19 @@ pub fn player_step(state: &mut ClientGameState) {
     for (i, card) in state.hand.hand.iter().enumerate() {
         let is_selected = highlighted_card_opt_clone == Some(i);
 
-        // let hovering = card_is_hovering(x, y, w, h, rotation, offset);
-        // if !(is_selected && !is_mouse_button_down(MouseButton::Left)) {
-        draw_in_hand_card(
-            card,
+        let transform = card_transform(
             i,
             state.hand.hand.len(),
-            if is_selected { 0.5 } else { 1.0 },
             state.relative_splay_radius,
             state.card_delta_angle,
-            &state.textures,
         );
-        // }
-        // if hovering {
-        //     state.highlighted_card_opt = Some(i);
-        // }
+        let hovering = card_is_hovering(&transform);
+        if !(is_selected && !is_mouse_button_down(MouseButton::Left)) {
+            draw_card(card, &transform, 1.0, &state.textures);
+        }
+        if hovering {
+            state.highlighted_card_opt = Some(i);
+        }
     }
 
     let mouse_pos = mouse_position_vec();
@@ -162,6 +162,13 @@ pub fn player_step(state: &mut ClientGameState) {
                     draw_out_of_hand_card(card, mouse_pos.x, mouse_pos.y, &state.textures);
                 }
             } else {
+                let transform = card_transform(
+                    highlighted_card,
+                    state.hand.hand.len(),
+                    state.relative_splay_radius,
+                    state.card_delta_angle,
+                );
+                let hovering = card_is_hovering(&transform);
                 draw_highlighted_card(
                     card,
                     highlighted_card,
@@ -170,9 +177,9 @@ pub fn player_step(state: &mut ClientGameState) {
                     &state.textures,
                     state.hand.hand.len(),
                 );
-                // if hovering {
-                //     state.highlighted_card_opt = Some(highlighted_card);
-                // }
+                if hovering {
+                    state.highlighted_card_opt = Some(highlighted_card);
+                }
             }
         }
     }

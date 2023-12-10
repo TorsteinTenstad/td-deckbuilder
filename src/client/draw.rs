@@ -70,8 +70,8 @@ pub fn to_screen_size(x: f32) -> f32 {
 }
 
 pub fn main_draw(state: &ClientGameState) {
+    // board
     clear_background(BLACK);
-
     for x in 0..state.static_game_state.grid_w {
         for y in 0..state.static_game_state.grid_h {
             draw_rectangle_ex(
@@ -91,6 +91,7 @@ pub fn main_draw(state: &ClientGameState) {
         }
     }
 
+    // entities
     for entity in state.dynamic_game_state.entities.values() {
         let player = state.dynamic_game_state.players.get(&entity.owner);
         let color = if entity.damage_animation > 0.0 {
@@ -132,6 +133,7 @@ pub fn main_draw(state: &ClientGameState) {
         }
     }
 
+    // range_circle_preview
     let mut range_circle_preview: Option<(f32, f32, f32, Color)> = None;
     if let Some((x, y)) = state.preview_tower_pos {
         if state.input.mouse_in_world {
@@ -159,7 +161,6 @@ pub fn main_draw(state: &ClientGameState) {
             range_circle_preview = Some((entity.pos.x, entity.pos.y, range, BLUE));
         }
     }
-
     if let Some((x, y, range, color)) = range_circle_preview {
         let x = f32_to_screen_x(x);
         let y = f32_to_screen_y(y);
@@ -169,6 +170,7 @@ pub fn main_draw(state: &ClientGameState) {
         draw_circle_lines(x, y, r, 2.0, color);
     }
 
+    // Progress bars
     if let Some(player) = state.dynamic_game_state.players.get(&state.player_id) {
         let margin = 10.0;
         let outline_w = 5.0;
@@ -293,61 +295,75 @@ pub fn draw_progress_bar(
 const CARD_BORDER: f32 = 5.0;
 const CARD_VISIBLE_HEIGHT: f32 = 0.8;
 
-pub fn card_is_hovering(x: f32, y: f32, w: f32, h: f32, rotation: f32, offset: Vec2) -> bool {
-    let local_mouse_pos = Vec2::from_angle(-rotation).rotate(mouse_position_vec() - Vec2 { x, y })
-        + offset * Vec2 { x: w, y: h };
-    local_mouse_pos.cmpgt(Vec2::ZERO).all() && local_mouse_pos.cmplt(Vec2::new(w, h)).all()
+pub fn card_is_hovering(transform: &RectTransform) -> bool {
+    let local_mouse_pos = Vec2::from_angle(-transform.rotation).rotate(
+        mouse_position_vec()
+            - Vec2 {
+                x: transform.x,
+                y: transform.y,
+            },
+    ) + transform.offset
+        * Vec2 {
+            x: transform.w,
+            y: transform.h,
+        };
+
+    local_mouse_pos.cmpgt(Vec2::ZERO).all()
+        && local_mouse_pos
+            .cmplt(Vec2::new(transform.w, transform.h))
+            .all()
 }
 
 pub fn draw_card(
     card: &Card,
-    x: f32,
-    y: f32,
-    w: f32,
-    h: f32,
-    rotation: f32,
-    offset: Vec2,
+    transform: &RectTransform,
     alpha: f32,
     textures: &HashMap<String, Texture2D>,
 ) {
-    draw_circle(x, y, 3.0, YELLOW);
+    draw_circle(transform.x, transform.y, 3.0, YELLOW);
     draw_rectangle_ex(
-        x,
-        y,
-        w,
-        h,
+        transform.x,
+        transform.y,
+        transform.w,
+        transform.h,
         DrawRectangleParams {
             color: Color { a: alpha, ..GRAY },
-            rotation,
-            offset,
+            rotation: transform.rotation,
+            offset: transform.offset,
             ..Default::default()
         },
     );
-    let inner_offset = offset
+    let inner_offset = transform.offset
         + Vec2 {
             x: 0.0,
-            y: (2.0 * offset.y - 1.0) * CARD_BORDER / h,
+            y: (2.0 * transform.offset.y - 1.0) * CARD_BORDER / transform.h,
         };
     draw_rectangle_ex(
-        x,
-        y,
-        w - 2.0 * CARD_BORDER,
-        h - 2.0 * CARD_BORDER,
+        transform.x,
+        transform.y,
+        transform.w - 2.0 * CARD_BORDER,
+        transform.h - 2.0 * CARD_BORDER,
         DrawRectangleParams {
             color: Color {
                 a: alpha,
                 ..LIGHTGRAY
             },
-            rotation,
+            rotation: transform.rotation,
             offset: inner_offset,
             ..Default::default()
         },
     );
 
     let get_on_card_pos = |rel_x, rel_y| -> Vec2 {
-        Vec2 { x, y }
-            + Vec2::from_angle(rotation)
-                .rotate(Vec2 { x: w, y: h } * (Vec2 { x: rel_x, y: rel_y } - offset))
+        Vec2 {
+            x: transform.x,
+            y: transform.y,
+        } + Vec2::from_angle(transform.rotation).rotate(
+            Vec2 {
+                x: transform.w,
+                y: transform.h,
+            } * (Vec2 { x: rel_x, y: rel_y } - transform.offset),
+        )
     };
 
     let card_name_pos = get_on_card_pos(0.9, 0.1);
@@ -356,15 +372,17 @@ pub fn draw_card(
         card_name_pos.x,
         card_name_pos.y,
         20.0,
-        rotation,
+        transform.rotation,
         BLACK,
         TextOriginX::Right,
         TextOriginY::Top,
     );
 
     let width_relative_margin = 0.1;
-    let energy_indicator_pos =
-        get_on_card_pos(width_relative_margin, width_relative_margin * w / h);
+    let energy_indicator_pos = get_on_card_pos(
+        width_relative_margin,
+        width_relative_margin * transform.w / transform.h,
+    );
 
     let mut icons: Vec<(&str, f32)> = Vec::new();
     let entity = card.to_entity(
@@ -406,7 +424,7 @@ pub fn draw_card(
             2.0 * width_relative_margin + width_relative_icon_size,
             2.0 * width_relative_margin + (i as f32 + 0.25) * (width_relative_icon_size),
         );
-        let icon_size = Vec2::splat(w * width_relative_icon_size);
+        let icon_size = Vec2::splat(transform.w * width_relative_icon_size);
         let texture = textures
             .get(*texture_id)
             .expect(format!("Texture \"{}\" not found", texture_id).as_str());
@@ -416,7 +434,7 @@ pub fn draw_card(
             on_card_icon_pos.y,
             WHITE,
             DrawTextureParams {
-                rotation,
+                rotation: transform.rotation,
                 dest_size: Some(icon_size),
                 pivot: Some(on_card_icon_pos + icon_size / 2.0),
                 ..Default::default()
@@ -427,7 +445,7 @@ pub fn draw_card(
             on_card_value_pos.x,
             on_card_value_pos.y,
             26.0,
-            rotation,
+            transform.rotation,
             BLACK,
             TextOriginX::Left,
             TextOriginY::AbsoluteCenter,
@@ -437,7 +455,7 @@ pub fn draw_card(
     draw_circle(
         energy_indicator_pos.x,
         energy_indicator_pos.y,
-        w / 8.0,
+        transform.w / 8.0,
         BLUE,
     );
     draw_text_with_origin(
@@ -445,50 +463,55 @@ pub fn draw_card(
         energy_indicator_pos.x,
         energy_indicator_pos.y,
         24.0,
-        rotation,
+        transform.rotation,
         WHITE,
         TextOriginX::Center,
         TextOriginY::AbsoluteCenter,
     );
 }
 
-pub fn draw_in_hand_card(
-    card: &Card,
+#[derive(Default)]
+pub struct RectTransform {
+    w: f32,
+    h: f32,
+    x: f32,
+    y: f32,
+    rotation: f32,
+    offset: Vec2,
+}
+
+pub fn card_transform(
     i: usize,
     n: usize,
-    alpha: f32,
     relative_splay_radius: f32,
     card_delta_angle: f32,
-    textures: &HashMap<String, Texture2D>,
-) {
-    let card_w = screen_width() / 12.0;
-    let card_h = card_w * GOLDEN_RATIO;
-    let x = screen_width() / 2.0;
-    let y = screen_height() + (relative_splay_radius * card_h) - (CARD_VISIBLE_HEIGHT * card_h);
-    let rotation = (i as f32 - ((n - 1) as f32 / 2.0)) * card_delta_angle;
-    let offset = Vec2 {
-        x: 0.5,
-        y: relative_splay_radius,
+) -> RectTransform {
+    let w = screen_width() / 12.0;
+    let h = w * GOLDEN_RATIO;
+    return RectTransform {
+        w,
+        h,
+        x: screen_width() / 2.0,
+        y: screen_height() + (relative_splay_radius * h) - (CARD_VISIBLE_HEIGHT * h),
+        rotation: (i as f32 - ((n - 1) as f32 / 2.0)) * card_delta_angle,
+        offset: Vec2 {
+            x: 0.5,
+            y: relative_splay_radius,
+        },
     };
-    draw_card(
-        card, x, y, card_w, card_h, rotation, offset, alpha, textures,
-    )
 }
 
 pub fn draw_out_of_hand_card(card: &Card, x: f32, y: f32, textures: &HashMap<String, Texture2D>) {
-    let card_w = screen_width() / 10.0;
-    let card_h = card_w * GOLDEN_RATIO;
-    draw_card(
-        card,
+    let w = screen_width() / 10.0;
+    let transform = RectTransform {
+        w,
+        h: w * GOLDEN_RATIO,
         x,
         y,
-        card_w,
-        card_h,
-        0.0,
-        0.5 * Vec2::ONE,
-        1.0,
-        textures,
-    )
+        rotation: 0.0,
+        offset: 0.5 * Vec2::ONE,
+    };
+    draw_card(card, &transform, 1.0, textures)
 }
 
 pub fn draw_highlighted_card(
@@ -497,25 +520,25 @@ pub fn draw_highlighted_card(
     relative_splay_radius: f32,
     card_delta_angle: f32,
     textures: &HashMap<String, Texture2D>,
-    hand_length: usize,
+    hand_size: usize,
 ) {
-    let card_w = screen_width() / 10.0;
-    let card_h = card_w * GOLDEN_RATIO;
+    let w = screen_width() / 10.0;
+    let h = w * GOLDEN_RATIO;
     let x = screen_width() / 2.0
-        + ((relative_splay_radius * card_h) - (CARD_VISIBLE_HEIGHT * card_h))
-            * f32::sin((i as f32 - ((hand_length - 1) as f32 / 2.0)) * card_delta_angle);
+        + ((relative_splay_radius * h) - (CARD_VISIBLE_HEIGHT * h))
+            * f32::sin((i as f32 - ((hand_size - 1) as f32 / 2.0)) * card_delta_angle);
     let y = screen_height();
-    draw_card(
-        card,
+
+    let transform = RectTransform {
+        w,
+        h: w * GOLDEN_RATIO,
         x,
         y,
-        card_w,
-        card_h,
-        0.0,
-        Vec2 { x: 0.5, y: 1.0 },
-        1.0,
-        textures,
-    )
+        rotation: 0.0,
+        offset: Vec2 { x: 0.5, y: 1.0 },
+    };
+
+    draw_card(card, &transform, 1.0, textures);
 }
 
 pub async fn load_textures() -> HashMap<String, Texture2D> {

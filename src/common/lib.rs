@@ -9,7 +9,7 @@ use std::{
 };
 pub mod card;
 use card::Card;
-pub const SERVER_ADDR: &str = "192.168.1.120:7878";
+pub const SERVER_ADDR: &str = "192.168.2.162:7878";
 pub const TARGET_SERVER_FPS: f32 = 60.0;
 pub const PROJECTILE_RADIUS: f32 = 0.04;
 

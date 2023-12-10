@@ -17,8 +17,8 @@ pub struct GameInput {
 }
 
 pub fn mouse_position_vec() -> Vec2 {
-    let pos = mouse_position();
-    Vec2 { x: pos.0, y: pos.1 }
+    let (x, y) = mouse_position();
+    Vec2 { x, y }
 }
 
 pub fn mouse_world_position() -> Vec2 {
