@@ -1,66 +1,74 @@
 use serde::{Deserialize, Serialize};
 
-use crate::{Entity, ServerPlayer};
+use crate::{
+    get_unit_spawnpoints::UnitSpawnpoint, spawn_entity::spawn_entity, Entity, PlayTarget,
+    ServerGameState,
+};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Card {
     BasicTower,
     BasicUnit,
-    BasicDrone,
     BasicRanger,
 }
 
+pub struct CardData {
+    pub name: &'static str,
+    pub energy_cost: i32,
+    pub play_fn: fn(u64, PlayTarget, &mut ServerGameState),
+}
+
+const CARD_DATA: &[CardData] = &[
+    CardData {
+        name: "Tower",
+        energy_cost: 3,
+        play_fn: |owner: u64, target, server_game_state: &mut ServerGameState| {
+            let (x, y) = target.world_pos();
+            let entity = Entity::new_tower(owner, x, y, 3.0, 100.0, 2.0, 0.5);
+            spawn_entity(server_game_state, entity);
+        },
+    },
+    CardData {
+        name: "Ground Unit",
+        energy_cost: 1,
+        play_fn: |owner: u64, target, server_game_state: &mut ServerGameState| {
+            let UnitSpawnpoint {
+                path_id,
+                direction,
+                path_pos,
+            } = target.unit_spawnpoint();
+            let entity = Entity::new_unit(
+                owner, path_id, direction, 1.0, 100.0, 10.0, 0.5, 0.0, 0.0, 0.0,
+            );
+            spawn_entity(server_game_state, entity);
+        },
+    },
+    CardData {
+        name: "Ranger",
+        energy_cost: 1,
+        play_fn: |owner: u64, target, server_game_state: &mut ServerGameState| {
+            let UnitSpawnpoint {
+                path_id,
+                direction,
+                path_pos,
+            } = target.unit_spawnpoint();
+            let entity = Entity::new_unit(
+                owner, path_id, direction, 1.0, 50.0, 0.0, 0.0, 3.0, 5.0, 0.5,
+            );
+            spawn_entity(server_game_state, entity);
+        },
+    },
+];
+
 impl Card {
-    pub fn name(&self) -> &'static str {
-        match self {
-            Card::BasicTower => "Tower",
-            Card::BasicUnit => "Ground Unit",
-            Card::BasicDrone => "Drone",
-            Card::BasicRanger => "Ranger",
-        }
-    }
-    pub fn energy_cost(&self) -> i32 {
-        match self {
-            Card::BasicTower => 3,
-            Card::BasicUnit => 1,
-            Card::BasicDrone => 1,
-            Card::BasicRanger => 1,
-        }
+    pub fn get_card_data(&self) -> &CardData {
+        CARD_DATA.get(self.clone() as usize).unwrap()
     }
 
-    pub fn to_entity(&self, player_id: u64, player: &ServerPlayer, x: f32, y: f32) -> Entity {
-        match self {
-            Card::BasicTower => Entity::new_tower(player_id, x, y, 3.0, 100.0, 2.0, 0.5),
-            Card::BasicUnit => Entity::new_unit(
-                player_id,
-                player.direction.clone(),
-                1.0,
-                100.0,
-                10.0,
-                0.5,
-                0.0,
-                0.0,
-                0.0,
-            ),
-            Card::BasicDrone => Entity::new_drone(
-                player_id,
-                player.unit_start_pos.clone(),
-                1.0,
-                25.0,
-                1.0,
-                0.5,
-            ),
-            Card::BasicRanger => Entity::new_unit(
-                player_id,
-                player.direction.clone(),
-                1.0,
-                50.0,
-                0.0,
-                0.0,
-                3.0,
-                5.0,
-                0.5,
-            ),
-        }
+    pub fn name(&self) -> &'static str {
+        self.get_card_data().name
+    }
+    pub fn energy_cost(&self) -> i32 {
+        self.get_card_data().energy_cost
     }
 }

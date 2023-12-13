@@ -3,9 +3,11 @@ use macroquad::{
     input::{is_key_down, is_mouse_button_released, mouse_position},
     math::Vec2,
     miniquad::MouseButton,
+    window::{screen_height, screen_width},
 };
 
 use crate::{
+    config::CARD_PANEL_RELATIVE_HEIGHT,
     draw::{cell_h, cell_w},
     ClientGameState,
 };
@@ -46,8 +48,8 @@ pub fn main_input(state: &mut ClientGameState) {
         mouse_position_vec(),
         0.0,
         0.0,
-        state.static_game_state.grid_w as f32,
-        state.static_game_state.grid_h as f32,
+        screen_width(),
+        screen_height() * (1.0 - CARD_PANEL_RELATIVE_HEIGHT),
     );
 
     state.input.mouse_over_occupied_tile = tower_at_tile(&state, mouse_world_position()).is_some();

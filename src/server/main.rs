@@ -1,5 +1,4 @@
 use common::*;
-use image::GenericImageView;
 use macroquad::prelude::{PURPLE, YELLOW};
 use rand::Rng;
 use std::collections::HashMap;
@@ -12,57 +11,29 @@ fn main() -> std::io::Result<()> {
     let mut game_state = ServerGameState::new();
     let mut client_addresses = HashMap::<u64, SocketAddr>::new();
 
-    let img = image::open("path.png").unwrap();
-    game_state.static_state.grid_w = img.dimensions().0;
-    game_state.static_state.grid_h = img.dimensions().1;
+    game_state.static_state.path.insert(
+        rng.gen(),
+        vec![(1.0, 1.0), (2.0, 3.0), (3.0, 3.0), (4.0, 4.0)],
+    );
 
-    let is_path = |x: i32, y: i32| match (x.try_into(), y.try_into()) {
-        (Ok(x), Ok(y))
-            if x < game_state.static_state.grid_w && y < game_state.static_state.grid_h =>
-        {
-            img.get_pixel(x, y).0.get(0).is_some_and(|v| v > &0)
-        }
-        _ => false,
-    };
-
-    let path_start = (0..game_state.static_state.grid_w as i32)
-        .into_iter()
-        .flat_map(|x| (0..game_state.static_state.grid_w as i32).map(move |y| (x, y)))
-        .find_map(|(x, y)| {
-            (is_path(x, y)
-                && (is_path(x - 1, y) as i32
-                    + is_path(x, y - 1) as i32
-                    + is_path(x + 1, y) as i32
-                    + is_path(x, y + 1) as i32)
-                    <= 1)
-                .then(|| (x, y))
-        });
-
-    let (mut x, mut y) = path_start.unwrap();
-    game_state.static_state.path = vec![(x, y)];
-    while let Some(next) = vec![(x - 1, y), (x + 1, y), (x, y - 1), (x, y + 1)]
-        .into_iter()
-        .find_map(|next_xy| {
-            (is_path(next_xy.0, next_xy.1) && !game_state.static_state.path.contains(&next_xy))
-                .then(|| next_xy)
-        })
-    {
-        game_state.static_state.path.push(next);
-        (x, y) = next;
-    }
+    game_state.static_state.path.insert(
+        rng.gen(),
+        vec![(1.0, 2.0), (2.0, 5.0), (3.0, 5.0), (4.0, 6.0)],
+    );
 
     let udp_socket = UdpSocket::bind(SERVER_ADDR).unwrap();
     udp_socket
         .set_read_timeout(Some(Duration::from_millis(10)))
         .unwrap();
     let mut time = SystemTime::now();
+
     loop {
         let old_time = time;
         time = SystemTime::now();
         let dt = time.duration_since(old_time).unwrap().as_secs_f32();
 
         loop {
-            let client_message_buf = &mut [0; 50];
+            let client_message_buf = &mut [0; 200];
             let read_client_message = udp_socket.recv_from(client_message_buf);
             match read_client_message {
                 Err(e) => match e.kind() {
@@ -81,19 +52,10 @@ fn main() -> std::io::Result<()> {
                         serde_json::from_slice::<ClientCommand>(&client_message_buf[..amt])
                             .unwrap();
                     match command {
-                        ClientCommand::PlayCard(x, y, card) => {
-                            let player = game_state
-                                .dynamic_state
-                                .players
-                                .get_mut(&client_id)
-                                .unwrap();
-                            game_state
-                                .dynamic_state
-                                .entities
-                                .insert(rng.gen(), card.to_entity(client_id, player, x, y));
+                        ClientCommand::PlayCard(card, target) => {
+                            (card.get_card_data().play_fn)(client_id, target, &mut game_state)
                         }
                         ClientCommand::JoinGame => {
-                            let client_id = hash_client_addr(&client_addr);
                             if !client_addresses.contains_key(&client_id) {
                                 client_addresses.insert(client_id, client_addr);
                                 if let Some(available_config) = vec![
@@ -108,6 +70,13 @@ fn main() -> std::io::Result<()> {
                                         ServerPlayer::new(
                                             available_direction.clone(),
                                             game_state.static_state.path_to_world_pos(
+                                                *game_state
+                                                    .static_state
+                                                    .path
+                                                    .iter()
+                                                    .next()
+                                                    .unwrap()
+                                                    .0,
                                                 available_direction.to_start_path_pos(),
                                             ),
                                             *available_color,

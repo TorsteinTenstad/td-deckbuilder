@@ -1,3 +1,4 @@
+use get_unit_spawnpoints::UnitSpawnpoint;
 use macroquad::prelude::{Color, Vec2};
 use rand::Rng;
 use serde::{Deserialize, Serialize};
@@ -8,8 +9,10 @@ use std::{
     vec,
 };
 pub mod card;
+mod get_unit_spawnpoints;
+mod spawn_entity;
 use card::Card;
-pub const SERVER_ADDR: &str = "192.168.2.162:7878";
+pub const SERVER_ADDR: &str = "192.168.1.120:7878";
 pub const TARGET_SERVER_FPS: f32 = 60.0;
 pub const PROJECTILE_RADIUS: f32 = 0.04;
 
@@ -58,8 +61,39 @@ impl ServerPlayer {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+pub enum PlayTarget {
+    WorldPos(f32, f32),
+    UnitSpawnPoint(UnitSpawnpoint),
+    BuildingSpot(u64),
+    //Entity(u64),  //It would be nice to allow targeting specific entities, but how do we handle card played on entities that are removed within the time it takes for the server to receive the message?
+}
+impl PlayTarget {
+    fn world_pos(&self) -> (f32, f32) {
+        if let PlayTarget::WorldPos(x, y) = self {
+            (*x, *y)
+        } else {
+            panic!("PlayTarget::world_pos() called on {:?}", self);
+        }
+    }
+    fn unit_spawnpoint(&self) -> UnitSpawnpoint {
+        if let PlayTarget::UnitSpawnPoint(unit_spawnpoint) = self {
+            unit_spawnpoint.clone()
+        } else {
+            panic!("PlayTarget::unit_spawnpoint() called on {:?}", self);
+        }
+    }
+    fn building_spot(&self) -> u64 {
+        if let PlayTarget::BuildingSpot(building_spot) = self {
+            *building_spot
+        } else {
+            panic!("PlayTarget::building_spot() called on {:?}", self);
+        }
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 pub enum ClientCommand {
-    PlayCard(f32, f32, Card),
+    PlayCard(Card, PlayTarget),
     JoinGame,
 }
 
@@ -72,29 +106,22 @@ pub struct ServerGameState {
 #[derive(Serialize, Deserialize)]
 pub struct StaticGameState {
     pub game_id: u64,
-    pub path: Vec<(i32, i32)>,
-    pub grid_w: u32,
-    pub grid_h: u32,
+    pub path: HashMap<u64, Vec<(f32, f32)>>,
 }
 
 impl StaticGameState {
     pub fn new() -> Self {
         Self {
             game_id: rand::thread_rng().gen(),
-            path: Vec::new(),
-            grid_h: 0,
-            grid_w: 0,
+            path: HashMap::new(),
         }
     }
-    pub fn path_to_world_pos(&self, path_pos: f32) -> Vec2 {
-        let path_pos = path_pos * (self.path.len() - 1) as f32;
-        let (low_x, low_y) = self
-            .path
-            .get((path_pos as usize).min(self.path.len() - 1))
-            .unwrap();
-        let (high_x, high_y) = self
-            .path
-            .get((path_pos as usize + 1).min(self.path.len() - 1))
+    pub fn path_to_world_pos(&self, path_id: u64, path_pos: f32) -> Vec2 {
+        let path = self.path.get(&path_id).unwrap();
+        let path_pos = path_pos * (path.len() - 1) as f32;
+        let (low_x, low_y) = path.get((path_pos as usize).min(path.len() - 1)).unwrap();
+        let (high_x, high_y) = path
+            .get((path_pos as usize + 1).min(path.len() - 1))
             .unwrap();
         let high_weight = path_pos.fract();
         let low_weight = 1.0 - high_weight;
@@ -169,6 +196,7 @@ pub struct Entity {
     pub radius: f32,
     pub health: f32,
     pub damage_animation: f32,
+    pub usable_as_spawn_point: bool,
     pub ranged_attack: Option<RangedAttack>,
     pub melee_attack: Option<MeleeAttack>,
     pub seconds_left_to_live: Option<f32>,
@@ -177,6 +205,7 @@ pub struct Entity {
 impl Entity {
     pub fn new_unit(
         owner: u64,
+        path_id: u64,
         direction: Direction,
         speed: f32,
         health: f32,
@@ -191,6 +220,7 @@ impl Entity {
             owner,
             behavior: Behavior::PathUnit {
                 0: PathUnitBehavior {
+                    path_id,
                     path_pos: direction.to_start_path_pos(),
                     direction,
                     speed,
@@ -200,6 +230,7 @@ impl Entity {
             radius: 0.25,
             health,
             damage_animation: 0.0,
+            usable_as_spawn_point: true,
             ranged_attack: Some(RangedAttack {
                 can_target: vec![EntityTag::Unit, EntityTag::Drone],
                 range,
@@ -239,6 +270,7 @@ impl Entity {
             radius: 0.25,
             health,
             damage_animation: 0.0,
+            usable_as_spawn_point: false,
             ranged_attack: Some(RangedAttack {
                 can_target: vec![EntityTag::Unit],
                 range,
@@ -250,40 +282,6 @@ impl Entity {
             seconds_left_to_live: None,
         }
     }
-
-    pub fn new_drone(
-        owner: u64,
-        pos: Vec2,
-        speed: f32,
-        health: f32,
-        damage: f32,
-        attack_interval: f32,
-    ) -> Self {
-        Self {
-            tag: EntityTag::Drone,
-            owner,
-            pos,
-            behavior: Behavior::Drone(DroneBehavior {
-                can_target: vec![EntityTag::Tower],
-                target_entity_id: None,
-                speed,
-            }),
-            radius: 0.15,
-            health,
-            damage_animation: 0.0,
-            melee_attack: Some(MeleeAttack {
-                range: Some(0.25),
-                can_target: vec![EntityTag::Tower],
-                damage,
-                attack_interval,
-                cooldown_timer: 0.0,
-                die_on_hit: false,
-            }),
-            ranged_attack: None,
-            seconds_left_to_live: None,
-        }
-    }
-
     pub fn new_bullet(
         owner: u64,
         pos: Vec2,
@@ -304,6 +302,7 @@ impl Entity {
             radius: PROJECTILE_RADIUS,
             health: 1.0,
             damage_animation: 0.0,
+            usable_as_spawn_point: false,
             ranged_attack: None,
             melee_attack: Some(MeleeAttack {
                 can_target: vec![EntityTag::Unit, EntityTag::Drone],
@@ -345,6 +344,7 @@ pub struct BulletBehavior {
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct PathUnitBehavior {
+    pub path_id: u64,
     pub path_pos: f32,
     pub direction: Direction,
     pub speed: f32,

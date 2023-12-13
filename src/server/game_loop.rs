@@ -20,6 +20,7 @@ pub fn update_entity(
 
     match &mut entity.behavior {
         Behavior::PathUnit(PathUnitBehavior {
+            path_id,
             path_pos,
             direction,
             speed,
@@ -41,7 +42,7 @@ pub fn update_entity(
                 *path_pos = (*path_pos * static_game_state.path.len() as f32
                 + *speed * direction.to_f32() * dt)
                 / static_game_state.path.len() as f32;
-                entity.pos = static_game_state.path_to_world_pos(*path_pos);
+                entity.pos = static_game_state.path_to_world_pos(*path_id, *path_pos);
             }
         }
         Behavior::Bullet(BulletBehavior {

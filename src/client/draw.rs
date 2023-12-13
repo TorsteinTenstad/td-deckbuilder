@@ -1,17 +1,17 @@
 use common::{card::Card, *};
+use itertools::Itertools;
 use macroquad::{
     color::{Color, BLACK, BLUE, GRAY, LIGHTGRAY, RED, WHITE, YELLOW},
     math::Vec2,
     shapes::{
-        draw_circle, draw_circle_lines, draw_hexagon, draw_poly, draw_rectangle, draw_rectangle_ex,
-        DrawRectangleParams, draw_line,
+        draw_circle, draw_circle_lines, draw_hexagon, draw_line, draw_poly, draw_rectangle,
+        draw_rectangle_ex, DrawRectangleParams,
     },
     text::{camera_font_scale, draw_text_ex, measure_text, TextDimensions, TextParams},
     texture::{draw_texture_ex, load_texture, DrawTextureParams, Texture2D},
     window::{clear_background, screen_height, screen_width},
 };
 use std::collections::HashMap;
-use itertools::Itertools;
 
 use crate::{input::mouse_position_vec, ClientGameState};
 
@@ -55,7 +55,6 @@ pub fn cell_h() -> f32 {
     (7.0 / 9.0) * screen_height() / 7.0 // state.static_game_state.grid_h as f32; TODO
 }
 
-
 fn to_screen_x<T>(x: T) -> f32
 where
     T: Into<f32>,
@@ -79,23 +78,14 @@ where
 pub fn main_draw(state: &ClientGameState) {
     // board
     clear_background(BLACK);
-    for x in 0..state.static_game_state.grid_w {
-        for y in 0..state.static_game_state.grid_h {
-            draw_rectangle(
-                to_screen_x(x as f32),
-                to_screen_y(y as f32),
-                cell_w(),
-                cell_h(),
-                GRASS_COLOR
-            );
+    for (_, path) in state.static_game_state.path.iter() {
+        for ((x1, y1), (x2, y2)) in path.iter().tuple_windows() {
+            let x1 = to_screen_x(*x1 as f32);
+            let y1 = to_screen_x(*y1 as f32);
+            let x2 = to_screen_x(*x2 as f32);
+            let y2 = to_screen_x(*y2 as f32);
+            draw_line(x1, y1, x2, y2, 5.0, PATH_COLOR);
         }
-    }
-    for ((x1, y1), (x2, y2)) in state.static_game_state.path.iter().tuple_windows(){
-        let x1 = to_screen_x(*x1 as f32);
-        let y1 = to_screen_x(*y1 as f32);
-        let x2 = to_screen_x(*x2 as f32);
-        let y2 = to_screen_x(*y2 as f32);
-        draw_line(x1, y1, x2, y2, 5.0, PATH_COLOR);
     }
 
     // entities
@@ -392,34 +382,6 @@ pub fn draw_card(
     );
 
     let mut icons: Vec<(&str, f32)> = Vec::new();
-    let entity = card.to_entity(
-        0,
-        &ServerPlayer::new(Direction::Positive, Vec2::ZERO, BLACK),
-        0.0,
-        0.0,
-    );
-
-    icons.push(("shield", entity.health));
-    if let Some(RangedAttack {
-        range,
-        damage,
-        fire_interval,
-        ..
-    }) = entity.ranged_attack
-    {
-        icons.push(("bow", damage));
-        icons.push(("range", range));
-        icons.push(("hourglass_bow", fire_interval));
-    }
-    if let Some(MeleeAttack {
-        damage,
-        attack_interval,
-        ..
-    }) = entity.melee_attack
-    {
-        icons.push(("sword", damage));
-        icons.push(("hourglass_sword", attack_interval));
-    };
 
     for (i, (texture_id, value)) in icons.iter().filter(|(_, value)| *value > 0.001).enumerate() {
         let width_relative_icon_size = 0.2;

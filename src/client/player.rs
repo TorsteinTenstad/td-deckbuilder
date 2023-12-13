@@ -1,4 +1,4 @@
-use common::{card::Card, ClientCommand};
+use common::{card::Card, ClientCommand, PlayTarget};
 use macroquad::{
     input::{is_mouse_button_down, is_mouse_button_released},
     miniquad::MouseButton,
@@ -36,7 +36,6 @@ impl Hand {
         for (quantity, card) in vec![
             (3, Card::BasicTower),
             (5, Card::BasicUnit),
-            (3, Card::BasicDrone),
             (3, Card::BasicRanger),
         ] {
             for _ in 0..quantity {
@@ -128,7 +127,7 @@ pub fn player_step(state: &mut ClientGameState) {
             if input.mouse_in_world
                 && match card {
                     Card::BasicTower => !input.mouse_over_occupied_tile,
-                    Card::BasicRanger | Card::BasicDrone | Card::BasicUnit => true,
+                    Card::BasicRanger | Card::BasicUnit => true,
                 }
             {
                 if let Some(card) = state
@@ -136,9 +135,8 @@ pub fn player_step(state: &mut ClientGameState) {
                     .try_move_card_from_hand_to_played(highlighted_card)
                 {
                     state.commands.push(ClientCommand::PlayCard(
-                        mouse_world_pos.x,
-                        mouse_world_pos.y,
                         card.clone(),
+                        PlayTarget::WorldPos(mouse_world_pos.x, mouse_world_pos.y),
                     ));
                 }
             }
@@ -154,7 +152,7 @@ pub fn player_step(state: &mut ClientGameState) {
                                 mouse_world_pos.y as i32 as f32 + 0.5,
                             ));
                         }
-                        Card::BasicRanger | Card::BasicDrone | Card::BasicUnit => {
+                        Card::BasicRanger | Card::BasicUnit => {
                             draw_out_of_hand_card(card, mouse_pos.x, mouse_pos.y, &state.textures);
                         }
                     }

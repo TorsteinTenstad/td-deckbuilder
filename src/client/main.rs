@@ -1,5 +1,6 @@
 use common::*;
 use macroquad::{texture::Texture2D, window::next_frame, window::request_new_screen_size};
+pub mod config;
 mod draw;
 use draw::*;
 mod input;
