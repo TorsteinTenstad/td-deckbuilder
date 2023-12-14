@@ -1,9 +1,8 @@
-use crate::{Entity, ServerGameState};
+use crate::{DynamicGameState, Entity};
 use rand::Rng;
 
-pub fn spawn_entity(server_game_state: &mut ServerGameState, entity: Entity) -> () {
-    server_game_state
-        .dynamic_state
+pub fn spawn_entity(dynamic_game_state: &mut DynamicGameState, entity: Entity) -> () {
+    dynamic_game_state
         .entities
         .insert(rand::thread_rng().gen(), entity);
 }

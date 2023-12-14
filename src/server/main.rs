@@ -52,9 +52,11 @@ fn main() -> std::io::Result<()> {
                         serde_json::from_slice::<ClientCommand>(&client_message_buf[..amt])
                             .unwrap();
                     match command {
-                        ClientCommand::PlayCard(card, target) => {
-                            (card.get_card_data().play_fn)(client_id, target, &mut game_state)
-                        }
+                        ClientCommand::PlayCard(card, target) => card.get_card_data().play_fn.exec(
+                            target,
+                            client_id,
+                            &mut game_state.dynamic_state,
+                        ),
                         ClientCommand::JoinGame => {
                             if !client_addresses.contains_key(&client_id) {
                                 client_addresses.insert(client_id, client_addr);

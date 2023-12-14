@@ -1,8 +1,6 @@
-use std::default;
-
-use common::{card::Card, ClientCommand, PlayTarget};
+use common::{card::Card, play_target::WorldPosTarget, ClientCommand, PlayTarget};
 use macroquad::{
-    input::{is_mouse_button_down, is_mouse_button_pressed, is_mouse_button_released},
+    input::{is_mouse_button_pressed, is_mouse_button_released},
     math::Vec2,
     miniquad::MouseButton,
 };
@@ -130,12 +128,14 @@ pub fn player_step(state: &mut ClientGameState) {
             .get_mut(card_idx_being_held)
             .unwrap()
             .target_transform = out_of_hand_card_transform(x, y);
+
         if is_mouse_button_released(MouseButton::Left) {
             if let Some(card) = state.hand.try_release_held_card() {
                 let Vec2 { x, y } = mouse_world_position();
-                state
-                    .commands
-                    .push(ClientCommand::PlayCard(card, PlayTarget::WorldPos(x, y)));
+                state.commands.push(ClientCommand::PlayCard(
+                    card,
+                    PlayTarget::WorldPos(WorldPosTarget { x, y }),
+                ));
             }
             state.hand.card_idx_being_held = None;
         }
