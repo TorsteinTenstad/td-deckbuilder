@@ -439,7 +439,7 @@ pub fn draw_card(
     );
 }
 
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct RectTransform {
     w: f32,
     h: f32,
@@ -449,65 +449,73 @@ pub struct RectTransform {
     offset: Vec2,
 }
 
+impl RectTransform {
+    pub fn animate_towards(&mut self, target: &RectTransform, snap: f32) {
+        let self_weight = (0.5f32).powf(snap);
+        let target_weight = 1.0 - self_weight;
+        self.x = target_weight * target.x + self_weight * self.x;
+        self.y = target_weight * target.y + self_weight * self.y;
+        self.rotation = target_weight * target.rotation + self_weight * self.rotation;
+        self.offset = target_weight * target.offset + self_weight * self.offset;
+        self.w = target_weight * target.w + self_weight * self.w;
+        self.h = target_weight * target.h + self_weight * self.h;
+    }
+}
+
 pub fn card_transform(
-    i: usize,
-    n: usize,
+    card_idx: usize,
+    hand_size: usize,
     relative_splay_radius: f32,
     card_delta_angle: f32,
 ) -> RectTransform {
     let w = screen_width() / 12.0;
     let h = w * GOLDEN_RATIO;
-    return RectTransform {
+    RectTransform {
         w,
         h,
         x: screen_width() / 2.0,
         y: screen_height() + (relative_splay_radius * h) - (CARD_VISIBLE_HEIGHT * h),
-        rotation: (i as f32 - ((n - 1) as f32 / 2.0)) * card_delta_angle,
+        rotation: (card_idx as f32 - ((hand_size - 1) as f32 / 2.0)) * card_delta_angle,
         offset: Vec2 {
             x: 0.5,
             y: relative_splay_radius,
         },
-    };
+    }
 }
 
-pub fn draw_out_of_hand_card(card: &Card, x: f32, y: f32, textures: &HashMap<String, Texture2D>) {
+pub fn out_of_hand_card_transform(x: f32, y: f32) -> RectTransform {
     let w = screen_width() / 10.0;
-    let transform = RectTransform {
+    RectTransform {
         w,
         h: w * GOLDEN_RATIO,
         x,
         y,
         rotation: 0.0,
         offset: 0.5 * Vec2::ONE,
-    };
-    draw_card(card, &transform, 1.0, textures)
+    }
 }
 
-pub fn draw_highlighted_card(
-    card: &Card,
-    i: usize,
+pub fn hovered_card_transform(
+    card_idx: usize,
+    hand_size: usize,
     relative_splay_radius: f32,
     card_delta_angle: f32,
-    textures: &HashMap<String, Texture2D>,
-    hand_size: usize,
-) {
+) -> RectTransform {
     let w = screen_width() / 10.0;
     let h = w * GOLDEN_RATIO;
     let x = screen_width() / 2.0
         + ((relative_splay_radius * h) - (CARD_VISIBLE_HEIGHT * h))
-            * f32::sin((i as f32 - ((hand_size - 1) as f32 / 2.0)) * card_delta_angle);
+            * f32::sin((card_idx as f32 - ((hand_size - 1) as f32 / 2.0)) * card_delta_angle);
     let y = screen_height();
 
-    let transform = RectTransform {
+    RectTransform {
         w,
         h: w * GOLDEN_RATIO,
         x,
         y,
         rotation: 0.0,
         offset: Vec2 { x: 0.5, y: 1.0 },
-    };
-
-    draw_card(card, &transform, 1.0, textures);
+    }
 }
 
 pub async fn load_textures() -> HashMap<String, Texture2D> {

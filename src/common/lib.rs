@@ -1,4 +1,3 @@
-use get_unit_spawnpoints::UnitSpawnpoint;
 use macroquad::prelude::{Color, Vec2};
 use rand::Rng;
 use serde::{Deserialize, Serialize};
@@ -10,8 +9,11 @@ use std::{
 };
 pub mod card;
 mod get_unit_spawnpoints;
+pub mod play_target;
+pub use play_target::PlayTarget;
 mod spawn_entity;
 use card::Card;
+
 pub const SERVER_ADDR: &str = "192.168.1.120:7878";
 pub const TARGET_SERVER_FPS: f32 = 60.0;
 pub const PROJECTILE_RADIUS: f32 = 0.04;
@@ -56,37 +58,6 @@ impl ServerPlayer {
             direction,
             unit_start_pos,
             color,
-        }
-    }
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub enum PlayTarget {
-    WorldPos(f32, f32),
-    UnitSpawnPoint(UnitSpawnpoint),
-    BuildingSpot(u64),
-    //Entity(u64),  //It would be nice to allow targeting specific entities, but how do we handle card played on entities that are removed within the time it takes for the server to receive the message?
-}
-impl PlayTarget {
-    fn world_pos(&self) -> (f32, f32) {
-        if let PlayTarget::WorldPos(x, y) = self {
-            (*x, *y)
-        } else {
-            panic!("PlayTarget::world_pos() called on {:?}", self);
-        }
-    }
-    fn unit_spawnpoint(&self) -> UnitSpawnpoint {
-        if let PlayTarget::UnitSpawnPoint(unit_spawnpoint) = self {
-            unit_spawnpoint.clone()
-        } else {
-            panic!("PlayTarget::unit_spawnpoint() called on {:?}", self);
-        }
-    }
-    fn building_spot(&self) -> u64 {
-        if let PlayTarget::BuildingSpot(building_spot) = self {
-            *building_spot
-        } else {
-            panic!("PlayTarget::building_spot() called on {:?}", self);
         }
     }
 }

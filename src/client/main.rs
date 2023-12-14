@@ -71,6 +71,14 @@ async fn main() {
         main_input(&mut state);
         udp_send_commands(&mut state);
         main_draw(&state);
+        for physical_card in state.hand.hand.iter_mut() {
+            draw_card(
+                &physical_card.card,
+                &physical_card.transform,
+                1.0,
+                &state.textures,
+            )
+        }
         player_step(&mut state);
 
         next_frame().await;

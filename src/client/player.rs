@@ -1,13 +1,17 @@
+use std::default;
+
 use common::{card::Card, ClientCommand, PlayTarget};
 use macroquad::{
-    input::{is_mouse_button_down, is_mouse_button_released},
+    input::{is_mouse_button_down, is_mouse_button_pressed, is_mouse_button_released},
+    math::Vec2,
     miniquad::MouseButton,
 };
 use rand::Rng;
 
 use crate::{
     draw::{
-        card_is_hovering, card_transform, draw_card, draw_highlighted_card, draw_out_of_hand_card,
+        card_is_hovering, card_transform, hovered_card_transform, out_of_hand_card_transform,
+        RectTransform,
     },
     input::{mouse_position_vec, mouse_world_position},
     ClientGameState,
@@ -21,11 +25,18 @@ fn shuffle_vec<T>(vec: &mut Vec<T>) {
     }
 }
 
+pub struct PhysicalCard {
+    pub card: Card,
+    pub transform: RectTransform,
+    pub target_transform: RectTransform,
+}
+
 pub struct Hand {
     pub card_draw_counter: i32,
     pub energy_counter: i32,
     pub energy: i32,
-    pub hand: Vec<Card>,
+    pub hand: Vec<PhysicalCard>,
+    pub card_idx_being_held: Option<usize>,
     pub deck: Vec<Card>,
     pub played: Vec<Card>,
 }
@@ -48,6 +59,7 @@ impl Hand {
             energy_counter: 0,
             energy: 0,
             hand: Vec::new(),
+            card_idx_being_held: None,
             deck,
             played: Vec::new(),
         }
@@ -78,15 +90,29 @@ impl Hand {
             shuffle_vec(&mut self.deck);
         }
         let card = self.deck.pop().unwrap();
-        self.hand.push(card.clone());
+        self.hand.push(PhysicalCard {
+            card: card.clone(),
+            transform: Default::default(),
+            target_transform: Default::default(),
+        });
         Some(card)
     }
 
-    pub fn try_move_card_from_hand_to_played(&mut self, index: usize) -> Option<Card> {
-        if self.energy < self.hand.get(index).unwrap().energy_cost() {
+    pub fn try_release_held_card(&mut self) -> Option<Card> {
+        let Some(card_idx_being_held) = self.card_idx_being_held else {
+            return None;
+        };
+        if self.energy
+            < self
+                .hand
+                .get(card_idx_being_held)
+                .unwrap()
+                .card
+                .energy_cost()
+        {
             return None;
         }
-        let card = self.hand.remove(index);
+        let card = self.hand.remove(card_idx_being_held).card;
         self.energy -= card.energy_cost();
         self.played.push(card.clone());
         Some(card)
@@ -94,91 +120,54 @@ impl Hand {
 }
 
 pub fn player_step(state: &mut ClientGameState) {
-    let input = &state.input;
-
-    let highlighted_card_opt_clone = state.highlighted_card_opt.clone();
-    state.highlighted_card_opt = None;
-
-    for (i, card) in state.hand.hand.iter().enumerate() {
-        let is_selected = highlighted_card_opt_clone == Some(i);
-
-        let transform = card_transform(
-            i,
-            state.hand.hand.len(),
-            state.relative_splay_radius,
-            state.card_delta_angle,
-        );
-        let hovering = card_is_hovering(&transform);
-        if !(is_selected && !is_mouse_button_down(MouseButton::Left)) {
-            draw_card(card, &transform, 1.0, &state.textures);
+    let hand_size = state.hand.hand.len();
+    let mut top_hovering_card_idx: Option<usize> = None;
+    if let Some(card_idx_being_held) = state.hand.card_idx_being_held {
+        let Vec2 { x, y } = mouse_position_vec();
+        state
+            .hand
+            .hand
+            .get_mut(card_idx_being_held)
+            .unwrap()
+            .target_transform = out_of_hand_card_transform(x, y);
+        if is_mouse_button_released(MouseButton::Left) {
+            if let Some(card) = state.hand.try_release_held_card() {
+                let Vec2 { x, y } = mouse_world_position();
+                state
+                    .commands
+                    .push(ClientCommand::PlayCard(card, PlayTarget::WorldPos(x, y)));
+            }
+            state.hand.card_idx_being_held = None;
         }
-        if hovering {
-            state.highlighted_card_opt = Some(i);
+    } else {
+        for (i, physical_card) in state.hand.hand.iter_mut().enumerate() {
+            let in_hand_transform = card_transform(
+                i,
+                hand_size,
+                state.relative_splay_radius,
+                state.card_delta_angle,
+            );
+            if card_is_hovering(&in_hand_transform) {
+                top_hovering_card_idx = Some(i);
+                if is_mouse_button_pressed(MouseButton::Left) {
+                    state.hand.card_idx_being_held = Some(i);
+                }
+            }
+            physical_card.target_transform = in_hand_transform;
+        }
+        if let Some(i) = top_hovering_card_idx {
+            state.hand.hand.get_mut(i).unwrap().target_transform = hovered_card_transform(
+                i,
+                hand_size,
+                state.relative_splay_radius,
+                state.card_delta_angle,
+            );
         }
     }
 
-    let mouse_pos = mouse_position_vec();
-    let mouse_world_pos = mouse_world_position();
-
-    if let Some(highlighted_card) = highlighted_card_opt_clone {
-        let card = state.hand.hand.get(highlighted_card).unwrap();
-
-        if is_mouse_button_released(MouseButton::Left) {
-            if input.mouse_in_world
-                && match card {
-                    Card::BasicTower => !input.mouse_over_occupied_tile,
-                    Card::BasicRanger | Card::BasicUnit => true,
-                }
-            {
-                if let Some(card) = state
-                    .hand
-                    .try_move_card_from_hand_to_played(highlighted_card)
-                {
-                    state.commands.push(ClientCommand::PlayCard(
-                        card.clone(),
-                        PlayTarget::WorldPos(mouse_world_pos.x, mouse_world_pos.y),
-                    ));
-                }
-            }
-            state.preview_tower_pos = None;
-        } else {
-            if is_mouse_button_down(MouseButton::Left) {
-                state.highlighted_card_opt = Some(highlighted_card);
-                if input.mouse_in_world {
-                    match card {
-                        Card::BasicTower => {
-                            state.preview_tower_pos = Some((
-                                mouse_world_pos.x as i32 as f32 + 0.5,
-                                mouse_world_pos.y as i32 as f32 + 0.5,
-                            ));
-                        }
-                        Card::BasicRanger | Card::BasicUnit => {
-                            draw_out_of_hand_card(card, mouse_pos.x, mouse_pos.y, &state.textures);
-                        }
-                    }
-                } else {
-                    draw_out_of_hand_card(card, mouse_pos.x, mouse_pos.y, &state.textures);
-                }
-            } else {
-                let transform = card_transform(
-                    highlighted_card,
-                    state.hand.hand.len(),
-                    state.relative_splay_radius,
-                    state.card_delta_angle,
-                );
-                let hovering = card_is_hovering(&transform);
-                draw_highlighted_card(
-                    card,
-                    highlighted_card,
-                    state.relative_splay_radius,
-                    state.card_delta_angle,
-                    &state.textures,
-                    state.hand.hand.len(),
-                );
-                if hovering {
-                    state.highlighted_card_opt = Some(highlighted_card);
-                }
-            }
-        }
+    for physical_card in state.hand.hand.iter_mut() {
+        physical_card
+            .transform
+            .animate_towards(&physical_card.target_transform, state.dt * 20.0);
     }
 }
