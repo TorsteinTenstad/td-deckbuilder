@@ -6,21 +6,19 @@ use std::collections::HashMap;
 use std::net::{SocketAddr, UdpSocket};
 use std::time::{Duration, SystemTime};
 mod game_loop;
+mod level_config;
 
 fn main() -> std::io::Result<()> {
     let mut rng = rand::thread_rng();
     let mut game_state = ServerGameState::new();
     let mut client_addresses = HashMap::<u64, SocketAddr>::new();
 
-    game_state.static_state.paths.insert(
-        rng.gen(),
-        vec![(1.0, 1.0), (2.0, 3.0), (3.0, 3.0), (4.0, 4.0)],
-    );
-
-    game_state.static_state.paths.insert(
-        rng.gen(),
-        vec![(1.0, 2.0), (2.0, 5.0), (3.0, 5.0), (4.0, 6.0)],
-    );
+    for path in level_config::PATHS {
+        game_state
+            .static_state
+            .paths
+            .insert(rng.gen(), path.to_vec());
+    }
 
     let udp_socket = UdpSocket::bind(SERVER_ADDR).unwrap();
     udp_socket
@@ -61,11 +59,8 @@ fn main() -> std::io::Result<()> {
                         ClientCommand::JoinGame => {
                             if !client_addresses.contains_key(&client_id) {
                                 client_addresses.insert(client_id, client_addr);
-                                if let Some(available_config) = vec![
-                                    (Vec2 { x: 0.5, y: 0.5 }, Direction::Positive, YELLOW),
-                                    (Vec2 { x: 5.5, y: 5.5 }, Direction::Negative, PURPLE),
-                                ]
-                                .get(game_state.dynamic_state.players.len())
+                                if let Some(available_config) = level_config::PLAYER_CONFIGS
+                                    .get(game_state.dynamic_state.players.len())
                                 {
                                     let (base_pos, available_direction, available_color) =
                                         available_config;
