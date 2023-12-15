@@ -1,5 +1,12 @@
-use common::{card::Card, play_target::WorldPosTarget, ClientCommand, PlayTarget};
+use crate::draw::{to_screen_x, to_screen_y, unit_spawnpoint_gui_indicator_transform};
+use common::{
+    card::Card,
+    get_unit_spawnpoints::get_unit_spawnpoints,
+    play_target::{PlayFn, UnitSpawnpointTarget, WorldPosTarget},
+    ClientCommand, PlayTarget,
+};
 use macroquad::{
+    color::RED,
     input::{is_mouse_button_pressed, is_mouse_button_released},
     math::Vec2,
     miniquad::MouseButton,
@@ -8,7 +15,7 @@ use rand::Rng;
 
 use crate::{
     draw::{
-        card_is_hovering, card_transform, hovered_card_transform, out_of_hand_card_transform,
+        card_transform, curser_is_inside, hovered_card_transform, out_of_hand_card_transform,
         RectTransform,
     },
     input::{mouse_position_vec, mouse_world_position},
@@ -120,6 +127,7 @@ impl Hand {
 pub fn player_step(state: &mut ClientGameState) {
     let hand_size = state.hand.hand.len();
     let mut top_hovering_card_idx: Option<usize> = None;
+    state.unit_spawnpoint_targets.clear();
     if let Some(card_idx_being_held) = state.hand.card_idx_being_held {
         let Vec2 { x, y } = mouse_position_vec();
         state
@@ -129,14 +137,56 @@ pub fn player_step(state: &mut ClientGameState) {
             .unwrap()
             .target_transform = out_of_hand_card_transform(x, y);
 
-        if is_mouse_button_released(MouseButton::Left) {
-            if let Some(card) = state.hand.try_release_held_card() {
-                let Vec2 { x, y } = mouse_world_position();
-                state.commands.push(ClientCommand::PlayCard(
-                    card,
-                    PlayTarget::WorldPos(WorldPosTarget { x, y }),
-                ));
+        let card_data = state
+            .hand
+            .hand
+            .get(card_idx_being_held)
+            .unwrap()
+            .card
+            .get_card_data();
+        match card_data.play_fn {
+            PlayFn::WorldPos(_) => {}
+            PlayFn::UnitSpawnPoint(_) => {
+                state.unit_spawnpoint_targets = get_unit_spawnpoints(
+                    state.player_id,
+                    &state.static_game_state,
+                    &state.dynamic_game_state,
+                )
             }
+            PlayFn::BuildingSpot(_) => {}
+            PlayFn::Entity(_) => {}
+        }
+
+        if is_mouse_button_released(MouseButton::Left) {
+            match card_data.play_fn {
+                PlayFn::WorldPos(_) => {
+                    if let Some(card) = state.hand.try_release_held_card() {
+                        let Vec2 { x, y } = mouse_world_position();
+                        state.commands.push(ClientCommand::PlayCard(
+                            card,
+                            PlayTarget::WorldPos(WorldPosTarget { x, y }),
+                        ));
+                    }
+                }
+                PlayFn::UnitSpawnPoint(_) => {
+                    if let Some(target) = state.unit_spawnpoint_targets.iter().find(|target| {
+                        curser_is_inside(&unit_spawnpoint_gui_indicator_transform(
+                            target,
+                            &state.static_game_state,
+                        ))
+                    }) {
+                        if let Some(card) = state.hand.try_release_held_card() {
+                            state.commands.push(ClientCommand::PlayCard(
+                                card,
+                                PlayTarget::UnitSpawnPoint(target.clone()),
+                            ));
+                        }
+                    }
+                }
+                PlayFn::BuildingSpot(_) => {}
+                PlayFn::Entity(_) => {}
+            }
+
             state.hand.card_idx_being_held = None;
         }
     } else {
@@ -147,7 +197,7 @@ pub fn player_step(state: &mut ClientGameState) {
                 state.relative_splay_radius,
                 state.card_delta_angle,
             );
-            if card_is_hovering(&in_hand_transform) {
+            if curser_is_inside(&in_hand_transform) {
                 top_hovering_card_idx = Some(i);
                 if is_mouse_button_pressed(MouseButton::Left) {
                     state.hand.card_idx_being_held = Some(i);

@@ -41,15 +41,37 @@ pub fn get_unit_spawnpoints(
         .unwrap()
         .direction
         .clone();
+
+    let spawn_point_radius = 5.0;
     dynamic_game_state
         .entities
         .iter()
-        .filter(|(_id, entity)| entity.owner == player_id && entity.usable_as_spawn_point)
-        .filter_map(|(_id, entity)| get_closest_path_point(&static_game_state.path, entity))
+        .filter_map(|(_id, entity)| {
+            (entity.owner == player_id && entity.usable_as_spawn_point).then_some(entity.pos)
+        })
+        .flat_map(|pos| {
+            static_game_state
+                .paths
+                .iter()
+                .filter_map(move |(path_id, path)| {
+                    path.iter()
+                        .enumerate()
+                        .map(|(path_pos, (x, y))| {
+                            (
+                                *path_id,
+                                path_pos,
+                                path_pos as f32 + (pos - Vec2::new(*x, *y)).length(),
+                            )
+                        })
+                        .min_by(|(_, _, a), (_, _, b)| a.partial_cmp(b).unwrap())
+                        .filter(|(_, _, dist)| dist < &spawn_point_radius)
+                        .map(|(path_id, path_pos, _)| (path_id, path_pos))
+                })
+        })
         .map(|(path_id, path_pos)| UnitSpawnpointTarget {
             path_id,
             direction: direction.clone(),
-            path_pos,
+            path_pos: path_pos as f32,
         })
         .collect()
 }

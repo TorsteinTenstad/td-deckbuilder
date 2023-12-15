@@ -1,4 +1,5 @@
 use common::*;
+use macroquad::math::Vec2;
 use macroquad::prelude::{PURPLE, YELLOW};
 use rand::Rng;
 use std::collections::HashMap;
@@ -11,12 +12,12 @@ fn main() -> std::io::Result<()> {
     let mut game_state = ServerGameState::new();
     let mut client_addresses = HashMap::<u64, SocketAddr>::new();
 
-    game_state.static_state.path.insert(
+    game_state.static_state.paths.insert(
         rng.gen(),
         vec![(1.0, 1.0), (2.0, 3.0), (3.0, 3.0), (4.0, 4.0)],
     );
 
-    game_state.static_state.path.insert(
+    game_state.static_state.paths.insert(
         rng.gen(),
         vec![(1.0, 2.0), (2.0, 5.0), (3.0, 5.0), (4.0, 6.0)],
     );
@@ -61,28 +62,35 @@ fn main() -> std::io::Result<()> {
                             if !client_addresses.contains_key(&client_id) {
                                 client_addresses.insert(client_id, client_addr);
                                 if let Some(available_config) = vec![
-                                    (Direction::Positive, YELLOW),
-                                    (Direction::Negative, PURPLE),
+                                    (Vec2 { x: 0.5, y: 0.5 }, Direction::Positive, YELLOW),
+                                    (Vec2 { x: 5.5, y: 5.5 }, Direction::Negative, PURPLE),
                                 ]
                                 .get(game_state.dynamic_state.players.len())
                                 {
-                                    let (available_direction, available_color) = available_config;
+                                    let (base_pos, available_direction, available_color) =
+                                        available_config;
                                     game_state.dynamic_state.players.insert(
                                         client_id,
                                         ServerPlayer::new(
                                             available_direction.clone(),
-                                            game_state.static_state.path_to_world_pos(
-                                                *game_state
-                                                    .static_state
-                                                    .path
-                                                    .iter()
-                                                    .next()
-                                                    .unwrap()
-                                                    .0,
-                                                available_direction.to_start_path_pos(),
-                                            ),
                                             *available_color,
                                         ),
+                                    );
+                                    game_state.dynamic_state.entities.insert(
+                                        client_id,
+                                        Entity {
+                                            owner: client_id,
+                                            pos: base_pos.clone(),
+                                            tag: EntityTag::Base,
+                                            behavior: Behavior::None,
+                                            radius: 0.5,
+                                            health: 1000.0,
+                                            damage_animation: 0.0,
+                                            usable_as_spawn_point: true,
+                                            ranged_attack: None,
+                                            melee_attack: None,
+                                            seconds_left_to_live: None,
+                                        },
                                     );
                                 }
                             }

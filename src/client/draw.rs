@@ -1,11 +1,11 @@
-use common::{card::Card, *};
+use common::{card::Card, play_target::UnitSpawnpointTarget, *};
 use itertools::Itertools;
 use macroquad::{
     color::{Color, BLACK, BLUE, GRAY, LIGHTGRAY, RED, WHITE, YELLOW},
     math::Vec2,
     shapes::{
-        draw_circle, draw_circle_lines, draw_hexagon, draw_line, draw_poly, draw_rectangle,
-        draw_rectangle_ex, DrawRectangleParams,
+        draw_circle, draw_circle_lines, draw_hexagon, draw_line, draw_rectangle, draw_rectangle_ex,
+        DrawRectangleParams,
     },
     text::{camera_font_scale, draw_text_ex, measure_text, TextDimensions, TextParams},
     texture::{draw_texture_ex, load_texture, DrawTextureParams, Texture2D},
@@ -55,20 +55,20 @@ pub fn cell_h() -> f32 {
     (7.0 / 9.0) * screen_height() / 7.0 // state.static_game_state.grid_h as f32; TODO
 }
 
-fn to_screen_x<T>(x: T) -> f32
+pub fn to_screen_x<T>(x: T) -> f32
 where
     T: Into<f32>,
 {
     x.into() * cell_w()
 }
-fn to_screen_y<T>(y: T) -> f32
+pub fn to_screen_y<T>(y: T) -> f32
 where
     T: Into<f32>,
 {
     y.into() * cell_w()
 }
 
-fn to_screen_size<T>(size: T) -> f32
+pub fn to_screen_size<T>(size: T) -> f32
 where
     T: Into<f32>,
 {
@@ -78,7 +78,7 @@ where
 pub fn main_draw(state: &ClientGameState) {
     // board
     clear_background(BLACK);
-    for (_, path) in state.static_game_state.path.iter() {
+    for (_, path) in state.static_game_state.paths.iter() {
         for ((x1, y1), (x2, y2)) in path.iter().tuple_windows() {
             let x1 = to_screen_x(*x1 as f32);
             let y1 = to_screen_x(*y1 as f32);
@@ -101,28 +101,11 @@ pub fn main_draw(state: &ClientGameState) {
         let r = to_screen_size(entity.radius);
 
         match entity.tag {
-            EntityTag::Tower => {
+            EntityTag::Tower | EntityTag::Base => {
                 draw_hexagon(pos_x, pos_y, 20.0, 0.0, false, color, color);
             }
             EntityTag::Unit => {
                 draw_circle(pos_x, pos_y, r, color);
-            }
-            EntityTag::Drone => {
-                let rotation = if let Behavior::Drone(DroneBehavior {
-                    target_entity_id, ..
-                }) = entity.behavior
-                {
-                    if let Some(target_entity) =
-                        target_entity_id.and_then(|id| state.dynamic_game_state.entities.get(&id))
-                    {
-                        (target_entity.pos - entity.pos).angle_between(Vec2::NEG_X)
-                    } else {
-                        0.0
-                    }
-                } else {
-                    0.0
-                };
-                draw_poly(pos_x, pos_y, 3, r, 360.0 * rotation, color);
             }
             EntityTag::Bullet => {
                 draw_circle(pos_x, pos_y, to_screen_size(PROJECTILE_RADIUS), GRAY);
@@ -200,6 +183,20 @@ pub fn main_draw(state: &ClientGameState) {
             BLACK,
         );
     }
+}
+
+pub fn draw_rect_transform(transform: &RectTransform, color: Color) {
+    draw_rectangle_ex(
+        transform.x,
+        transform.y,
+        transform.w,
+        transform.h,
+        DrawRectangleParams {
+            rotation: transform.rotation,
+            offset: transform.offset,
+            color,
+        },
+    );
 }
 
 pub fn draw_text_with_origin(
@@ -292,7 +289,28 @@ pub fn draw_progress_bar(
 const CARD_BORDER: f32 = 5.0;
 const CARD_VISIBLE_HEIGHT: f32 = 0.8;
 
-pub fn card_is_hovering(transform: &RectTransform) -> bool {
+pub fn unit_spawnpoint_gui_indicator_transform(
+    target: &UnitSpawnpointTarget,
+    static_game_state: &StaticGameState,
+) -> RectTransform {
+    let UnitSpawnpointTarget {
+        path_id,
+        direction: _,
+        path_pos,
+    } = target;
+
+    let Vec2 { x, y } = static_game_state.path_to_world_pos(*path_id, *path_pos);
+    RectTransform {
+        x: to_screen_x(x),
+        y: to_screen_y(y),
+        w: 50.0,
+        h: 50.0,
+        offset: Vec2::splat(0.5),
+        ..Default::default()
+    }
+}
+
+pub fn curser_is_inside(transform: &RectTransform) -> bool {
     let local_mouse_pos = Vec2::from_angle(-transform.rotation).rotate(
         mouse_position_vec()
             - Vec2 {
@@ -318,23 +336,13 @@ pub fn draw_card(
     textures: &HashMap<String, Texture2D>,
 ) {
     draw_circle(transform.x, transform.y, 3.0, YELLOW);
-    draw_rectangle_ex(
-        transform.x,
-        transform.y,
-        transform.w,
-        transform.h,
-        DrawRectangleParams {
-            color: Color { a: alpha, ..GRAY },
-            rotation: transform.rotation,
-            offset: transform.offset,
-            ..Default::default()
-        },
-    );
+    draw_rect_transform(transform, Color { a: alpha, ..GRAY });
     let inner_offset = transform.offset
         + Vec2 {
             x: 0.0,
             y: (2.0 * transform.offset.y - 1.0) * CARD_BORDER / transform.h,
         };
+
     draw_rectangle_ex(
         transform.x,
         transform.y,
@@ -370,7 +378,7 @@ pub fn draw_card(
         card_name_pos.y,
         20.0,
         transform.rotation,
-        BLACK,
+        Color { a: alpha, ..BLACK },
         TextOriginX::Right,
         TextOriginY::Top,
     );
@@ -401,7 +409,7 @@ pub fn draw_card(
             texture,
             on_card_icon_pos.x,
             on_card_icon_pos.y,
-            WHITE,
+            Color { a: alpha, ..WHITE },
             DrawTextureParams {
                 rotation: transform.rotation,
                 dest_size: Some(icon_size),
@@ -415,7 +423,7 @@ pub fn draw_card(
             on_card_value_pos.y,
             26.0,
             transform.rotation,
-            BLACK,
+            Color { a: alpha, ..BLACK },
             TextOriginX::Left,
             TextOriginY::AbsoluteCenter,
         );
@@ -439,14 +447,14 @@ pub fn draw_card(
     );
 }
 
-#[derive(Default, Clone)]
+#[derive(Debug, Default, Clone)]
 pub struct RectTransform {
-    w: f32,
-    h: f32,
-    x: f32,
-    y: f32,
-    rotation: f32,
-    offset: Vec2,
+    pub w: f32,
+    pub h: f32,
+    pub x: f32,
+    pub y: f32,
+    pub rotation: f32,
+    pub offset: Vec2,
 }
 
 impl RectTransform {

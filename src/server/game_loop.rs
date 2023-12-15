@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 
 use common::{
-    Behavior, BulletBehavior, Entity, EntityExternalEffects, MeleeAttack, PathUnitBehavior,
-    RangedAttack, StaticGameState, DroneBehavior,
+    Behavior, BulletBehavior, DroneBehavior, Entity, EntityExternalEffects, MeleeAttack,
+    PathUnitBehavior, RangedAttack, StaticGameState,
 };
 use macroquad::math::Vec2;
 
@@ -34,14 +34,14 @@ pub fn update_entity(
                         }) if {
                                 let world_space_path_pos_delta =
                                  direction.to_f32()*(other_path_pos-
-                                *path_pos )* static_game_state.path.len() as f32;
+                                *path_pos )* static_game_state.paths.len() as f32;
                                 world_space_path_pos_delta > 0.0 && world_space_path_pos_delta < (other_entity.radius + entity.radius)
                         }
                     )
             }) {
-                *path_pos = (*path_pos * static_game_state.path.len() as f32
+                *path_pos = (*path_pos * static_game_state.paths.len() as f32
                 + *speed * direction.to_f32() * dt)
-                / static_game_state.path.len() as f32;
+                / static_game_state.paths.len() as f32;
                 entity.pos = static_game_state.path_to_world_pos(*path_id, *path_pos);
             }
         }
@@ -59,43 +59,6 @@ pub fn update_entity(
                 .unwrap_or(*velocity);
 
             entity.pos += *velocity * dt;
-        }
-        Behavior::Drone(DroneBehavior {
-            can_target,
-            target_entity_id,
-            speed,
-        }) => {
-                if let Some(target_entity) = target_entity_id.and_then(|id|other_entities.get(&id)) {
-                    let pos_delta = target_entity.pos - entity.pos;
-                    let range = if let Some(melee_attack) = &entity.melee_attack {
-                        melee_attack.range.unwrap_or(entity.radius)
-                    } else {
-                        entity.radius
-                    };
-                    if pos_delta.length() < target_entity.radius + range{
-                        let angle = 2.0* *speed*dt/(pos_delta.length()*std::f32::consts::PI);
-                        entity.pos = target_entity.pos + Vec2::from_angle(std::f32::consts::PI + angle).rotate(pos_delta);
-                    } else {
-                        entity.pos += pos_delta.normalize_or_zero() * *speed * dt
-                    }
-                
-            }else {
-                *target_entity_id = other_entities
-                    .iter()
-                    .filter(|(_, other_entity)| other_entity.owner != entity.owner)
-                    .filter(|(_, other_entity)|can_target.contains(&other_entity.tag))
-                    .map(|(id, other_entity)| {
-                        (
-                            id,
-                            (other_entity.pos - entity.pos).length_squared()
-                                - (entity.radius + other_entity.radius).powi(2),
-                        )
-                    })
-                    .min_by(|(_id_a, signed_distance_a), (_id_b, signed_distance_b)| {
-                        signed_distance_a.partial_cmp(signed_distance_b).unwrap()
-                    })
-                    .map(|(id, _signed_distance)| *id);
-            }
         }
         Behavior::None => {}
     };

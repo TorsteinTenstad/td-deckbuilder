@@ -8,7 +8,7 @@ use std::{
     vec,
 };
 pub mod card;
-mod get_unit_spawnpoints;
+pub mod get_unit_spawnpoints;
 pub mod play_target;
 pub use play_target::PlayTarget;
 mod spawn_entity;
@@ -44,19 +44,16 @@ pub struct ServerPlayer {
     pub card_draw_counter: f32,
     pub energy_counter: f32,
     pub direction: Direction,
-    #[serde(with = "Vec2Def")]
-    pub unit_start_pos: Vec2,
     #[serde(with = "ColorDef")]
     pub color: Color,
 }
 
 impl ServerPlayer {
-    pub fn new(direction: Direction, unit_start_pos: Vec2, color: Color) -> Self {
+    pub fn new(direction: Direction, color: Color) -> Self {
         Self {
             card_draw_counter: 5.0,
             energy_counter: 0.0,
             direction,
-            unit_start_pos,
             color,
         }
     }
@@ -77,18 +74,18 @@ pub struct ServerGameState {
 #[derive(Serialize, Deserialize)]
 pub struct StaticGameState {
     pub game_id: u64,
-    pub path: HashMap<u64, Vec<(f32, f32)>>,
+    pub paths: HashMap<u64, Vec<(f32, f32)>>,
 }
 
 impl StaticGameState {
     pub fn new() -> Self {
         Self {
             game_id: rand::thread_rng().gen(),
-            path: HashMap::new(),
+            paths: HashMap::new(),
         }
     }
     pub fn path_to_world_pos(&self, path_id: u64, path_pos: f32) -> Vec2 {
-        let path = self.path.get(&path_id).unwrap();
+        let path = self.paths.get(&path_id).unwrap();
         let path_pos = path_pos * (path.len() - 1) as f32;
         let (low_x, low_y) = path.get((path_pos as usize).min(path.len() - 1)).unwrap();
         let (high_x, high_y) = path
@@ -97,8 +94,8 @@ impl StaticGameState {
         let high_weight = path_pos.fract();
         let low_weight = 1.0 - high_weight;
         Vec2 {
-            x: *low_x as f32 * low_weight + *high_x as f32 * high_weight + 0.5,
-            y: *low_y as f32 * low_weight + *high_y as f32 * high_weight + 0.5,
+            x: *low_x as f32 * low_weight + *high_x as f32 * high_weight,
+            y: *low_y as f32 * low_weight + *high_y as f32 * high_weight,
         }
     }
 }
@@ -151,9 +148,9 @@ impl Direction {
 
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum EntityTag {
+    Base,
     Tower,
     Unit,
-    Drone,
     Bullet,
 }
 
@@ -201,9 +198,9 @@ impl Entity {
             radius: 0.25,
             health,
             damage_animation: 0.0,
-            usable_as_spawn_point: true,
+            usable_as_spawn_point: false,
             ranged_attack: Some(RangedAttack {
-                can_target: vec![EntityTag::Unit, EntityTag::Drone],
+                can_target: vec![EntityTag::Unit],
                 range,
                 damage: ranged_damage,
                 fire_interval,
@@ -276,7 +273,7 @@ impl Entity {
             usable_as_spawn_point: false,
             ranged_attack: None,
             melee_attack: Some(MeleeAttack {
-                can_target: vec![EntityTag::Unit, EntityTag::Drone],
+                can_target: vec![EntityTag::Unit],
                 range: None,
                 damage,
                 attack_interval: 0.5,
@@ -295,7 +292,6 @@ pub struct EntityExternalEffects {
 pub enum Behavior {
     Bullet(BulletBehavior),
     PathUnit(PathUnitBehavior),
-    Drone(DroneBehavior),
     None,
 }
 

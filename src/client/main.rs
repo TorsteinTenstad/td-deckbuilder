@@ -1,4 +1,8 @@
+use common::play_target::UnitSpawnpointTarget;
 use common::*;
+use macroquad::color::{Color, RED};
+use macroquad::math::Vec2;
+use macroquad::shapes::{draw_rectangle, draw_rectangle_ex, DrawRectangleParams};
 use macroquad::{texture::Texture2D, window::next_frame, window::request_new_screen_size};
 pub mod config;
 mod draw;
@@ -29,6 +33,7 @@ pub struct ClientGameState {
     input: GameInput,
     dt: f32,
     textures: HashMap<String, Texture2D>,
+    unit_spawnpoint_targets: Vec<UnitSpawnpointTarget>,
 }
 
 impl ClientGameState {
@@ -52,6 +57,7 @@ impl ClientGameState {
             input: GameInput::default(),
             dt: 0.167,
             textures: load_textures().await,
+            unit_spawnpoint_targets: Vec::new(),
         }
     }
 }
@@ -78,6 +84,18 @@ async fn main() {
                 1.0,
                 &state.textures,
             )
+        }
+        for target in state.unit_spawnpoint_targets.iter() {
+            let transform =
+                &unit_spawnpoint_gui_indicator_transform(target, &state.static_game_state);
+            let hovering = curser_is_inside(transform);
+            draw_rect_transform(
+                transform,
+                Color {
+                    a: if hovering { 0.8 } else { 0.5 },
+                    ..RED
+                },
+            );
         }
         player_step(&mut state);
 
