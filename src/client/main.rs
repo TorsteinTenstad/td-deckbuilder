@@ -1,6 +1,8 @@
-use common::play_target::UnitSpawnpointTarget;
+use common::play_target::{PlayFn, UnitSpawnpointTarget};
 use common::*;
 use macroquad::color::{Color, RED};
+use macroquad::math::Vec2;
+use macroquad::shapes::draw_circle_lines;
 use macroquad::{texture::Texture2D, window::next_frame, window::request_new_screen_size};
 pub mod config;
 mod draw;
@@ -22,7 +24,6 @@ pub struct ClientGameState {
     hand: Hand,
     relative_splay_radius: f32,
     card_delta_angle: f32,
-    highlighted_card_opt: Option<usize>,
     preview_tower_pos: Option<(f32, f32)>,
     frames_since_last_received: i32,
     commands: Vec<ClientCommand>,
@@ -47,7 +48,6 @@ impl ClientGameState {
             commands: Vec::new(),
             frames_since_last_received: 0,
             hand: Hand::new(),
-            highlighted_card_opt: None,
             preview_tower_pos: None,
             selected_entity_id: None,
             udp_socket,
@@ -82,6 +82,34 @@ async fn main() {
                 1.0,
                 &state.textures,
             )
+        }
+        if state
+            .hand
+            .card_idx_being_held
+            .filter(|idx| {
+                matches!(
+                    state.hand.hand[*idx].card.get_card_data().play_fn,
+                    PlayFn::BuildingSpot(_)
+                )
+            })
+            .is_some()
+        {
+            for (_id, (x, y)) in state.static_game_state.building_locations.iter() {
+                let x = to_screen_x(*x);
+                let y = to_screen_y(*y);
+                let r = 20.0;
+                let hovering = (mouse_position_vec() - Vec2 { x, y }).length() < r;
+                draw_circle_lines(
+                    x,
+                    y,
+                    r,
+                    3.0,
+                    Color {
+                        a: if hovering { 0.8 } else { 0.5 },
+                        ..RED
+                    },
+                );
+            }
         }
         for target in state.unit_spawnpoint_targets.iter() {
             let transform =

@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    play_target::{PlayFn, UnitSpawnpointTarget, WorldPosTarget},
+    play_target::{BuildingSpotTarget, PlayFn, UnitSpawnpointTarget},
     spawn_entity::spawn_entity,
     DynamicGameState, Entity,
 };
@@ -23,49 +23,42 @@ const CARD_DATA: &[CardData] = &[
     CardData {
         name: "Tower",
         energy_cost: 3,
-        play_fn: PlayFn::WorldPos(|target, owner, dynamic_game_state| {
-            let WorldPosTarget { x, y } = target;
-            let entity = Entity::new_tower(owner, x, y, 3.0, 100.0, 2.0, 0.5);
+        play_fn: PlayFn::BuildingSpot(|target, owner, static_game_state, dynamic_game_state| {
+            let BuildingSpotTarget { id } = target;
+            let (x, y) = static_game_state.building_locations.get(&id).unwrap();
+            let entity = Entity::new_tower(owner, *x, *y, 3.0, 100.0, 2.0, 0.5);
             spawn_entity(dynamic_game_state, entity);
         }),
     },
     CardData {
         name: "Ground Unit",
         energy_cost: 1,
-        play_fn: PlayFn::UnitSpawnPoint(
-            |target: UnitSpawnpointTarget,
-             owner: u64,
-             dynamic_game_state: &mut DynamicGameState| {
-                let UnitSpawnpointTarget {
-                    path_id,
-                    direction,
-                    path_pos,
-                } = target;
-                let entity = Entity::new_unit(
-                    owner, path_id, direction, 1.0, 100.0, 10.0, 0.5, 0.0, 0.0, 0.0,
-                );
-                spawn_entity(dynamic_game_state, entity);
-            },
-        ),
+        play_fn: PlayFn::UnitSpawnPoint(|target, owner, static_game_state, dynamic_game_state| {
+            let UnitSpawnpointTarget {
+                path_id,
+                direction,
+                path_pos,
+            } = target;
+            let entity = Entity::new_unit(
+                owner, path_id, direction, 1.0, 100.0, 10.0, 0.5, 0.0, 0.0, 0.0,
+            );
+            spawn_entity(dynamic_game_state, entity);
+        }),
     },
     CardData {
         name: "Ranger",
         energy_cost: 1,
-        play_fn: PlayFn::UnitSpawnPoint(
-            |target: UnitSpawnpointTarget,
-             owner: u64,
-             dynamic_game_state: &mut DynamicGameState| {
-                let UnitSpawnpointTarget {
-                    path_id,
-                    direction,
-                    path_pos,
-                } = target;
-                let entity = Entity::new_unit(
-                    owner, path_id, direction, 1.0, 50.0, 0.0, 0.0, 3.0, 5.0, 0.5,
-                );
-                spawn_entity(dynamic_game_state, entity);
-            },
-        ),
+        play_fn: PlayFn::UnitSpawnPoint(|target, owner, static_game_state, dynamic_game_state| {
+            let UnitSpawnpointTarget {
+                path_id,
+                direction,
+                path_pos,
+            } = target;
+            let entity = Entity::new_unit(
+                owner, path_id, direction, 1.0, 50.0, 0.0, 0.0, 3.0, 5.0, 0.5,
+            );
+            spawn_entity(dynamic_game_state, entity);
+        }),
     },
 ];
 

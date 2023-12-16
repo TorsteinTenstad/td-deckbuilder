@@ -44,33 +44,33 @@ pub fn to_screen_x<T>(x: T) -> f32
 where
     T: Into<f32>,
 {
-    x.into() * screen_width() / level_config::LEVEL_WIDTH
+    x.into() * screen_width() / level_config::LEVEL_WIDTH as f32
 }
 pub fn to_screen_y<T>(y: T) -> f32
 where
     T: Into<f32>,
 {
-    y.into() * screen_height() / level_config::LEVEL_HEIGHT
+    y.into() * screen_height() / level_config::LEVEL_HEIGHT as f32
 }
 
 pub fn to_world_x<T>(x: T) -> f32
 where
     T: Into<f32>,
 {
-    x.into() * level_config::LEVEL_WIDTH / screen_width()
+    x.into() * level_config::LEVEL_WIDTH as f32 / screen_width()
 }
 pub fn to_world_y<T>(y: T) -> f32
 where
     T: Into<f32>,
 {
-    y.into() * level_config::LEVEL_HEIGHT / screen_height()
+    y.into() * level_config::LEVEL_HEIGHT as f32 / screen_height()
 }
 
 pub fn to_screen_size<T>(size: T) -> f32
 where
     T: Into<f32>,
 {
-    size.into() * screen_width() / level_config::LEVEL_WIDTH
+    size.into() * screen_width() / level_config::LEVEL_WIDTH as f32
 }
 
 pub fn main_draw(state: &ClientGameState) {
@@ -94,11 +94,17 @@ pub fn main_draw(state: &ClientGameState) {
     for (_, path) in state.static_game_state.paths.iter() {
         for ((x1, y1), (x2, y2)) in path.iter().tuple_windows() {
             let x1 = to_screen_x(*x1 as f32);
-            let y1 = to_screen_x(*y1 as f32);
+            let y1 = to_screen_y(*y1 as f32);
             let x2 = to_screen_x(*x2 as f32);
-            let y2 = to_screen_x(*y2 as f32);
+            let y2 = to_screen_y(*y2 as f32);
             draw_line(x1, y1, x2, y2, 5.0, PATH_COLOR);
         }
+    }
+
+    for (_id, (x, y)) in state.static_game_state.building_locations.iter() {
+        let x = to_screen_x(*x as f32);
+        let y = to_screen_y(*y as f32);
+        draw_circle(x, y, 20.0, WHITE);
     }
 
     // entities

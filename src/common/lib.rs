@@ -76,6 +76,7 @@ pub struct ServerGameState {
 pub struct StaticGameState {
     pub game_id: u64,
     pub paths: HashMap<u64, Vec<(f32, f32)>>,
+    pub building_locations: HashMap<u64, (f32, f32)>,
 }
 
 impl StaticGameState {
@@ -83,6 +84,7 @@ impl StaticGameState {
         Self {
             game_id: rand::thread_rng().gen(),
             paths: HashMap::new(),
+            building_locations: HashMap::new(),
         }
     }
     pub fn path_to_world_pos(&self, path_id: u64, path_pos: f32) -> Vec2 {

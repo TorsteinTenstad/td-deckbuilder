@@ -4,8 +4,17 @@ use macroquad::{
     math::Vec2,
 };
 
-pub const LEVEL_WIDTH: f32 = 1920.0;
-pub const LEVEL_HEIGHT: f32 = 1080.0;
+pub const LEVEL_WIDTH: i32 = 1920;
+pub const LEVEL_HEIGHT: i32 = 1080;
+
+pub const BUILDING_LOCATIONS: &[(i32, i32)] = &[
+    (524, 256),
+    (1072, 264),
+    (1544, 308),
+    (896, 728),
+    (1604, 708),
+    (96, 996),
+];
 
 pub const PATHS: &[&[(i32, i32)]] = &[
     &[

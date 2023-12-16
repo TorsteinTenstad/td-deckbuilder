@@ -2,7 +2,7 @@ use crate::draw::{to_screen_x, to_screen_y, unit_spawnpoint_gui_indicator_transf
 use common::{
     card::Card,
     get_unit_spawnpoints::get_unit_spawnpoints,
-    play_target::{PlayFn, UnitSpawnpointTarget, WorldPosTarget},
+    play_target::{BuildingSpotTarget, PlayFn, WorldPosTarget},
     ClientCommand, PlayTarget,
 };
 use macroquad::{
@@ -182,7 +182,26 @@ pub fn player_step(state: &mut ClientGameState) {
                         }
                     }
                 }
-                PlayFn::BuildingSpot(_) => {}
+                PlayFn::BuildingSpot(_) => {
+                    if let Some((id, _pos)) = state
+                        .static_game_state
+                        .building_locations
+                        .iter()
+                        .find(|(_, (x, y))| {
+                            let x = to_screen_x(*x);
+                            let y = to_screen_y(*y);
+                            let r = 20.0;
+                            (mouse_position_vec() - Vec2 { x, y }).length() < r
+                        })
+                    {
+                        if let Some(card) = state.hand.try_release_held_card() {
+                            state.commands.push(ClientCommand::PlayCard(
+                                card,
+                                PlayTarget::BuildingSpot(BuildingSpotTarget { id: *id }),
+                            ));
+                        }
+                    }
+                }
                 PlayFn::Entity(_) => {}
             }
 
