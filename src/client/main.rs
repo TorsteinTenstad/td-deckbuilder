@@ -1,8 +1,6 @@
 use common::play_target::UnitSpawnpointTarget;
 use common::*;
 use macroquad::color::{Color, RED};
-use macroquad::math::Vec2;
-use macroquad::shapes::{draw_rectangle, draw_rectangle_ex, DrawRectangleParams};
 use macroquad::{texture::Texture2D, window::next_frame, window::request_new_screen_size};
 pub mod config;
 mod draw;

@@ -8,7 +8,7 @@ use macroquad::{
 
 use crate::{
     config::CARD_PANEL_RELATIVE_HEIGHT,
-    draw::{cell_h, cell_w},
+    draw::{to_world_x, to_world_y},
     ClientGameState,
 };
 
@@ -24,10 +24,10 @@ pub fn mouse_position_vec() -> Vec2 {
 }
 
 pub fn mouse_world_position() -> Vec2 {
-    let pos = mouse_position_vec();
+    let Vec2 { x, y } = mouse_position_vec();
     Vec2 {
-        x: pos.x / cell_w(),
-        y: pos.y / cell_h(),
+        x: to_world_x(x),
+        y: to_world_y(y),
     }
 }
 

@@ -9,6 +9,7 @@ use std::{
 };
 pub mod card;
 pub mod get_unit_spawnpoints;
+pub mod level_config;
 pub mod play_target;
 pub use play_target::PlayTarget;
 mod spawn_entity;
@@ -195,7 +196,7 @@ impl Entity {
                 },
             },
             pos: Vec2::ZERO,
-            radius: 0.25,
+            radius: 24.0,
             health,
             damage_animation: 0.0,
             usable_as_spawn_point: false,
@@ -232,8 +233,8 @@ impl Entity {
             owner,
             behavior: Behavior::None,
             pos: Vec2 {
-                x: x as i32 as f32 + 0.5, // snap to grid
-                y: y as i32 as f32 + 0.5, // snap to grid
+                x: x as i32 as f32, // snap to grid
+                y: y as i32 as f32, // snap to grid
             },
             radius: 0.25,
             health,

@@ -1,34 +1,6 @@
-use std::collections::HashMap;
-
 use macroquad::math::Vec2;
 
-use crate::{play_target::UnitSpawnpointTarget, DynamicGameState, Entity, StaticGameState};
-
-fn get_closest_path_point(
-    paths: &HashMap<u64, Vec<(f32, f32)>>,
-    entity: &Entity,
-) -> Option<(u64, f32)> {
-    paths
-        .iter()
-        .filter_map(|(path_id, path)| {
-            path.iter()
-                .enumerate()
-                .map(|(path_pos, (x, y))| {
-                    (
-                        *path_id,
-                        path_pos as f32 + (entity.pos - Vec2::new(*x, *y)).length(),
-                    )
-                })
-                .min_by(|(_, a), (_, b)| a.partial_cmp(b).unwrap())
-        })
-        .min_by(|(_, a), (_, b)| a.partial_cmp(b).unwrap())
-        .map(|(path_id, path_pos)| {
-            (
-                path_id,
-                path_pos / paths.get(&path_id).unwrap().len() as f32,
-            )
-        })
-}
+use crate::{level_config, play_target::UnitSpawnpointTarget, DynamicGameState, StaticGameState};
 
 pub fn get_unit_spawnpoints(
     player_id: u64,
@@ -42,7 +14,6 @@ pub fn get_unit_spawnpoints(
         .direction
         .clone();
 
-    let spawn_point_radius = 5.0;
     dynamic_game_state
         .entities
         .iter()
@@ -64,7 +35,7 @@ pub fn get_unit_spawnpoints(
                             )
                         })
                         .min_by(|(_, _, a), (_, _, b)| a.partial_cmp(b).unwrap())
-                        .filter(|(_, _, dist)| dist < &spawn_point_radius)
+                        .filter(|(_, _, dist)| dist < &level_config::SPAWN_POINT_RADIUS)
                         .map(|(path_id, path_pos, _)| (path_id, path_pos))
                 })
         })

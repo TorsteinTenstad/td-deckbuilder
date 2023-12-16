@@ -1,10 +1,9 @@
 use std::collections::HashMap;
 
 use common::{
-    Behavior, BulletBehavior, DroneBehavior, Entity, EntityExternalEffects, MeleeAttack,
-    PathUnitBehavior, RangedAttack, StaticGameState,
+    Behavior, BulletBehavior, Entity, EntityExternalEffects, MeleeAttack, PathUnitBehavior,
+    RangedAttack, StaticGameState,
 };
-use macroquad::math::Vec2;
 
 pub fn update_entity(
     id: &u64,
@@ -25,25 +24,10 @@ pub fn update_entity(
             direction,
             speed,
         }) => {
-            if !other_entities.iter().any(|(other_id, other_entity)| {
-                other_id != id
-                    && matches!(
-                        &other_entity.behavior,
-                        Behavior::PathUnit(PathUnitBehavior {
-                            path_pos: other_path_pos, ..
-                        }) if {
-                                let world_space_path_pos_delta =
-                                 direction.to_f32()*(other_path_pos-
-                                *path_pos )* static_game_state.paths.len() as f32;
-                                world_space_path_pos_delta > 0.0 && world_space_path_pos_delta < (other_entity.radius + entity.radius)
-                        }
-                    )
-            }) {
-                *path_pos = (*path_pos * static_game_state.paths.len() as f32
+            *path_pos = (*path_pos * static_game_state.paths.len() as f32
                 + *speed * direction.to_f32() * dt)
                 / static_game_state.paths.len() as f32;
-                entity.pos = static_game_state.path_to_world_pos(*path_id, *path_pos);
-            }
+            entity.pos = static_game_state.path_to_world_pos(*path_id, *path_pos);
         }
         Behavior::Bullet(BulletBehavior {
             velocity,

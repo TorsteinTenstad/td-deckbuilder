@@ -1,12 +1,9 @@
 use common::*;
-use macroquad::math::Vec2;
-use macroquad::prelude::{PURPLE, YELLOW};
 use rand::Rng;
 use std::collections::HashMap;
 use std::net::{SocketAddr, UdpSocket};
 use std::time::{Duration, SystemTime};
 mod game_loop;
-mod level_config;
 
 fn main() -> std::io::Result<()> {
     let mut rng = rand::thread_rng();
@@ -14,10 +11,13 @@ fn main() -> std::io::Result<()> {
     let mut client_addresses = HashMap::<u64, SocketAddr>::new();
 
     for path in level_config::PATHS {
-        game_state
-            .static_state
-            .paths
-            .insert(rng.gen(), path.to_vec());
+        game_state.static_state.paths.insert(
+            rng.gen(),
+            path.to_vec()
+                .iter()
+                .map(|(x, y)| (*x as f32, *y as f32))
+                .collect(),
+        );
     }
 
     let udp_socket = UdpSocket::bind(SERVER_ADDR).unwrap();

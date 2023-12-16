@@ -6,7 +6,6 @@ use common::{
     ClientCommand, PlayTarget,
 };
 use macroquad::{
-    color::RED,
     input::{is_mouse_button_pressed, is_mouse_button_released},
     math::Vec2,
     miniquad::MouseButton,

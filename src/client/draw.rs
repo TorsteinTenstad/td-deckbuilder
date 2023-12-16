@@ -33,13 +33,6 @@ pub enum TextOriginY {
 
 const GOLDEN_RATIO: f32 = 1.61803398875;
 
-const GRASS_COLOR: Color = Color {
-    r: 0.686,
-    g: 0.784,
-    b: 0.490,
-    a: 1.0,
-};
-
 const PATH_COLOR: Color = Color {
     r: 0.843,
     g: 0.803,
@@ -47,37 +40,57 @@ const PATH_COLOR: Color = Color {
     a: 1.0,
 };
 
-// TODO overloading?
-pub fn cell_w() -> f32 {
-    screen_width() / 16.0 // state.static_game_state.grid_w as f32; TODO
-}
-pub fn cell_h() -> f32 {
-    (7.0 / 9.0) * screen_height() / 7.0 // state.static_game_state.grid_h as f32; TODO
-}
-
 pub fn to_screen_x<T>(x: T) -> f32
 where
     T: Into<f32>,
 {
-    x.into() * cell_w()
+    x.into() * screen_width() / level_config::LEVEL_WIDTH
 }
 pub fn to_screen_y<T>(y: T) -> f32
 where
     T: Into<f32>,
 {
-    y.into() * cell_w()
+    y.into() * screen_height() / level_config::LEVEL_HEIGHT
+}
+
+pub fn to_world_x<T>(x: T) -> f32
+where
+    T: Into<f32>,
+{
+    x.into() * level_config::LEVEL_WIDTH / screen_width()
+}
+pub fn to_world_y<T>(y: T) -> f32
+where
+    T: Into<f32>,
+{
+    y.into() * level_config::LEVEL_HEIGHT / screen_height()
 }
 
 pub fn to_screen_size<T>(size: T) -> f32
 where
     T: Into<f32>,
 {
-    size.into() * cell_w()
+    size.into() * screen_width() / level_config::LEVEL_WIDTH
 }
 
 pub fn main_draw(state: &ClientGameState) {
     // board
     clear_background(BLACK);
+
+    draw_texture_ex(
+        state.textures.get("concept").unwrap(),
+        0.0,
+        0.0,
+        WHITE,
+        DrawTextureParams {
+            dest_size: Some(Vec2 {
+                x: screen_width(),
+                y: screen_height(),
+            }),
+            ..Default::default()
+        },
+    );
+
     for (_, path) in state.static_game_state.paths.iter() {
         for ((x1, y1), (x2, y2)) in path.iter().tuple_windows() {
             let x1 = to_screen_x(*x1 as f32);
@@ -98,14 +111,13 @@ pub fn main_draw(state: &ClientGameState) {
         };
         let pos_x = to_screen_x(entity.pos.x);
         let pos_y = to_screen_y(entity.pos.y);
-        let r = to_screen_size(entity.radius);
 
         match entity.tag {
             EntityTag::Tower | EntityTag::Base => {
                 draw_hexagon(pos_x, pos_y, 20.0, 0.0, false, color, color);
             }
             EntityTag::Unit => {
-                draw_circle(pos_x, pos_y, r, color);
+                draw_circle(pos_x, pos_y, entity.radius, color);
             }
             EntityTag::Bullet => {
                 draw_circle(pos_x, pos_y, to_screen_size(PROJECTILE_RADIUS), GRAY);
@@ -536,6 +548,7 @@ pub async fn load_textures() -> HashMap<String, Texture2D> {
         "shield",
         "sword",
         "bow",
+        "concept",
     ] {
         textures.insert(
             texture_id.to_string(),
