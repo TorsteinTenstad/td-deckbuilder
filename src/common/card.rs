@@ -3,12 +3,13 @@ use serde::{Deserialize, Serialize};
 use crate::{
     play_target::{BuildingSpotTarget, PlayFn, UnitSpawnpointTarget},
     spawn_entity::spawn_entity,
-    DynamicGameState, Entity,
+    Entity,
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Card {
     BasicTower,
+    SpawnPointTest,
     BasicUnit,
     BasicRanger,
 }
@@ -31,16 +32,38 @@ const CARD_DATA: &[CardData] = &[
         }),
     },
     CardData {
+        name: "Spawn Point",
+        energy_cost: 2,
+        play_fn: PlayFn::BuildingSpot(|target, owner, static_game_state, dynamic_game_state| {
+            let BuildingSpotTarget { id } = target;
+            let (x, y) = static_game_state.building_locations.get(&id).unwrap();
+            let mut entity = Entity::new_tower(owner, *x, *y, 3.0, 100.0, 2.0, 5.0);
+            entity.usable_as_spawn_point = true;
+            spawn_entity(dynamic_game_state, entity);
+        }),
+    },
+    CardData {
         name: "Ground Unit",
         energy_cost: 1,
         play_fn: PlayFn::UnitSpawnPoint(|target, owner, static_game_state, dynamic_game_state| {
             let UnitSpawnpointTarget {
                 path_id,
+                path_idx,
                 direction,
-                path_pos,
             } = target;
             let entity = Entity::new_unit(
-                owner, path_id, direction, 1.0, 100.0, 10.0, 0.5, 0.0, 0.0, 0.0,
+                static_game_state,
+                owner,
+                path_id,
+                path_idx,
+                direction,
+                25.0,
+                100.0,
+                10.0,
+                0.5,
+                0.0,
+                0.0,
+                0.0,
             );
             spawn_entity(dynamic_game_state, entity);
         }),
@@ -51,11 +74,22 @@ const CARD_DATA: &[CardData] = &[
         play_fn: PlayFn::UnitSpawnPoint(|target, owner, static_game_state, dynamic_game_state| {
             let UnitSpawnpointTarget {
                 path_id,
+                path_idx,
                 direction,
-                path_pos,
             } = target;
             let entity = Entity::new_unit(
-                owner, path_id, direction, 1.0, 50.0, 0.0, 0.0, 3.0, 5.0, 0.5,
+                static_game_state,
+                owner,
+                path_id,
+                path_idx,
+                direction,
+                25.0,
+                50.0,
+                0.0,
+                0.0,
+                3.0,
+                5.0,
+                0.5,
             );
             spawn_entity(dynamic_game_state, entity);
         }),

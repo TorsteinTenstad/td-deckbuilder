@@ -313,11 +313,11 @@ pub fn unit_spawnpoint_gui_indicator_transform(
 ) -> RectTransform {
     let UnitSpawnpointTarget {
         path_id,
+        path_idx,
         direction: _,
-        path_pos,
     } = target;
 
-    let Vec2 { x, y } = static_game_state.path_to_world_pos(*path_id, *path_pos);
+    let Vec2 { x, y } = get_path_pos(&static_game_state, *path_id, *path_idx);
     RectTransform {
         x: to_screen_x(x),
         y: to_screen_y(y),
@@ -407,7 +407,7 @@ pub fn draw_card(
         width_relative_margin * transform.w / transform.h,
     );
 
-    let mut icons: Vec<(&str, f32)> = Vec::new();
+    let icons: Vec<(&str, f32)> = Vec::new();
 
     for (i, (texture_id, value)) in icons.iter().filter(|(_, value)| *value > 0.001).enumerate() {
         let width_relative_icon_size = 0.2;

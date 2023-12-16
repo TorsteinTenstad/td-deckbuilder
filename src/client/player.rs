@@ -51,6 +51,7 @@ impl Hand {
         for (quantity, card) in vec![
             (3, Card::BasicTower),
             (5, Card::BasicUnit),
+            (3, Card::SpawnPointTest),
             (3, Card::BasicRanger),
         ] {
             for _ in 0..quantity {

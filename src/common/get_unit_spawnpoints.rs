@@ -27,22 +27,22 @@ pub fn get_unit_spawnpoints(
                 .filter_map(move |(path_id, path)| {
                     path.iter()
                         .enumerate()
-                        .map(|(path_pos, (x, y))| {
+                        .map(|(path_idx, (x, y))| {
                             (
                                 *path_id,
-                                path_pos,
-                                path_pos as f32 + (pos - Vec2::new(*x, *y)).length(),
+                                path_idx,
+                                path_idx as f32 + (pos - Vec2::new(*x, *y)).length(),
                             )
                         })
                         .min_by(|(_, _, a), (_, _, b)| a.partial_cmp(b).unwrap())
                         .filter(|(_, _, dist)| dist < &level_config::SPAWN_POINT_RADIUS)
-                        .map(|(path_id, path_pos, _)| (path_id, path_pos))
+                        .map(|(path_id, path_idx, _)| (path_id, path_idx))
                 })
         })
-        .map(|(path_id, path_pos)| UnitSpawnpointTarget {
+        .map(|(path_id, path_idx)| UnitSpawnpointTarget {
             path_id,
+            path_idx,
             direction: direction.clone(),
-            path_pos: path_pos as f32,
         })
         .collect()
 }

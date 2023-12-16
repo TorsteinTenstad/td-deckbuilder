@@ -10,8 +10,8 @@ pub struct WorldPosTarget {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UnitSpawnpointTarget {
     pub path_id: u64,
+    pub path_idx: usize,
     pub direction: Direction,
-    pub path_pos: f32,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

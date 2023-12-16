@@ -53,7 +53,7 @@ impl ServerPlayer {
     pub fn new(direction: Direction, color: Color) -> Self {
         Self {
             card_draw_counter: 5.0,
-            energy_counter: 0.0,
+            energy_counter: 10.0,
             direction,
             color,
         }
@@ -87,20 +87,16 @@ impl StaticGameState {
             building_locations: HashMap::new(),
         }
     }
-    pub fn path_to_world_pos(&self, path_id: u64, path_pos: f32) -> Vec2 {
-        let path = self.paths.get(&path_id).unwrap();
-        let path_pos = path_pos * (path.len() - 1) as f32;
-        let (low_x, low_y) = path.get((path_pos as usize).min(path.len() - 1)).unwrap();
-        let (high_x, high_y) = path
-            .get((path_pos as usize + 1).min(path.len() - 1))
-            .unwrap();
-        let high_weight = path_pos.fract();
-        let low_weight = 1.0 - high_weight;
-        Vec2 {
-            x: *low_x as f32 * low_weight + *high_x as f32 * high_weight,
-            y: *low_y as f32 * low_weight + *high_y as f32 * high_weight,
-        }
-    }
+}
+
+pub fn get_path_pos(static_game_state: &StaticGameState, path_id: u64, path_idx: usize) -> Vec2 {
+    static_game_state
+        .paths
+        .get(&path_id)
+        .unwrap()
+        .get(path_idx)
+        .map(|(x, y)| Vec2 { x: *x, y: *y })
+        .unwrap()
 }
 
 #[derive(Serialize, Deserialize)]
@@ -141,10 +137,10 @@ impl Direction {
             Direction::Negative => -1.0,
         }
     }
-    pub fn to_start_path_pos(&self) -> f32 {
+    pub fn to_i32(&self) -> i32 {
         match self {
-            Direction::Positive => 0.0,
-            Direction::Negative => 1.0,
+            Direction::Positive => 1,
+            Direction::Negative => -1,
         }
     }
 }
@@ -175,8 +171,10 @@ pub struct Entity {
 
 impl Entity {
     pub fn new_unit(
+        static_game_state: &StaticGameState,
         owner: u64,
         path_id: u64,
+        path_idx: usize,
         direction: Direction,
         speed: f32,
         health: f32,
@@ -192,12 +190,12 @@ impl Entity {
             behavior: Behavior::PathUnit {
                 0: PathUnitBehavior {
                     path_id,
-                    path_pos: direction.to_start_path_pos(),
+                    target_path_idx: path_idx + 1, // Unit is spawned at path_idx, target is next path_idx
                     direction,
                     speed,
                 },
             },
-            pos: Vec2::ZERO,
+            pos: get_path_pos(static_game_state, path_id, path_idx),
             radius: 24.0,
             health,
             damage_animation: 0.0,
@@ -315,7 +313,7 @@ pub struct BulletBehavior {
 #[derive(Clone, Serialize, Deserialize)]
 pub struct PathUnitBehavior {
     pub path_id: u64,
-    pub path_pos: f32,
+    pub target_path_idx: usize,
     pub direction: Direction,
     pub speed: f32,
 }

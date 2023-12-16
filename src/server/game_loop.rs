@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 
 use common::{
-    Behavior, BulletBehavior, Entity, EntityExternalEffects, MeleeAttack, PathUnitBehavior,
-    RangedAttack, StaticGameState,
+    get_path_pos, Behavior, BulletBehavior, Entity, EntityExternalEffects, MeleeAttack,
+    PathUnitBehavior, RangedAttack, StaticGameState,
 };
 
 pub fn update_entity(
@@ -20,14 +20,21 @@ pub fn update_entity(
     match &mut entity.behavior {
         Behavior::PathUnit(PathUnitBehavior {
             path_id,
-            path_pos,
+            target_path_idx,
             direction,
             speed,
         }) => {
-            *path_pos = (*path_pos * static_game_state.paths.len() as f32
-                + *speed * direction.to_f32() * dt)
-                / static_game_state.paths.len() as f32;
-            entity.pos = static_game_state.path_to_world_pos(*path_id, *path_pos);
+            if *target_path_idx < static_game_state.paths.get(path_id).unwrap().len() {
+                let target_pos = get_path_pos(static_game_state, *path_id, *target_path_idx);
+                let delta = target_pos - entity.pos;
+                entity.pos += delta.normalize_or_zero() * *speed * dt;
+                let updated_delta = target_pos - entity.pos;
+                if delta.length_squared() < updated_delta.length_squared() {
+                    *target_path_idx = (*target_path_idx as i32 + direction.to_i32() * 1)
+                        .try_into()
+                        .unwrap_or(0)
+                }
+            }
         }
         Behavior::Bullet(BulletBehavior {
             velocity,
