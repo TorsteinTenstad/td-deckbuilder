@@ -76,7 +76,6 @@ pub struct ServerGameState {
 pub struct StaticGameState {
     pub game_id: u64,
     pub paths: HashMap<u64, Vec<(f32, f32)>>,
-    pub building_locations: HashMap<u64, (f32, f32)>,
 }
 
 impl StaticGameState {
@@ -84,7 +83,6 @@ impl StaticGameState {
         Self {
             game_id: rand::thread_rng().gen(),
             paths: HashMap::new(),
-            building_locations: HashMap::new(),
         }
     }
 }
@@ -100,10 +98,18 @@ pub fn get_path_pos(static_game_state: &StaticGameState, path_id: u64, path_idx:
 }
 
 #[derive(Serialize, Deserialize)]
+pub struct BuildingLocation {
+    pub position: (f32, f32),
+    pub building: Option<u64>,
+}
+
+#[derive(Serialize, Deserialize)]
 pub struct DynamicGameState {
     pub server_tick: u32,
     pub entities: HashMap<u64, Entity>,
     pub players: HashMap<u64, ServerPlayer>,
+    pub building_locations: HashMap<u64, BuildingLocation>,
+    pub next_entity_id: u64,
 }
 
 impl DynamicGameState {
@@ -112,6 +118,8 @@ impl DynamicGameState {
             server_tick: 0,
             entities: HashMap::new(),
             players: HashMap::new(),
+            building_locations: HashMap::new(),
+            next_entity_id: 0,
         }
     }
 }

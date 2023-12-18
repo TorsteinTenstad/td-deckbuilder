@@ -33,10 +33,10 @@ pub enum PlayTarget {
 }
 
 pub enum PlayFn {
-    WorldPos(fn(WorldPosTarget, u64, &StaticGameState, &mut DynamicGameState)),
-    UnitSpawnPoint(fn(UnitSpawnpointTarget, u64, &StaticGameState, &mut DynamicGameState)),
-    BuildingSpot(fn(BuildingSpotTarget, u64, &StaticGameState, &mut DynamicGameState)),
-    Entity(fn(EntityTarget, u64, &StaticGameState, &mut DynamicGameState)),
+    WorldPos(fn(WorldPosTarget, u64, &StaticGameState, &mut DynamicGameState) -> bool),
+    UnitSpawnPoint(fn(UnitSpawnpointTarget, u64, &StaticGameState, &mut DynamicGameState) -> bool),
+    BuildingSpot(fn(BuildingSpotTarget, u64, &StaticGameState, &mut DynamicGameState) -> bool),
+    Entity(fn(EntityTarget, u64, &StaticGameState, &mut DynamicGameState) -> bool),
 }
 
 impl PlayFn {
@@ -46,7 +46,7 @@ impl PlayFn {
         owner: u64,
         static_game_state: &StaticGameState,
         dynamic_game_state: &mut DynamicGameState,
-    ) {
+    ) -> bool {
         match (self, target) {
             (PlayFn::WorldPos(f), PlayTarget::WorldPos(target)) => {
                 f(target, owner, static_game_state, dynamic_game_state)

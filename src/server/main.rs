@@ -22,10 +22,13 @@ fn main() -> std::io::Result<()> {
     }
 
     for (x, y) in BUILDING_LOCATIONS {
-        game_state
-            .static_state
-            .building_locations
-            .insert(rng.gen(), (*x as f32, *y as f32));
+        game_state.dynamic_state.building_locations.insert(
+            rng.gen(),
+            BuildingLocation {
+                position: (*x as f32, *y as f32),
+                building: None,
+            },
+        );
     }
 
     let udp_socket = UdpSocket::bind(SERVER_ADDR).unwrap();
@@ -59,12 +62,14 @@ fn main() -> std::io::Result<()> {
                         serde_json::from_slice::<ClientCommand>(&client_message_buf[..amt])
                             .unwrap();
                     match command {
-                        ClientCommand::PlayCard(card, target) => card.get_card_data().play_fn.exec(
-                            target,
-                            client_id,
-                            &game_state.static_state,
-                            &mut game_state.dynamic_state,
-                        ),
+                        ClientCommand::PlayCard(card, target) => {
+                            card.get_card_data().play_fn.exec(
+                                target,
+                                client_id,
+                                &game_state.static_state,
+                                &mut game_state.dynamic_state,
+                            );
+                        }
                         ClientCommand::JoinGame => {
                             if !client_addresses.contains_key(&client_id) {
                                 client_addresses.insert(client_id, client_addr);

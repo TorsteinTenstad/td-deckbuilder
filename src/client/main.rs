@@ -94,9 +94,9 @@ async fn main() {
             })
             .is_some()
         {
-            for (_id, (x, y)) in state.static_game_state.building_locations.iter() {
-                let x = to_screen_x(*x);
-                let y = to_screen_y(*y);
+            for (_id, loc) in state.dynamic_game_state.building_locations.iter() {
+                let x = to_screen_x(loc.position.0);
+                let y = to_screen_y(loc.position.1);
                 let r = 20.0;
                 let hovering = (mouse_position_vec() - Vec2 { x, y }).length() < r;
                 draw_circle_lines(

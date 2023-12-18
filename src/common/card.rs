@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use crate::{
     play_target::{BuildingSpotTarget, PlayFn, UnitSpawnpointTarget},
     spawn_entity::spawn_entity,
-    Entity,
+    BuildingLocation, Entity,
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -24,22 +24,34 @@ const CARD_DATA: &[CardData] = &[
     CardData {
         name: "Tower",
         energy_cost: 3,
-        play_fn: PlayFn::BuildingSpot(|target, owner, static_game_state, dynamic_game_state| {
+        play_fn: PlayFn::BuildingSpot(|target, owner, _static_game_state, dynamic_game_state| {
             let BuildingSpotTarget { id } = target;
-            let (x, y) = static_game_state.building_locations.get(&id).unwrap();
-            let entity = Entity::new_tower(owner, *x, *y, 3.0, 100.0, 2.0, 0.5);
-            spawn_entity(dynamic_game_state, entity);
+            let BuildingLocation { position, building } =
+                dynamic_game_state.building_locations.get_mut(&id).unwrap();
+            if let Some(_) = building {
+                return false;
+            }
+            let entity = Entity::new_tower(owner, position.0, position.1, 3.0, 100.0, 2.0, 0.5);
+            let key = spawn_entity(&mut dynamic_game_state.entities, entity);
+            *building = Some(key);
+            return true;
         }),
     },
     CardData {
         name: "Spawn Point",
         energy_cost: 2,
-        play_fn: PlayFn::BuildingSpot(|target, owner, static_game_state, dynamic_game_state| {
+        play_fn: PlayFn::BuildingSpot(|target, owner, _static_game_state, dynamic_game_state| {
             let BuildingSpotTarget { id } = target;
-            let (x, y) = static_game_state.building_locations.get(&id).unwrap();
-            let mut entity = Entity::new_tower(owner, *x, *y, 3.0, 100.0, 2.0, 5.0);
+            let BuildingLocation { position, building } =
+                dynamic_game_state.building_locations.get_mut(&id).unwrap();
+            if let Some(_) = building {
+                return false;
+            }
+            let mut entity = Entity::new_tower(owner, position.0, position.1, 3.0, 100.0, 2.0, 5.0);
             entity.usable_as_spawn_point = true;
-            spawn_entity(dynamic_game_state, entity);
+            let key = spawn_entity(&mut dynamic_game_state.entities, entity);
+            *building = Some(key);
+            return true;
         }),
     },
     CardData {
@@ -65,7 +77,8 @@ const CARD_DATA: &[CardData] = &[
                 0.0,
                 0.0,
             );
-            spawn_entity(dynamic_game_state, entity);
+            spawn_entity(&mut dynamic_game_state.entities, entity);
+            return true;
         }),
     },
     CardData {
@@ -91,7 +104,8 @@ const CARD_DATA: &[CardData] = &[
                 5.0,
                 0.5,
             );
-            spawn_entity(dynamic_game_state, entity);
+            spawn_entity(&mut dynamic_game_state.entities, entity);
+            return true;
         }),
     },
 ];

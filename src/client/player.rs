@@ -185,12 +185,12 @@ pub fn player_step(state: &mut ClientGameState) {
                 }
                 PlayFn::BuildingSpot(_) => {
                     if let Some((id, _pos)) = state
-                        .static_game_state
+                        .dynamic_game_state
                         .building_locations
                         .iter()
-                        .find(|(_, (x, y))| {
-                            let x = to_screen_x(*x);
-                            let y = to_screen_y(*y);
+                        .find(|(_, loc)| {
+                            let x = to_screen_x(loc.position.0);
+                            let y = to_screen_y(loc.position.1);
                             let r = 20.0;
                             (mouse_position_vec() - Vec2 { x, y }).length() < r
                         })

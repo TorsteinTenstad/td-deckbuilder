@@ -101,9 +101,9 @@ pub fn main_draw(state: &ClientGameState) {
         }
     }
 
-    for (_id, (x, y)) in state.static_game_state.building_locations.iter() {
-        let x = to_screen_x(*x as f32);
-        let y = to_screen_y(*y as f32);
+    for (_id, loc) in state.dynamic_game_state.building_locations.iter() {
+        let x = to_screen_x(loc.position.0 as f32);
+        let y = to_screen_y(loc.position.1 as f32);
         draw_circle(x, y, 20.0, WHITE);
     }
 

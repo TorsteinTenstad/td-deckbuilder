@@ -1,8 +1,13 @@
-use crate::{DynamicGameState, Entity};
+use std::collections::HashMap;
+
+use crate::Entity;
 use rand::Rng;
 
-pub fn spawn_entity(dynamic_game_state: &mut DynamicGameState, entity: Entity) -> () {
-    dynamic_game_state
-        .entities
-        .insert(rand::thread_rng().gen(), entity);
+pub fn spawn_entity(entities: &mut HashMap<u64, Entity>, entity: Entity) -> u64 {
+    // TODO, Magne: uuid?
+    let key = rand::thread_rng().gen();
+
+    entities.insert(key, entity);
+
+    return key;
 }
