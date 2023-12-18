@@ -15,7 +15,7 @@ pub use play_target::PlayTarget;
 mod spawn_entity;
 use card::Card;
 
-pub const SERVER_ADDR: &str = "192.168.1.120:7878";
+pub const SERVER_ADDR: &str = "192.168.211.23:7878";
 pub const TARGET_SERVER_FPS: f32 = 60.0;
 pub const PROJECTILE_RADIUS: f32 = 0.04;
 
@@ -125,7 +125,7 @@ impl ServerGameState {
     }
 }
 
-#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
+#[derive(Copy, Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
 pub enum Direction {
     Positive,
     Negative,
@@ -142,6 +142,15 @@ impl Direction {
             Direction::Positive => 1,
             Direction::Negative => -1,
         }
+    }
+}
+
+pub fn next_path_idx(path_idx: usize, direction: Direction) -> usize {
+    let next_path_idx = path_idx as i32 + direction.to_i32();
+    if next_path_idx < 0 {
+        0
+    } else {
+        next_path_idx as usize
     }
 }
 
@@ -190,7 +199,7 @@ impl Entity {
             behavior: Behavior::PathUnit {
                 0: PathUnitBehavior {
                     path_id,
-                    target_path_idx: path_idx + 1, // Unit is spawned at path_idx, target is next path_idx
+                    target_path_idx: next_path_idx(path_idx, direction), // Unit is spawned at path_idx, target is next path_idx
                     direction,
                     speed,
                 },

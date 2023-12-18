@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 
 use common::{
-    get_path_pos, Behavior, BulletBehavior, Entity, EntityExternalEffects, MeleeAttack,
-    PathUnitBehavior, RangedAttack, StaticGameState,
+    get_path_pos, next_path_idx, Behavior, BulletBehavior, Entity, EntityExternalEffects,
+    MeleeAttack, PathUnitBehavior, RangedAttack, StaticGameState,
 };
 
 pub fn update_entity(
@@ -30,9 +30,7 @@ pub fn update_entity(
                 entity.pos += delta.normalize_or_zero() * *speed * dt;
                 let updated_delta = target_pos - entity.pos;
                 if delta.length_squared() < updated_delta.length_squared() {
-                    *target_path_idx = (*target_path_idx as i32 + direction.to_i32() * 1)
-                        .try_into()
-                        .unwrap_or(0)
+                    *target_path_idx = next_path_idx(*target_path_idx, *direction)
                 }
             }
         }
