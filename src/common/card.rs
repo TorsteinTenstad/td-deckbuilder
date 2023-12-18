@@ -6,12 +6,18 @@ use crate::{
     BuildingLocation, Entity,
 };
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq)]
 pub enum Card {
     BasicTower,
     SpawnPointTest,
     BasicUnit,
     BasicRanger,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq)]
+pub struct CardInstance {
+    pub id: u64,
+    pub card: Card,
 }
 
 pub struct CardData {

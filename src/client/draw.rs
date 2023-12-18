@@ -174,7 +174,7 @@ pub fn main_draw(state: &ClientGameState) {
         let outline_w = 5.0;
         let w = 25.0;
         let h = 100.0;
-        let draw_progress = player.card_draw_counter;
+        let draw_progress = player.hand.card_draw_counter;
         draw_progress_bar(
             screen_width() - w - margin,
             screen_height() - h - margin,
@@ -182,12 +182,12 @@ pub fn main_draw(state: &ClientGameState) {
             h,
             outline_w,
             draw_progress,
-            state.hand.hand.len() as i32,
+            state.physical_hand.cards.len() as i32,
             YELLOW,
             WHITE,
             BLACK,
         );
-        let energy_progress = player.energy_counter;
+        let energy_progress = player.hand.energy_counter;
         draw_progress_bar(
             screen_width() - 2.0 * w - 2.0 * margin,
             screen_height() - h - margin,
@@ -195,7 +195,13 @@ pub fn main_draw(state: &ClientGameState) {
             h,
             outline_w,
             energy_progress,
-            state.hand.energy,
+            state
+                .dynamic_game_state
+                .players
+                .get(&state.player_id)
+                .unwrap()
+                .hand
+                .energy,
             BLUE,
             WHITE,
             BLACK,

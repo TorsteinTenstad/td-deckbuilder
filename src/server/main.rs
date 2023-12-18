@@ -62,13 +62,22 @@ fn main() -> std::io::Result<()> {
                         serde_json::from_slice::<ClientCommand>(&client_message_buf[..amt])
                             .unwrap();
                     match command {
-                        ClientCommand::PlayCard(card, target) => {
-                            card.get_card_data().play_fn.exec(
-                                target,
-                                client_id,
-                                &game_state.static_state,
-                                &mut game_state.dynamic_state,
-                            );
+                        ClientCommand::PlayCard(card_id, target) => {
+                            if let Some(card_from_idx) = game_state
+                                .dynamic_state
+                                .players
+                                .get_mut(&client_id)
+                                .unwrap()
+                                .hand
+                                .try_play(card_id)
+                            {
+                                card_from_idx.get_card_data().play_fn.exec(
+                                    target,
+                                    client_id,
+                                    &game_state.static_state,
+                                    &mut game_state.dynamic_state,
+                                );
+                            }
                         }
                         ClientCommand::JoinGame => {
                             if !client_addresses.contains_key(&client_id) {
@@ -116,8 +125,7 @@ fn main() -> std::io::Result<()> {
 
         game_state.dynamic_state.server_tick += 1;
         for (_client_id, client) in game_state.dynamic_state.players.iter_mut() {
-            client.card_draw_counter += dt / 12.0;
-            client.energy_counter += dt / 8.0;
+            client.hand.step(dt)
         }
 
         let mut other_entities_external_effects = HashMap::<u64, EntityExternalEffects>::new();

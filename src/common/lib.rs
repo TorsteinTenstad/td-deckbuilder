@@ -1,3 +1,4 @@
+use hand::Hand;
 use macroquad::prelude::{Color, Vec2};
 use rand::Rng;
 use serde::{Deserialize, Serialize};
@@ -12,10 +13,11 @@ pub mod get_unit_spawnpoints;
 pub mod level_config;
 pub mod play_target;
 pub use play_target::PlayTarget;
+pub mod hand;
 mod spawn_entity;
-use card::Card;
+pub mod vector;
 
-pub const SERVER_ADDR: &str = "192.168.211.23:7878";
+pub const SERVER_ADDR: &str = "192.168.65.23:7878";
 pub const TARGET_SERVER_FPS: f32 = 60.0;
 pub const PROJECTILE_RADIUS: f32 = 0.04;
 
@@ -42,27 +44,25 @@ pub struct ColorDef {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ServerPlayer {
-    pub card_draw_counter: f32,
-    pub energy_counter: f32,
     pub direction: Direction,
     #[serde(with = "ColorDef")]
     pub color: Color,
+    pub hand: Hand,
 }
 
 impl ServerPlayer {
     pub fn new(direction: Direction, color: Color) -> Self {
         Self {
-            card_draw_counter: 5.0,
-            energy_counter: 10.0,
             direction,
             color,
+            hand: Hand::new(),
         }
     }
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum ClientCommand {
-    PlayCard(Card, PlayTarget),
+    PlayCard(u64, PlayTarget),
     JoinGame,
 }
 

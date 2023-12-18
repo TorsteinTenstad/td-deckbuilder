@@ -1,3 +1,5 @@
+use common::card::CardInstance;
+use common::hand::Hand;
 use common::play_target::{PlayFn, UnitSpawnpointTarget};
 use common::*;
 use macroquad::color::{Color, RED};
@@ -16,12 +18,53 @@ use player::*;
 use std::time::SystemTime;
 use std::{collections::HashMap, net::UdpSocket};
 
+#[derive(Default)]
+pub struct PhysicalHand {
+    card_idx_being_held: Option<usize>,
+    cards: Vec<PhysicalCard>,
+}
+
+pub fn update_from_hand(state: &mut ClientGameState) {
+    for card_instance in state.get_player().hand.cards.clone().iter() {
+        // TODO: Find a way to remove clone?
+        let physical_card = state
+            .physical_hand
+            .cards
+            .iter_mut()
+            .find(|c| c.card_instance.id == card_instance.id);
+        if let Some(physical_card) = physical_card {
+            physical_card.card_instance = card_instance.clone();
+        } else {
+            state
+                .physical_hand
+                .cards
+                .push(PhysicalCard::new(card_instance.clone()));
+        }
+    }
+    state.physical_hand.cards.retain(|(id, physical_card)| true)
+}
+pub fn hand_try_play(state: &ClientGameState) -> Option<CardInstance> {
+    let Some(card_idx_being_held) = state.physical_hand.card_idx_being_held else {
+        return None;
+    };
+    let card_instance = state
+        .physical_hand
+        .cards
+        .get(card_idx_being_held)
+        .unwrap()
+        .card_instance
+        .clone();
+    if state.get_player().hand.energy < card_instance.card.energy_cost() {
+        return None;
+    }
+    Some(card_instance)
+}
+
 pub struct ClientGameState {
     static_game_state: StaticGameState,
     dynamic_game_state: DynamicGameState,
     time: SystemTime,
     selected_entity_id: Option<u64>,
-    hand: Hand,
     relative_splay_radius: f32,
     card_delta_angle: f32,
     preview_tower_pos: Option<(f32, f32)>,
@@ -33,6 +76,7 @@ pub struct ClientGameState {
     dt: f32,
     textures: HashMap<String, Texture2D>,
     unit_spawnpoint_targets: Vec<UnitSpawnpointTarget>,
+    physical_hand: PhysicalHand,
 }
 
 impl ClientGameState {
@@ -47,7 +91,6 @@ impl ClientGameState {
             relative_splay_radius: 4.5,
             commands: Vec::new(),
             frames_since_last_received: 0,
-            hand: Hand::new(),
             preview_tower_pos: None,
             selected_entity_id: None,
             udp_socket,
@@ -56,7 +99,20 @@ impl ClientGameState {
             dt: 0.167,
             textures: load_textures().await,
             unit_spawnpoint_targets: Vec::new(),
+            physical_hand: PhysicalHand::default(),
         }
+    }
+    pub fn get_player(&self) -> &ServerPlayer {
+        self.dynamic_game_state
+            .players
+            .get(&self.player_id)
+            .unwrap()
+    }
+    pub fn get_mut_player(&mut self) -> &mut ServerPlayer {
+        self.dynamic_game_state
+            .players
+            .get_mut(&self.player_id)
+            .unwrap()
     }
 }
 
@@ -75,20 +131,24 @@ async fn main() {
         main_input(&mut state);
         udp_send_commands(&mut state);
         main_draw(&state);
-        for physical_card in state.hand.hand.iter_mut() {
+        for physical_card in state.physical_hand.cards.iter_mut() {
             draw_card(
-                &physical_card.card,
+                &physical_card.card_instance.card,
                 &physical_card.transform,
                 1.0,
                 &state.textures,
             )
         }
         if state
-            .hand
+            .physical_hand
             .card_idx_being_held
             .filter(|idx| {
                 matches!(
-                    state.hand.hand[*idx].card.get_card_data().play_fn,
+                    state.physical_hand.cards[*idx]
+                        .card_instance
+                        .card
+                        .get_card_data()
+                        .play_fn,
                     PlayFn::BuildingSpot(_)
                 )
             })
