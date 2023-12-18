@@ -1,5 +1,4 @@
 use common::card::CardInstance;
-use common::hand::Hand;
 use common::play_target::{PlayFn, UnitSpawnpointTarget};
 use common::*;
 use macroquad::color::{Color, RED};
@@ -25,8 +24,9 @@ pub struct PhysicalHand {
 }
 
 pub fn update_from_hand(state: &mut ClientGameState) {
-    for card_instance in state.get_player().hand.cards.clone().iter() {
-        // TODO: Find a way to remove clone?
+    // TODO: Find a way to remove clone?
+    let server_hand = state.get_player().hand.cards.clone();
+    for card_instance in server_hand.iter() {
         let physical_card = state
             .physical_hand
             .cards
@@ -41,7 +41,11 @@ pub fn update_from_hand(state: &mut ClientGameState) {
                 .push(PhysicalCard::new(card_instance.clone()));
         }
     }
-    state.physical_hand.cards.retain(|(id, physical_card)| true)
+    state.physical_hand.cards.retain(|physical_card| {
+        server_hand
+            .iter()
+            .any(|card_instance| card_instance.id == physical_card.card_instance.id)
+    });
 }
 pub fn hand_try_play(state: &ClientGameState) -> Option<CardInstance> {
     let Some(card_idx_being_held) = state.physical_hand.card_idx_being_held else {

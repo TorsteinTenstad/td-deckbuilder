@@ -1,6 +1,9 @@
 use hand::Hand;
 use macroquad::prelude::{Color, Vec2};
+use melee_attack::MeleeAttack;
+pub use movement_behavior::{BulletMovementBehavior, MovementBehavior, PathMovementBehavior};
 use rand::Rng;
+use ranged_attack::RangedAttack;
 use serde::{Deserialize, Serialize};
 use std::{
     collections::HashMap,
@@ -14,10 +17,13 @@ pub mod level_config;
 pub mod play_target;
 pub use play_target::PlayTarget;
 pub mod hand;
-mod spawn_entity;
+pub mod melee_attack;
+pub mod movement_behavior;
+pub mod ranged_attack;
+pub mod spawn_entity;
 pub mod vector;
 
-pub const SERVER_ADDR: &str = "192.168.65.23:7878";
+pub const SERVER_ADDR: &str = "192.168.65.47:7878";
 pub const TARGET_SERVER_FPS: f32 = 60.0;
 pub const PROJECTILE_RADIUS: f32 = 0.04;
 
@@ -171,10 +177,17 @@ pub enum EntityTag {
 }
 
 #[derive(Clone, Serialize, Deserialize)]
+pub enum EntityState {
+    Moving,
+    Attacking,
+}
+
+#[derive(Clone, Serialize, Deserialize)]
 pub struct Entity {
     pub tag: EntityTag,
     pub owner: u64,
-    pub behavior: Behavior,
+    pub state: EntityState,
+    pub movement_behavior: MovementBehavior,
     #[serde(with = "Vec2Def")]
     pub pos: Vec2,
     pub radius: f32,
@@ -203,9 +216,10 @@ impl Entity {
     ) -> Self {
         Self {
             tag: EntityTag::Unit,
+            state: EntityState::Moving,
             owner,
-            behavior: Behavior::PathUnit {
-                0: PathUnitBehavior {
+            movement_behavior: MovementBehavior::Path {
+                0: PathMovementBehavior {
                     path_id,
                     target_path_idx: next_path_idx(path_idx, direction), // Unit is spawned at path_idx, target is next path_idx
                     direction,
@@ -247,8 +261,9 @@ impl Entity {
     ) -> Self {
         Self {
             tag: EntityTag::Tower,
+            state: EntityState::Attacking,
             owner,
-            behavior: Behavior::None,
+            movement_behavior: MovementBehavior::None,
             pos: Vec2 {
                 x: x as i32 as f32, // snap to grid
                 y: y as i32 as f32, // snap to grid
@@ -277,8 +292,9 @@ impl Entity {
     ) -> Self {
         Self {
             tag: EntityTag::Bullet,
+            state: EntityState::Moving,
             owner,
-            behavior: Behavior::Bullet(BulletBehavior {
+            movement_behavior: MovementBehavior::Bullet(BulletMovementBehavior {
                 velocity: Vec2::new(0.0, 0.0),
                 target_entity_id: Some(target_entity_id),
                 speed,
@@ -307,56 +323,7 @@ pub struct EntityExternalEffects {
 }
 
 #[derive(Clone, Serialize, Deserialize)]
-pub enum Behavior {
-    Bullet(BulletBehavior),
-    PathUnit(PathUnitBehavior),
-    None,
-}
-
-#[derive(Clone, Serialize, Deserialize)]
 pub struct StaticKinematics {
     #[serde(with = "Vec2Def")]
     pub pos: Vec2,
-}
-
-#[derive(Clone, Serialize, Deserialize)]
-pub struct BulletBehavior {
-    #[serde(with = "Vec2Def")]
-    pub velocity: Vec2,
-    pub target_entity_id: Option<u64>,
-    pub speed: f32,
-}
-
-#[derive(Clone, Serialize, Deserialize)]
-pub struct PathUnitBehavior {
-    pub path_id: u64,
-    pub target_path_idx: usize,
-    pub direction: Direction,
-    pub speed: f32,
-}
-
-#[derive(Clone, Serialize, Deserialize)]
-pub struct DroneBehavior {
-    pub can_target: Vec<EntityTag>,
-    pub target_entity_id: Option<u64>,
-    pub speed: f32,
-}
-
-#[derive(Clone, Serialize, Deserialize)]
-pub struct RangedAttack {
-    pub can_target: Vec<EntityTag>,
-    pub range: f32,
-    pub damage: f32,
-    pub fire_interval: f32,
-    pub cooldown_timer: f32,
-}
-
-#[derive(Clone, Serialize, Deserialize)]
-pub struct MeleeAttack {
-    pub can_target: Vec<EntityTag>,
-    pub range: Option<f32>,
-    pub damage: f32,
-    pub attack_interval: f32,
-    pub cooldown_timer: f32,
-    pub die_on_hit: bool,
 }

@@ -1,4 +1,4 @@
-use common::{card::Card, play_target::UnitSpawnpointTarget, *};
+use common::{card::Card, play_target::UnitSpawnpointTarget, ranged_attack::RangedAttack, *};
 use itertools::Itertools;
 use macroquad::{
     color::{Color, BLACK, BLUE, GRAY, LIGHTGRAY, RED, WHITE, YELLOW},
