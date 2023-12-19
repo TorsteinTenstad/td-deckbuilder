@@ -1,11 +1,7 @@
-use std::collections::HashMap;
-
 use macroquad::math::Vec2;
 use serde::{Deserialize, Serialize};
 
-use crate::{
-    get_path_pos, next_path_idx, Direction, Entity, EntityExternalEffects, StaticGameState, Vec2Def,
-};
+use crate::{get_path_pos, next_path_idx, Direction, Entity, StaticGameState, Vec2Def};
 
 #[derive(Clone, Serialize, Deserialize)]
 pub enum MovementBehavior {
@@ -16,13 +12,10 @@ pub enum MovementBehavior {
 
 impl MovementBehavior {
     pub fn update(
-        id: &u64,
         entity: &mut Entity,
-        other_entities: &HashMap<u64, Entity>,
-        other_entities_external_effects: &mut HashMap<u64, EntityExternalEffects>,
+        other_entities: &mut Vec<Entity>,
         dt: f32,
         static_game_state: &StaticGameState,
-        rng: &mut impl rand::Rng,
     ) {
         match &mut entity.movement_behavior {
             MovementBehavior::Path(PathMovementBehavior {
@@ -48,9 +41,12 @@ impl MovementBehavior {
             }) => {
                 *velocity = target_entity_id
                     .and_then(|target_entity_id| {
-                        other_entities.get(&target_entity_id).map(|target_entity| {
-                            (target_entity.pos - entity.pos).normalize_or_zero() * *speed
-                        })
+                        other_entities
+                            .iter()
+                            .find(|entity| entity.id == target_entity_id)
+                            .map(|target_entity| {
+                                (target_entity.pos - entity.pos).normalize_or_zero() * *speed
+                            })
                     })
                     .unwrap_or(*velocity);
 

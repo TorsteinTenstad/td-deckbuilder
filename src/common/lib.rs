@@ -20,10 +20,9 @@ pub mod hand;
 pub mod melee_attack;
 pub mod movement_behavior;
 pub mod ranged_attack;
-pub mod spawn_entity;
 pub mod vector;
 
-pub const SERVER_ADDR: &str = "192.168.65.47:7878";
+pub const SERVER_ADDR: &str = "192.168.43.224:7878";
 pub const TARGET_SERVER_FPS: f32 = 60.0;
 pub const PROJECTILE_RADIUS: f32 = 0.04;
 
@@ -112,7 +111,7 @@ pub struct BuildingLocation {
 #[derive(Serialize, Deserialize)]
 pub struct DynamicGameState {
     pub server_tick: u32,
-    pub entities: HashMap<u64, Entity>,
+    pub entities: Vec<Entity>,
     pub players: HashMap<u64, ServerPlayer>,
     pub building_locations: HashMap<u64, BuildingLocation>,
     pub next_entity_id: u64,
@@ -122,7 +121,7 @@ impl DynamicGameState {
     pub fn new() -> Self {
         Self {
             server_tick: 0,
-            entities: HashMap::new(),
+            entities: Vec::new(),
             players: HashMap::new(),
             building_locations: HashMap::new(),
             next_entity_id: 0,
@@ -184,6 +183,7 @@ pub enum EntityState {
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct Entity {
+    pub id: u64,
     pub tag: EntityTag,
     pub owner: u64,
     pub state: EntityState,
@@ -215,6 +215,7 @@ impl Entity {
         fire_interval: f32,
     ) -> Self {
         Self {
+            id: rand::thread_rng().gen(),
             tag: EntityTag::Unit,
             state: EntityState::Moving,
             owner,
@@ -260,6 +261,7 @@ impl Entity {
         fire_interval: f32,
     ) -> Self {
         Self {
+            id: rand::thread_rng().gen(),
             tag: EntityTag::Tower,
             state: EntityState::Attacking,
             owner,
@@ -291,6 +293,7 @@ impl Entity {
         speed: f32,
     ) -> Self {
         Self {
+            id: rand::thread_rng().gen(),
             tag: EntityTag::Bullet,
             state: EntityState::Moving,
             owner,
@@ -316,14 +319,4 @@ impl Entity {
             }),
         }
     }
-}
-
-pub struct EntityExternalEffects {
-    pub health: f32,
-}
-
-#[derive(Clone, Serialize, Deserialize)]
-pub struct StaticKinematics {
-    #[serde(with = "Vec2Def")]
-    pub pos: Vec2,
 }

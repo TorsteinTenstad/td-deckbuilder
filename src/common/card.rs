@@ -2,7 +2,6 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     play_target::{BuildingSpotTarget, PlayFn, UnitSpawnpointTarget},
-    spawn_entity::spawn_entity,
     BuildingLocation, Entity,
 };
 
@@ -38,8 +37,8 @@ const CARD_DATA: &[CardData] = &[
                 return false;
             }
             let entity = Entity::new_tower(owner, position.0, position.1, 3.0, 100.0, 2.0, 0.5);
-            let key = spawn_entity(&mut dynamic_game_state.entities, entity);
-            *building = Some(key);
+            *building = Some(entity.id);
+            dynamic_game_state.entities.push(entity);
             return true;
         }),
     },
@@ -55,8 +54,8 @@ const CARD_DATA: &[CardData] = &[
             }
             let mut entity = Entity::new_tower(owner, position.0, position.1, 3.0, 100.0, 2.0, 5.0);
             entity.usable_as_spawn_point = true;
-            let key = spawn_entity(&mut dynamic_game_state.entities, entity);
-            *building = Some(key);
+            *building = Some(entity.id);
+            dynamic_game_state.entities.push(entity);
             return true;
         }),
     },
@@ -83,7 +82,7 @@ const CARD_DATA: &[CardData] = &[
                 0.0,
                 0.0,
             );
-            spawn_entity(&mut dynamic_game_state.entities, entity);
+            dynamic_game_state.entities.push(entity);
             return true;
         }),
     },
@@ -110,7 +109,7 @@ const CARD_DATA: &[CardData] = &[
                 5.0,
                 0.5,
             );
-            spawn_entity(&mut dynamic_game_state.entities, entity);
+            dynamic_game_state.entities.push(entity);
             return true;
         }),
     },

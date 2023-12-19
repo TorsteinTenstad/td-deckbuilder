@@ -108,7 +108,7 @@ pub fn main_draw(state: &ClientGameState) {
     }
 
     // entities
-    for entity in state.dynamic_game_state.entities.values() {
+    for entity in state.dynamic_game_state.entities.iter() {
         let player = state.dynamic_game_state.players.get(&entity.owner);
         let color = if entity.damage_animation > 0.0 {
             RED
@@ -151,10 +151,13 @@ pub fn main_draw(state: &ClientGameState) {
             );
             range_circle_preview = Some((x as f32, y as f32, 3.0, color));
         }
-    } else if let Some(entity) = state
-        .selected_entity_id
-        .and_then(|id| state.dynamic_game_state.entities.get(&id))
-    {
+    } else if let Some(entity) = state.selected_entity_id.and_then(|id| {
+        state
+            .dynamic_game_state
+            .entities
+            .iter()
+            .find(|entity| entity.id == id)
+    }) {
         if let Some(RangedAttack { range, .. }) = entity.ranged_attack {
             range_circle_preview = Some((entity.pos.x, entity.pos.y, range, BLUE));
         }

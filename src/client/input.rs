@@ -36,7 +36,7 @@ pub fn pos_in_rect(pos: Vec2, x0: f32, y0: f32, x1: f32, y1: f32) -> bool {
 }
 
 pub fn tower_at_tile(state: &ClientGameState, pos: Vec2) -> Option<&Entity> {
-    state.dynamic_game_state.entities.values().find(|entity| {
+    state.dynamic_game_state.entities.iter().find(|entity| {
         entity.tag == EntityTag::Tower
             && entity.pos.x as i32 == pos.x as i32
             && entity.pos.y as i32 == pos.y as i32
@@ -55,14 +55,9 @@ pub fn main_input(state: &mut ClientGameState) {
     state.input.mouse_over_occupied_tile = tower_at_tile(&state, mouse_world_position()).is_some();
 
     if is_mouse_button_released(MouseButton::Left) {
-        state.selected_entity_id =
-            state
-                .dynamic_game_state
-                .entities
-                .iter()
-                .find_map(|(id, entity)| {
-                    ((entity.pos - mouse_world_position()).length() < entity.radius).then(|| *id)
-                });
+        state.selected_entity_id = state.dynamic_game_state.entities.iter().find_map(|entity| {
+            ((entity.pos - mouse_world_position()).length() < entity.radius).then(|| entity.id)
+        });
     }
 
     //Card drawing parameter adjustment

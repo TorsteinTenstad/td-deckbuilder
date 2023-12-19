@@ -94,23 +94,21 @@ fn main() -> std::io::Result<()> {
                                             *available_color,
                                         ),
                                     );
-                                    game_state.dynamic_state.entities.insert(
-                                        client_id,
-                                        Entity {
-                                            owner: client_id,
-                                            pos: base_pos.clone(),
-                                            tag: EntityTag::Base,
-                                            state: EntityState::Moving,
-                                            movement_behavior: MovementBehavior::None,
-                                            radius: 0.5,
-                                            health: 1000.0,
-                                            damage_animation: 0.0,
-                                            usable_as_spawn_point: true,
-                                            ranged_attack: None,
-                                            melee_attack: None,
-                                            seconds_left_to_live: None,
-                                        },
-                                    );
+                                    game_state.dynamic_state.entities.push(Entity {
+                                        id: rng.gen(),
+                                        owner: client_id,
+                                        pos: base_pos.clone(),
+                                        tag: EntityTag::Base,
+                                        state: EntityState::Moving,
+                                        movement_behavior: MovementBehavior::None,
+                                        radius: 0.5,
+                                        health: 1000.0,
+                                        damage_animation: 0.0,
+                                        usable_as_spawn_point: true,
+                                        ranged_attack: None,
+                                        melee_attack: None,
+                                        seconds_left_to_live: None,
+                                    });
                                 }
                             }
                         }
@@ -129,28 +127,25 @@ fn main() -> std::io::Result<()> {
             client.hand.step(dt)
         }
 
-        let mut other_entities_external_effects = HashMap::<u64, EntityExternalEffects>::new();
-        game_state.dynamic_state.entities = game_state
+        let mut new_entities: Vec<Entity> = Vec::new();
+        let mut entity_ids_to_remove: Vec<u64> = Vec::new();
+
+        for i in 0..game_state.dynamic_state.entities.len() {
+            let mut entity = game_state.dynamic_state.entities.swap_remove(i);
+            game_loop::update_entity(
+                &mut entity,
+                &mut game_state.dynamic_state.entities,
+                dt,
+                &game_state.static_state,
+                &mut new_entities,
+                &mut entity_ids_to_remove,
+            );
+            game_state.dynamic_state.entities.insert(i, entity);
+        }
+        game_state.dynamic_state.entities.append(&mut new_entities);
+        game_state
             .dynamic_state
             .entities
-            .iter()
-            .flat_map(|(id, entity)| {
-                game_loop::update_entity(
-                    &id,
-                    &entity,
-                    &game_state.dynamic_state.entities,
-                    &mut other_entities_external_effects,
-                    dt,
-                    &game_state.static_state,
-                    &mut rng,
-                )
-            })
-            .collect();
-        for (id, entity) in game_state.dynamic_state.entities.iter_mut() {
-            if let Some(external_effects) = other_entities_external_effects.get(id) {
-                entity.health += external_effects.health;
-                entity.damage_animation = 0.1;
-            }
-        }
+            .retain(|entity| !entity_ids_to_remove.contains(&entity.id));
     }
 }

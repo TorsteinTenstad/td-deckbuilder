@@ -1,55 +1,24 @@
-use std::collections::HashMap;
-
 use common::{
-    melee_attack::MeleeAttack, ranged_attack::RangedAttack, Entity, EntityExternalEffects,
-    EntityState, MovementBehavior, StaticGameState,
+    melee_attack::MeleeAttack, ranged_attack::RangedAttack, Entity, EntityState, MovementBehavior,
+    StaticGameState,
 };
 
-pub fn update_entity(
-    id: &u64,
-    entity: &Entity,
-    other_entities: &HashMap<u64, Entity>,
-    other_entities_external_effects: &mut HashMap<u64, EntityExternalEffects>,
+pub fn update_entity<'a>(
+    entity: &mut Entity,
+    other_entities: &mut Vec<Entity>,
     dt: f32,
-    static_game_state: &StaticGameState,
-    rng: &mut impl rand::Rng,
-) -> Vec<(u64, Entity)> {
-    let mut new_entities = Vec::new();
-    let mut entity = entity.clone();
-
+    static_state: &StaticGameState,
+    new_entities: &mut Vec<Entity>,
+    entity_ids_to_remove: &mut Vec<u64>,
+) {
     match entity.state {
         EntityState::Moving => {
-            MovementBehavior::update(
-                id,
-                &mut entity,
-                other_entities,
-                other_entities_external_effects,
-                dt,
-                static_game_state,
-                rng,
-            );
+            MovementBehavior::update(entity, other_entities, dt, static_state);
         }
 
         EntityState::Attacking => {
-            RangedAttack::update(
-                id,
-                &mut entity,
-                other_entities,
-                other_entities_external_effects,
-                dt,
-                static_game_state,
-                rng,
-                &mut new_entities,
-            );
-            MeleeAttack::update(
-                id,
-                &mut entity,
-                other_entities,
-                other_entities_external_effects,
-                dt,
-                static_game_state,
-                rng,
-            );
+            RangedAttack::update(entity, other_entities, dt, new_entities);
+            MeleeAttack::update(entity, other_entities, dt);
         }
     }
 
@@ -60,8 +29,7 @@ pub fn update_entity(
             entity.health = 0.0;
         }
     }
-    if entity.health > 0.0 {
-        new_entities.push((id.clone(), entity));
+    if entity.health < 0.0 {
+        entity_ids_to_remove.push(entity.id);
     }
-    new_entities
 }
