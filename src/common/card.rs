@@ -36,7 +36,7 @@ const CARD_DATA: &[CardData] = &[
             if let Some(_) = building {
                 return false;
             }
-            let entity = Entity::new_tower(owner, position.0, position.1, 3.0, 100.0, 2.0, 0.5);
+            let entity = Entity::new_tower(owner, position.0, position.1, 350.0, 100.0, 2.0, 0.5);
             *building = Some(entity.id);
             dynamic_game_state.entities.push(entity);
             return true;
@@ -74,7 +74,7 @@ const CARD_DATA: &[CardData] = &[
                 path_id,
                 path_idx,
                 direction,
-                25.0,
+                100.0,
                 100.0,
                 10.0,
                 0.5,
@@ -101,11 +101,11 @@ const CARD_DATA: &[CardData] = &[
                 path_id,
                 path_idx,
                 direction,
-                25.0,
+                100.0,
                 50.0,
                 0.0,
                 0.0,
-                3.0,
+                200.0,
                 5.0,
                 0.5,
             );

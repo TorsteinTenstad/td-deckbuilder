@@ -11,15 +11,16 @@ pub fn update_entity<'a>(
     new_entities: &mut Vec<Entity>,
     entity_ids_to_remove: &mut Vec<u64>,
 ) {
+    // State change happens here, so they need to update regardless of state
+    RangedAttack::update(entity, other_entities, dt, new_entities);
+    MeleeAttack::update(entity, other_entities, dt);
+
     match entity.state {
         EntityState::Moving => {
             MovementBehavior::update(entity, other_entities, dt, static_state);
         }
 
-        EntityState::Attacking => {
-            RangedAttack::update(entity, other_entities, dt, new_entities);
-            MeleeAttack::update(entity, other_entities, dt);
-        }
+        EntityState::Attacking => {}
     }
 
     entity.damage_animation -= dt;
@@ -29,7 +30,7 @@ pub fn update_entity<'a>(
             entity.health = 0.0;
         }
     }
-    if entity.health < 0.0 {
+    if entity.health <= 0.0 {
         entity_ids_to_remove.push(entity.id);
     }
 }

@@ -24,7 +24,7 @@ pub mod vector;
 
 pub const SERVER_ADDR: &str = "192.168.43.224:7878";
 pub const TARGET_SERVER_FPS: f32 = 60.0;
-pub const PROJECTILE_RADIUS: f32 = 0.04;
+pub const PROJECTILE_RADIUS: f32 = 12.0;
 
 pub fn hash_client_addr(addr: &SocketAddr) -> u64 {
     let mut hasher = std::collections::hash_map::DefaultHasher::new();
@@ -270,7 +270,7 @@ impl Entity {
                 x: x as i32 as f32, // snap to grid
                 y: y as i32 as f32, // snap to grid
             },
-            radius: 0.25,
+            radius: 24.0,
             health,
             damage_animation: 0.0,
             usable_as_spawn_point: false,

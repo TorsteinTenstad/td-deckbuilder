@@ -32,7 +32,10 @@ impl RangedAttack {
                         .filter(|other_entity| other_entity.owner != entity.owner)
                         .filter(|other_entity| can_target.contains(&other_entity.tag))
                         .map(|other_entity| {
-                            (entity.id, (entity.pos - other_entity.pos).length_squared())
+                            (
+                                other_entity.id,
+                                (entity.pos - other_entity.pos).length_squared(),
+                            )
                         })
                         .filter(|(_id, length_squared)| length_squared < &range.powi(2))
                         .min_by(|(_, length_squared_a), (_, length_squared_b)| {
@@ -45,7 +48,7 @@ impl RangedAttack {
                             entity.pos,
                             target_entity_id,
                             *damage,
-                            5.0,
+                            300.0,
                         ));
                     }
                 } else {

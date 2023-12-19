@@ -94,6 +94,15 @@ fn main() -> std::io::Result<()> {
                                             *available_color,
                                         ),
                                     );
+                                    let server_player = game_state
+                                        .dynamic_state
+                                        .players
+                                        .get_mut(&client_id)
+                                        .unwrap();
+                                    server_player.hand.energy = 10;
+                                    for _ in 0..3 {
+                                        server_player.hand.draw();
+                                    }
                                     game_state.dynamic_state.entities.push(Entity {
                                         id: rng.gen(),
                                         owner: client_id,
@@ -101,7 +110,7 @@ fn main() -> std::io::Result<()> {
                                         tag: EntityTag::Base,
                                         state: EntityState::Moving,
                                         movement_behavior: MovementBehavior::None,
-                                        radius: 0.5,
+                                        radius: 48.0,
                                         health: 1000.0,
                                         damage_animation: 0.0,
                                         usable_as_spawn_point: true,

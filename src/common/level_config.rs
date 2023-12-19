@@ -1,6 +1,6 @@
 use crate::Direction;
 use macroquad::{
-    color::{Color, BLUE, RED},
+    color::{Color, BLUE, ORANGE},
     math::Vec2,
 };
 
@@ -51,7 +51,7 @@ pub const PATHS: &[&[(i32, i32)]] = &[
 pub const SPAWN_POINT_RADIUS: f32 = 192.0;
 
 pub const PLAYER_CONFIGS: &[(Vec2, Direction, Color)] = &[
-    (Vec2 { x: 144.0, y: 148.0 }, Direction::Positive, RED),
+    (Vec2 { x: 144.0, y: 148.0 }, Direction::Positive, ORANGE),
     (
         Vec2 {
             x: 1772.0,

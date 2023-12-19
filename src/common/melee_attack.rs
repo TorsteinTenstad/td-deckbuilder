@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::{Entity, EntityTag};
+use crate::{Entity, EntityState, EntityTag};
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct MeleeAttack {
@@ -27,6 +27,10 @@ impl MeleeAttack {
                     .iter_mut()
                     .filter(|other_entity| other_entity.owner != entity.owner)
                     .filter(|other_entity| can_target.contains(&other_entity.tag))
+                    .filter(|other_entity| {
+                        (other_entity.pos - entity.pos).length_squared()
+                            < (range.unwrap_or(entity.radius) + other_entity.radius).powi(2)
+                    })
                     .min_by(|other_entity_a, other_entity_b| {
                         let signed_distance_a = (other_entity_a.pos - entity.pos).length_squared()
                             - (range.unwrap_or(entity.radius) + other_entity_a.radius).powi(2);
@@ -35,15 +39,19 @@ impl MeleeAttack {
                         signed_distance_a.partial_cmp(&signed_distance_b).unwrap()
                     })
                 {
+                    entity.state = EntityState::Attacking;
                     if *cooldown_timer <= 0.0 {
                         *cooldown_timer = *attack_interval;
                         if *die_on_hit {
                             entity.health = 0.0;
                         };
                         target_entity.health -= *damage;
+                        target_entity.damage_animation = 0.1;
                     } else {
                         *cooldown_timer -= dt;
                     }
+                } else {
+                    entity.state = EntityState::Moving;
                 }
             }
             None => {}

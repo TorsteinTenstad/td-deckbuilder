@@ -120,13 +120,21 @@ pub fn main_draw(state: &ClientGameState) {
 
         match entity.tag {
             EntityTag::Tower | EntityTag::Base => {
-                draw_hexagon(pos_x, pos_y, 20.0, 0.0, false, color, color);
+                draw_hexagon(
+                    pos_x,
+                    pos_y,
+                    to_screen_size(entity.radius),
+                    0.0,
+                    false,
+                    color,
+                    color,
+                );
             }
             EntityTag::Unit => {
-                draw_circle(pos_x, pos_y, entity.radius, color);
+                draw_circle(pos_x, pos_y, to_screen_size(entity.radius), color);
             }
             EntityTag::Bullet => {
-                draw_circle(pos_x, pos_y, to_screen_size(PROJECTILE_RADIUS), GRAY);
+                draw_circle(pos_x, pos_y, to_screen_size(entity.radius), GRAY);
             }
         }
     }
