@@ -18,9 +18,10 @@ impl Hand {
         let mut deck = Vec::new();
         for (quantity, card) in vec![
             (3, Card::BasicTower),
-            (5, Card::BasicUnit),
+            (3, Card::BasicUnit),
             (3, Card::SpawnPointTest),
             (3, Card::BasicRanger),
+            (3, Card::DirectDamageTest),
         ] {
             for _ in 0..quantity {
                 let id = rand::thread_rng().gen();

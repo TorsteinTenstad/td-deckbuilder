@@ -11,6 +11,7 @@ pub enum Card {
     SpawnPointTest,
     BasicUnit,
     BasicRanger,
+    DirectDamageTest,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq)]
@@ -110,6 +111,20 @@ const CARD_DATA: &[CardData] = &[
                 0.5,
             );
             dynamic_game_state.entities.push(entity);
+            return true;
+        }),
+    },
+    CardData {
+        name: "Direct Damage",
+        energy_cost: 1,
+        play_fn: PlayFn::Entity(|target, _owner, _static_game_state, dynamic_game_state| {
+            let target_entity = dynamic_game_state
+                .entities
+                .iter_mut()
+                .find(|entity| entity.id == target.id)
+                .unwrap();
+            target_entity.health -= 100.0;
+            target_entity.damage_animation = 0.1;
             return true;
         }),
     },

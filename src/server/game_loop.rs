@@ -30,7 +30,7 @@ pub fn update_entity<'a>(
             entity.health = 0.0;
         }
     }
-    if entity.health <= 0.0 {
+    if entity.health <= 0.0 && entity.damage_animation < 0.0 {
         entity_ids_to_remove.push(entity.id);
     }
 }

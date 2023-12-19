@@ -1,9 +1,11 @@
 use common::card::CardInstance;
 use common::play_target::{PlayFn, UnitSpawnpointTarget};
 use common::*;
-use macroquad::color::{Color, RED};
+use macroquad::color::{Color, BLACK, RED, WHITE};
 use macroquad::math::Vec2;
 use macroquad::shapes::draw_circle_lines;
+use macroquad::texture::{draw_texture_ex, DrawTextureParams};
+use macroquad::window::{clear_background, screen_height, screen_width};
 use macroquad::{texture::Texture2D, window::next_frame, window::request_new_screen_size};
 pub mod config;
 mod draw;
@@ -134,7 +136,23 @@ async fn main() {
         udp_update_game_state(&mut state);
         main_input(&mut state);
         udp_send_commands(&mut state);
-        main_draw(&state);
+
+        // board
+        clear_background(BLACK);
+
+        draw_texture_ex(
+            state.textures.get("concept").unwrap(),
+            0.0,
+            0.0,
+            WHITE,
+            DrawTextureParams {
+                dest_size: Some(Vec2 {
+                    x: screen_width(),
+                    y: screen_height(),
+                }),
+                ..Default::default()
+            },
+        );
         for physical_card in state.physical_hand.cards.iter_mut() {
             draw_card(
                 &physical_card.card_instance.card,
@@ -143,6 +161,7 @@ async fn main() {
                 &state.textures,
             )
         }
+        main_draw(&state);
         if state
             .physical_hand
             .card_idx_being_held

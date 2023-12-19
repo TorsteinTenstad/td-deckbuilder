@@ -5,7 +5,7 @@ use crate::{
 use common::{
     card::CardInstance,
     get_unit_spawnpoints::get_unit_spawnpoints,
-    play_target::{BuildingSpotTarget, PlayFn, WorldPosTarget},
+    play_target::{BuildingSpotTarget, EntityTarget, PlayFn, WorldPosTarget},
     ClientCommand, PlayTarget,
 };
 use macroquad::{
@@ -120,7 +120,18 @@ pub fn player_step(state: &mut ClientGameState) {
                         }
                     }
                 }
-                PlayFn::Entity(_) => {}
+                PlayFn::Entity(_) => {
+                    if let Some(entity) = state.dynamic_game_state.entities.iter().find(|entity| {
+                        (entity.pos - mouse_world_position()).length() < entity.radius
+                    }) {
+                        if let Some(card_instance) = hand_try_play(state) {
+                            state.commands.push(ClientCommand::PlayCard(
+                                card_instance.id,
+                                PlayTarget::Entity(EntityTarget { id: entity.id }),
+                            ));
+                        }
+                    }
+                }
             }
 
             state.physical_hand.card_idx_being_held = None;

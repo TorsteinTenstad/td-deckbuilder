@@ -74,32 +74,15 @@ where
 }
 
 pub fn main_draw(state: &ClientGameState) {
-    // board
-    clear_background(BLACK);
-
-    draw_texture_ex(
-        state.textures.get("concept").unwrap(),
-        0.0,
-        0.0,
-        WHITE,
-        DrawTextureParams {
-            dest_size: Some(Vec2 {
-                x: screen_width(),
-                y: screen_height(),
-            }),
-            ..Default::default()
-        },
-    );
-
-    for (_, path) in state.static_game_state.paths.iter() {
-        for ((x1, y1), (x2, y2)) in path.iter().tuple_windows() {
-            let x1 = to_screen_x(*x1 as f32);
-            let y1 = to_screen_y(*y1 as f32);
-            let x2 = to_screen_x(*x2 as f32);
-            let y2 = to_screen_y(*y2 as f32);
-            draw_line(x1, y1, x2, y2, 5.0, PATH_COLOR);
-        }
-    }
+    // for (_, path) in state.static_game_state.paths.iter() {
+    //     for ((x1, y1), (x2, y2)) in path.iter().tuple_windows() {
+    //         let x1 = to_screen_x(*x1 as f32);
+    //         let y1 = to_screen_y(*y1 as f32);
+    //         let x2 = to_screen_x(*x2 as f32);
+    //         let y2 = to_screen_y(*y2 as f32);
+    //         draw_line(x1, y1, x2, y2, 5.0, PATH_COLOR);
+    //     }
+    // }
 
     for (_id, loc) in state.dynamic_game_state.building_locations.iter() {
         let x = to_screen_x(loc.position.0 as f32);

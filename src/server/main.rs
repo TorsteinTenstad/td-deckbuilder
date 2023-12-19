@@ -100,7 +100,7 @@ fn main() -> std::io::Result<()> {
                                         .get_mut(&client_id)
                                         .unwrap();
                                     server_player.hand.energy = 10;
-                                    for _ in 0..3 {
+                                    for _ in 0..7 {
                                         server_player.hand.draw();
                                     }
                                     game_state.dynamic_state.entities.push(Entity {
