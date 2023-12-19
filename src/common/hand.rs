@@ -1,6 +1,5 @@
 use crate::card::{Card, CardInstance};
-use crate::vector::shuffle_vec;
-use itertools::Itertools;
+use crate::vector::{pop_where, shuffle_vec};
 use rand::Rng;
 use serde::{Deserialize, Serialize};
 
@@ -71,20 +70,22 @@ impl Hand {
     }
 
     pub fn try_play(&mut self, card_id: u64) -> Option<Card> {
-        let find_result = self
-            .cards
-            .clone() // TODO: Ask Amund
-            .into_iter()
-            .find_position(|card_instance| card_instance.id == card_id);
-        let Some((card_idx, card_instance)) = find_result.clone() else {
+        let Some(card_instance) = pop_where(&mut self.cards, |card_instance| {
+            card_instance.id == card_id && card_instance.card.energy_cost() <= self.energy
+        }) else {
             return None;
         };
-        if self.energy < card_instance.card.energy_cost() {
-            return None;
-        }
         self.played.push(card_instance.clone());
         self.energy -= card_instance.card.energy_cost();
-        self.cards.remove(card_idx);
+        Some(card_instance.card)
+    }
+
+    pub fn try_play_(&mut self, card_id: u64) -> Option<Card> {
+        let card_instance = pop_where(&mut self.cards, |card_instance| {
+            card_instance.id == card_id && card_instance.card.energy_cost() <= self.energy
+        })?;
+        self.played.push(card_instance.clone());
+        self.energy -= card_instance.card.energy_cost();
         Some(card_instance.card)
     }
 }
