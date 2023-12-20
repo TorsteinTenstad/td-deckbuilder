@@ -3,6 +3,7 @@ use common::attack::{Attack, AttackVariant};
 use common::entity::EntityTag;
 use common::play_target::{unit_spawnpoint_target_transform, PlayFn};
 use common::rect_transform::point_inside;
+use common::textures::SpriteId;
 use common::*;
 use macroquad::color::{Color, BLACK, BLUE, GRAY, RED, WHITE, YELLOW};
 use macroquad::math::Vec2;
@@ -65,7 +66,7 @@ fn main_draw(state: &ClientGameState) {
     // board
     clear_background(BLACK);
     draw_texture_ex(
-        state.textures.get("concept").unwrap(),
+        state.sprites.get(&SpriteId::Concept).unwrap(),
         0.0,
         0.0,
         WHITE,
@@ -84,7 +85,7 @@ fn main_draw(state: &ClientGameState) {
             &physical_card.card_instance.card,
             &physical_card.transform,
             1.0,
-            &state.textures,
+            &state.sprites,
         )
     }
 
@@ -119,7 +120,18 @@ fn main_draw(state: &ClientGameState) {
                 );
             }
             EntityTag::Unit => {
-                draw_circle(pos_x, pos_y, to_screen_size(entity.radius), color);
+                if let Some(texture) = state.sprites.get(&entity.sprite_id) {
+                    draw_texture_ex(
+                        texture,
+                        pos_x,
+                        pos_y,
+                        color,
+                        DrawTextureParams {
+                            dest_size: Some(Vec2::splat(entity.radius * 2.0)),
+                            ..Default::default()
+                        },
+                    )
+                }
             }
             EntityTag::Bullet => {
                 draw_circle(pos_x, pos_y, to_screen_size(entity.radius), GRAY);

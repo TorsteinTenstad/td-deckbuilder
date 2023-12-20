@@ -13,5 +13,6 @@ pub mod play_target;
 pub mod rect_transform;
 pub mod serde_defs;
 pub mod server_player;
+pub mod textures;
 pub mod vector;
 pub mod world;

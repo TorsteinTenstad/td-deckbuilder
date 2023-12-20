@@ -1,5 +1,5 @@
 use crate::{physical_card::CARD_BORDER, rect_transform::RectTransform};
-use common::{card::Card, *};
+use common::{card::Card, textures::SpriteId, *};
 use macroquad::{
     color::{Color, BLACK, BLUE, GRAY, LIGHTGRAY, WHITE, YELLOW},
     math::Vec2,
@@ -177,7 +177,7 @@ pub fn draw_card(
     card: &Card,
     transform: &RectTransform,
     alpha: f32,
-    textures: &HashMap<String, Texture2D>,
+    textures: &HashMap<SpriteId, Texture2D>,
 ) {
     draw_circle(transform.x, transform.y, 3.0, YELLOW);
     draw_rect_transform(transform, Color { a: alpha, ..GRAY });
@@ -233,7 +233,7 @@ pub fn draw_card(
         width_relative_margin * transform.w / transform.h,
     );
 
-    let icons: Vec<(&str, f32)> = Vec::new();
+    let icons: Vec<(SpriteId, f32)> = Vec::new();
 
     for (i, (texture_id, value)) in icons.iter().filter(|(_, value)| *value > 0.001).enumerate() {
         let width_relative_icon_size = 0.2;
@@ -247,8 +247,8 @@ pub fn draw_card(
         );
         let icon_size = Vec2::splat(transform.w * width_relative_icon_size);
         let texture = textures
-            .get(*texture_id)
-            .expect(format!("Texture \"{}\" not found", texture_id).as_str());
+            .get(texture_id)
+            .expect(format!("Texture \"{}\" not found", sprite_id_to_string(*texture_id)).as_str());
         draw_texture_ex(
             texture,
             on_card_icon_pos.x,
@@ -291,24 +291,45 @@ pub fn draw_card(
     );
 }
 
-pub async fn load_textures() -> HashMap<String, Texture2D> {
-    let mut textures: HashMap<String, Texture2D> = HashMap::new();
-    for texture_id in vec![
-        "hourglass",
-        "hourglass_bow",
-        "hourglass_sword",
-        "range",
-        "shield",
-        "sword",
-        "bow",
-        "concept",
+pub fn sprite_id_to_string(texture_id: SpriteId) -> &'static str {
+    match texture_id {
+        SpriteId::Bow => "bow",
+        SpriteId::Concept => "concept",
+        SpriteId::Hourglass => "hourglass",
+        SpriteId::HourglassBow => "hourglass_bow",
+        SpriteId::HourglassSword => "hourglass_sword",
+        SpriteId::Range => "range",
+        SpriteId::Shield => "shield",
+        SpriteId::UnitArcher => "unit_archer",
+        SpriteId::UnitSoldier => "unit_soldier",
+        SpriteId::Sword => "sword",
+        SpriteId::X => "x",
+    }
+}
+
+pub async fn load_sprites() -> HashMap<SpriteId, Texture2D> {
+    let mut sprites: HashMap<SpriteId, Texture2D> = HashMap::new();
+    for sprite_id in vec![
+        SpriteId::Bow,
+        SpriteId::Concept,
+        SpriteId::Hourglass,
+        SpriteId::HourglassBow,
+        SpriteId::HourglassSword,
+        SpriteId::Range,
+        SpriteId::Shield,
+        SpriteId::UnitArcher,
+        SpriteId::UnitSoldier,
+        SpriteId::Sword,
+        SpriteId::X,
     ] {
-        textures.insert(
-            texture_id.to_string(),
-            load_texture(format!("assets/textures/{}.png", texture_id).as_str())
-                .await
-                .unwrap(),
+        sprites.insert(
+            sprite_id.clone(),
+            load_texture(
+                format!("assets/textures/{}.png", sprite_id_to_string(sprite_id)).as_str(),
+            )
+            .await
+            .unwrap(),
         );
     }
-    return textures;
+    return sprites;
 }

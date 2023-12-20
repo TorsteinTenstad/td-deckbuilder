@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 use crate::{
     attack::{Attack, AttackVariant},
     entity::{Entity, EntityState, EntityTag},
+    textures::SpriteId,
 };
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -26,6 +27,7 @@ impl EntityBlueprint {
                 entity.health = 100.0;
                 entity.hitbox_radius = entity.radius;
                 entity.speed = 100.0;
+                entity.sprite_id = SpriteId::UnitSoldier;
                 entity.attacks.push(Attack::new(
                     AttackVariant::MeleeAttack,
                     entity.radius,
@@ -37,6 +39,7 @@ impl EntityBlueprint {
                 entity.radius = 24.0;
                 entity.health = 50.0;
                 entity.hitbox_radius = entity.radius;
+                entity.sprite_id = SpriteId::UnitArcher;
                 entity
                     .attacks
                     .push(Attack::new(AttackVariant::RangedAttack, 200.0, 10.0, 0.5));

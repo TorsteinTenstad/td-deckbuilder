@@ -1,7 +1,7 @@
-use crate::attack::Attack;
 use crate::component_movement_behavior::MovementBehavior;
 use crate::entity_blueprint::EntityBlueprint;
 use crate::serde_defs::Vec2Def;
+use crate::{attack::Attack, textures::SpriteId};
 use macroquad::math::Vec2;
 use rand::{thread_rng, Rng};
 use serde::{Deserialize, Serialize};
@@ -39,6 +39,7 @@ pub struct Entity {
     pub attacks: Vec<Attack>,
     pub seconds_left_to_live: Option<f32>,
     pub building_to_construct: Option<(u64, EntityBlueprint)>,
+    pub sprite_id: SpriteId,
 }
 
 impl Entity {
@@ -48,6 +49,7 @@ impl Entity {
             tag,
             owner,
             state,
+            sprite_id: SpriteId::X,
             speed: 0.0,
             movement_behavior: MovementBehavior::None,
             pos: Vec2::ZERO,

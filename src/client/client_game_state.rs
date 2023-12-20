@@ -1,9 +1,10 @@
-use crate::{draw::load_textures, network::udp_init_socket, physical_hand::PhysicalHand};
+use crate::{draw::load_sprites, network::udp_init_socket, physical_hand::PhysicalHand};
 use common::{
     game_state::{DynamicGameState, StaticGameState},
     network::ClientCommand,
     play_target::UnitSpawnpointTarget,
     server_player::ServerPlayer,
+    textures::SpriteId,
 };
 use macroquad::texture::Texture2D;
 use std::{collections::HashMap, net::UdpSocket, time::SystemTime};
@@ -18,7 +19,7 @@ pub struct ClientGameState {
     pub udp_socket: UdpSocket,
     pub player_id: u64,
     pub dt: f32,
-    pub textures: HashMap<String, Texture2D>,
+    pub sprites: HashMap<SpriteId, Texture2D>,
     pub unit_spawnpoint_targets: Vec<UnitSpawnpointTarget>,
     pub physical_hand: PhysicalHand,
     // TODO: temp
@@ -42,7 +43,7 @@ impl ClientGameState {
             udp_socket,
             player_id,
             dt: 0.167,
-            textures: load_textures().await,
+            sprites: load_sprites().await,
             unit_spawnpoint_targets: Vec::new(),
             physical_hand: PhysicalHand::default(),
         }
