@@ -120,7 +120,7 @@ impl Entity {
             radius,
             health,
             damage_animation: 0.0,
-            hitbox_radius: radius,
+            hitbox_radius: range / 2.0,
             usable_as_spawn_point: false,
             attacks: vec![Attack {
                 variant: AttackVariant::RangedAttack,

@@ -34,7 +34,7 @@ fn main() -> std::io::Result<()> {
             rng.gen(),
             BuildingLocation {
                 position: (*x as f32, *y as f32),
-                building: None,
+                entity_id: None,
             },
         );
     }
@@ -160,9 +160,23 @@ fn main() -> std::io::Result<()> {
             game_state.dynamic_state.entities.insert(i, entity);
         }
         game_state.dynamic_state.entities.append(&mut new_entities);
+        for entity_id in entity_ids_to_remove.iter() {
+            cleanup_entity(*entity_id, &mut game_state);
+        }
         game_state
             .dynamic_state
             .entities
             .retain(|entity| !entity_ids_to_remove.contains(&entity.id));
+    }
+}
+
+fn cleanup_entity(entity_id: u64, game_state: &mut ServerGameState) {
+    if let Some((_id, building_location)) = game_state
+        .dynamic_state
+        .building_locations
+        .iter_mut()
+        .find(|(_id, building_location)| building_location.entity_id == Some(entity_id))
+    {
+        building_location.entity_id = None;
     }
 }

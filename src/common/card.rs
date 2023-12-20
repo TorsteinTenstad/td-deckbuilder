@@ -32,8 +32,10 @@ const CARD_DATA: &[CardData] = &[
         energy_cost: 3,
         play_fn: PlayFn::BuildingSpot(|target, owner, _static_game_state, dynamic_game_state| {
             let BuildingSpotTarget { id } = target;
-            let BuildingLocation { position, building } =
-                dynamic_game_state.building_locations.get_mut(&id).unwrap();
+            let BuildingLocation {
+                position,
+                entity_id: building,
+            } = dynamic_game_state.building_locations.get_mut(&id).unwrap();
             if let Some(_) = building {
                 return false;
             }
@@ -48,8 +50,10 @@ const CARD_DATA: &[CardData] = &[
         energy_cost: 2,
         play_fn: PlayFn::BuildingSpot(|target, owner, _static_game_state, dynamic_game_state| {
             let BuildingSpotTarget { id } = target;
-            let BuildingLocation { position, building } =
-                dynamic_game_state.building_locations.get_mut(&id).unwrap();
+            let BuildingLocation {
+                position,
+                entity_id: building,
+            } = dynamic_game_state.building_locations.get_mut(&id).unwrap();
             if let Some(_) = building {
                 return false;
             }

@@ -1,11 +1,14 @@
-use crate::{game_state::StaticGameState, entity::{EntityTag, Entity}};
+use crate::{
+    entity::{Entity, EntityTag},
+    game_state::StaticGameState,
+};
 use macroquad::math::Vec2;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize)]
 pub struct BuildingLocation {
     pub position: (f32, f32),
-    pub building: Option<u64>,
+    pub entity_id: Option<u64>,
 }
 
 #[derive(Copy, Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]

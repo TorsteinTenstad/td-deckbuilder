@@ -128,7 +128,7 @@ fn main_draw(state: &ClientGameState) {
     }
 
     // range_circle_preview
-    let mut range_circle_preview: Option<(f32, f32, f32, Color)> = None;
+    let mut range_circle_preview: Vec<(f32, f32, f32, Color)> = Vec::new();
     if let Some(entity) = state.selected_entity_id.and_then(|id| {
         state
             .dynamic_game_state
@@ -141,10 +141,11 @@ fn main_draw(state: &ClientGameState) {
             .iter()
             .find(|attack| attack.variant == AttackVariant::RangedAttack)
         {
-            range_circle_preview = Some((entity.pos.x, entity.pos.y, *range, BLUE));
+            range_circle_preview.push((entity.pos.x, entity.pos.y, *range, BLUE));
         }
+        range_circle_preview.push((entity.pos.x, entity.pos.y, entity.hitbox_radius, RED));
     }
-    if let Some((x, y, range, color)) = range_circle_preview {
+    for (x, y, range, color) in range_circle_preview {
         let x = to_screen_x(x);
         let y = to_screen_y(y);
         let r = to_screen_size(range);
