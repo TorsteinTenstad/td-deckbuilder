@@ -1,7 +1,9 @@
-use crate::{draw::load_textures, hand::PhysicalHand, network::udp_init_socket};
+use crate::{draw::load_textures, network::udp_init_socket, physical_hand::PhysicalHand};
 use common::{
-    play_target::UnitSpawnpointTarget, ClientCommand, DynamicGameState, ServerPlayer,
-    StaticGameState,
+    game_state::{DynamicGameState, StaticGameState},
+    network::ClientCommand,
+    play_target::UnitSpawnpointTarget,
+    server_player::ServerPlayer,
 };
 use macroquad::texture::Texture2D;
 use std::{collections::HashMap, net::UdpSocket, time::SystemTime};

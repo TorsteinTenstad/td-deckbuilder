@@ -1,5 +1,9 @@
-use crate::{hand::hand_sync, ClientGameState, PhysicalHand};
-use common::{hash_client_addr, ClientCommand, ServerGameState, SERVER_ADDR};
+use crate::{physical_hand::hand_sync, ClientGameState, PhysicalHand};
+use common::{
+    config::SERVER_ADDR,
+    game_state::ServerGameState,
+    network::{hash_client_addr, ClientCommand},
+};
 use local_ip_address::local_ip;
 use macroquad::input::is_key_down;
 use std::{

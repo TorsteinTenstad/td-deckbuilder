@@ -1,5 +1,13 @@
+use common::component_movement_behavior::MovementBehavior;
+use common::config::SERVER_ADDR;
+use common::entity::{Entity, EntityState, EntityTag};
+use common::game_state::ServerGameState;
 use common::level_config::BUILDING_LOCATIONS;
+use common::network::{hash_client_addr, ClientCommand};
+use common::server_player::ServerPlayer;
+use common::world::BuildingLocation;
 use common::*;
+use game_loop::update_entity;
 use rand::Rng;
 use std::collections::HashMap;
 use std::net::{SocketAddr, UdpSocket};
@@ -142,7 +150,7 @@ fn main() -> std::io::Result<()> {
 
         for i in 0..game_state.dynamic_state.entities.len() {
             let mut entity = game_state.dynamic_state.entities.swap_remove(i);
-            game_loop::update_entity(
+            update_entity(
                 &mut entity,
                 &mut game_state.dynamic_state.entities,
                 dt,

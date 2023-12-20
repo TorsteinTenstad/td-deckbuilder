@@ -1,8 +1,9 @@
-use crate::Direction;
 use macroquad::{
     color::{Color, BLUE, ORANGE},
     math::Vec2,
 };
+
+use crate::world::Direction;
 
 pub const LEVEL_WIDTH: i32 = 1920;
 pub const LEVEL_HEIGHT: i32 = 1080;

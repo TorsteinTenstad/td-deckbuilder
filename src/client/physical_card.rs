@@ -1,4 +1,4 @@
-use common::{card::CardInstance, rect::RectTransform};
+use common::{card::CardInstance, rect_transform::RectTransform};
 use macroquad::{
     math::Vec2,
     window::{screen_height, screen_width},

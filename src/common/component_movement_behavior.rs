@@ -1,7 +1,11 @@
+use crate::{
+    entity::Entity,
+    game_state::StaticGameState,
+    serde_defs::Vec2Def,
+    world::{get_path_pos, next_path_idx, Direction},
+};
 use macroquad::math::Vec2;
 use serde::{Deserialize, Serialize};
-
-use crate::{get_path_pos, next_path_idx, Direction, Entity, StaticGameState, Vec2Def};
 
 #[derive(Clone, Serialize, Deserialize)]
 pub enum MovementBehavior {

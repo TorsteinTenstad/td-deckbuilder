@@ -1,4 +1,8 @@
-use crate::{get_path_pos, rect::RectTransform, Direction, DynamicGameState, StaticGameState};
+use crate::{
+    game_state::{DynamicGameState, StaticGameState},
+    rect_transform::RectTransform,
+    world::{get_path_pos, Direction},
+};
 use macroquad::math::Vec2;
 use serde::{Deserialize, Serialize};
 

@@ -1,4 +1,4 @@
-use crate::{physical_card::CARD_BORDER, rect::RectTransform};
+use crate::{physical_card::CARD_BORDER, rect_transform::RectTransform};
 use common::{card::Card, *};
 use macroquad::{
     color::{Color, BLACK, BLUE, GRAY, LIGHTGRAY, WHITE, YELLOW},

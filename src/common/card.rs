@@ -1,9 +1,9 @@
-use serde::{Deserialize, Serialize};
-
 use crate::{
+    entity::Entity,
     play_target::{BuildingSpotTarget, PlayFn, UnitSpawnpointTarget},
-    BuildingLocation, Entity,
+    world::BuildingLocation,
 };
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq)]
 pub enum Card {

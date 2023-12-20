@@ -1,15 +1,16 @@
 use client_game_state::ClientGameState;
+use common::component_attack_ranged::RangedAttack;
+use common::entity::EntityTag;
 use common::play_target::{unit_spawnpoint_target_transform, PlayFn};
-use common::ranged_attack::RangedAttack;
-use common::rect::point_inside;
+use common::rect_transform::point_inside;
 use common::*;
-use hand::{hand_step, PhysicalHand};
 use macroquad::color::{Color, BLACK, BLUE, GRAY, RED, WHITE, YELLOW};
 use macroquad::math::Vec2;
 use macroquad::shapes::{draw_circle, draw_circle_lines, draw_hexagon};
 use macroquad::texture::{draw_texture_ex, DrawTextureParams};
 use macroquad::window::{clear_background, screen_height, screen_width};
 use macroquad::{window::next_frame, window::request_new_screen_size};
+use physical_hand::{hand_step, PhysicalHand};
 pub mod config;
 mod draw;
 use draw::*;
@@ -18,8 +19,8 @@ use input::*;
 mod network;
 use network::*;
 mod client_game_state;
-mod hand;
 mod physical_card;
+mod physical_hand;
 
 #[macroquad::main("Client")]
 async fn main() {

@@ -1,6 +1,5 @@
+use crate::entity::{Entity, EntityState, EntityTag};
 use serde::{Deserialize, Serialize};
-
-use crate::{Entity, EntityState, EntityTag};
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct MeleeAttack {

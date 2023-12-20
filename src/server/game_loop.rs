@@ -1,6 +1,9 @@
 use common::{
-    melee_attack::MeleeAttack, ranged_attack::RangedAttack, Entity, EntityState, MovementBehavior,
-    StaticGameState,
+    component_attack_melee::MeleeAttack,
+    component_attack_ranged::RangedAttack,
+    component_movement_behavior::MovementBehavior,
+    entity::{Entity, EntityState},
+    game_state::StaticGameState,
 };
 
 pub fn update_entity<'a>(
