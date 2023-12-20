@@ -1,13 +1,15 @@
+use crate::{physical_hand::hand_sync, ClientGameState, PhysicalHand};
+use common::{
+    config::SERVER_ADDR,
+    game_state::ServerGameState,
+    network::{hash_client_addr, ClientCommand},
+};
+use local_ip_address::local_ip;
+use macroquad::input::is_key_down;
 use std::{
     net::{SocketAddr, UdpSocket},
     time::SystemTime,
 };
-
-use common::{hash_client_addr, ClientCommand, ServerGameState, SERVER_ADDR};
-use local_ip_address::local_ip;
-use macroquad::input::is_key_down;
-
-use crate::{ClientGameState, Hand};
 
 pub fn udp_init_socket() -> (UdpSocket, u64) {
     let local_ip = local_ip().unwrap();
@@ -28,9 +30,9 @@ pub fn udp_update_game_state(state: &mut ClientGameState) {
         let mut buf = [0; 20000];
         let received_message = state.udp_socket.recv_from(&mut buf);
         match received_message {
-            Ok((amt, _src)) => {
+            Ok((number_of_bytes, _src)) => {
                 state.frames_since_last_received = 0;
-                let buf = &mut buf[..amt];
+                let buf = &mut buf[..number_of_bytes];
                 let log = |prefix: &str| {
                     let timestamp = SystemTime::now()
                         .duration_since(SystemTime::UNIX_EPOCH)
@@ -54,10 +56,12 @@ pub fn udp_update_game_state(state: &mut ClientGameState) {
                     || received_game_state.static_state.game_id != state.static_game_state.game_id
                 {
                     if received_game_state.static_state.game_id != state.static_game_state.game_id {
-                        state.hand = Hand::new();
+                        state.physical_hand = PhysicalHand::default();
                     }
                     state.dynamic_game_state = received_game_state.dynamic_state;
                     state.static_game_state = received_game_state.static_state;
+
+                    hand_sync(state);
                 }
             }
             Err(e) => match e.kind() {
@@ -70,12 +74,6 @@ pub fn udp_update_game_state(state: &mut ClientGameState) {
                 }
             },
         }
-    }
-    if let Some(player) = state.dynamic_game_state.players.get(&state.player_id) {
-        state.hand.sync_with_server_counters(
-            player.card_draw_counter as i32,
-            player.energy_counter as i32,
-        );
     }
 
     if state.frames_since_last_received > 60 {

@@ -1,6 +1,13 @@
+use common::component_movement_behavior::MovementBehavior;
+use common::config::SERVER_ADDR;
+use common::entity::{Entity, EntityState, EntityTag};
+use common::game_state::ServerGameState;
+use common::level_config::BUILDING_LOCATIONS;
+use common::network::{hash_client_addr, ClientCommand};
+use common::server_player::ServerPlayer;
+use common::world::BuildingLocation;
 use common::*;
-use image::GenericImageView;
-use macroquad::prelude::{PURPLE, YELLOW};
+use game_loop::update_entity;
 use rand::Rng;
 use std::collections::HashMap;
 use std::net::{SocketAddr, UdpSocket};
@@ -12,43 +19,24 @@ fn main() -> std::io::Result<()> {
     let mut game_state = ServerGameState::new();
     let mut client_addresses = HashMap::<u64, SocketAddr>::new();
 
-    let img = image::open("path.png").unwrap();
-    game_state.static_state.grid_w = img.dimensions().0;
-    game_state.static_state.grid_h = img.dimensions().1;
+    for path in level_config::PATHS {
+        game_state.static_state.paths.insert(
+            rng.gen(),
+            path.to_vec()
+                .iter()
+                .map(|(x, y)| (*x as f32, *y as f32))
+                .collect(),
+        );
+    }
 
-    let is_path = |x: i32, y: i32| match (x.try_into(), y.try_into()) {
-        (Ok(x), Ok(y))
-            if x < game_state.static_state.grid_w && y < game_state.static_state.grid_h =>
-        {
-            img.get_pixel(x, y).0.get(0).is_some_and(|v| v > &0)
-        }
-        _ => false,
-    };
-
-    let path_start = (0..game_state.static_state.grid_w as i32)
-        .into_iter()
-        .flat_map(|x| (0..game_state.static_state.grid_w as i32).map(move |y| (x, y)))
-        .find_map(|(x, y)| {
-            (is_path(x, y)
-                && (is_path(x - 1, y) as i32
-                    + is_path(x, y - 1) as i32
-                    + is_path(x + 1, y) as i32
-                    + is_path(x, y + 1) as i32)
-                    <= 1)
-                .then(|| (x, y))
-        });
-
-    let (mut x, mut y) = path_start.unwrap();
-    game_state.static_state.path = vec![(x, y)];
-    while let Some(next) = vec![(x - 1, y), (x + 1, y), (x, y - 1), (x, y + 1)]
-        .into_iter()
-        .find_map(|next_xy| {
-            (is_path(next_xy.0, next_xy.1) && !game_state.static_state.path.contains(&next_xy))
-                .then(|| next_xy)
-        })
-    {
-        game_state.static_state.path.push(next);
-        (x, y) = next;
+    for (x, y) in BUILDING_LOCATIONS {
+        game_state.dynamic_state.building_locations.insert(
+            rng.gen(),
+            BuildingLocation {
+                position: (*x as f32, *y as f32),
+                building: None,
+            },
+        );
     }
 
     let udp_socket = UdpSocket::bind(SERVER_ADDR).unwrap();
@@ -56,13 +44,14 @@ fn main() -> std::io::Result<()> {
         .set_read_timeout(Some(Duration::from_millis(10)))
         .unwrap();
     let mut time = SystemTime::now();
+
     loop {
         let old_time = time;
         time = SystemTime::now();
         let dt = time.duration_since(old_time).unwrap().as_secs_f32();
 
         loop {
-            let client_message_buf = &mut [0; 50];
+            let client_message_buf = &mut [0; 200];
             let read_client_message = udp_socket.recv_from(client_message_buf);
             match read_client_message {
                 Err(e) => match e.kind() {
@@ -81,38 +70,63 @@ fn main() -> std::io::Result<()> {
                         serde_json::from_slice::<ClientCommand>(&client_message_buf[..amt])
                             .unwrap();
                     match command {
-                        ClientCommand::PlayCard(x, y, card) => {
-                            let player = game_state
+                        ClientCommand::PlayCard(card_id, target) => {
+                            if let Some(card_from_idx) = game_state
                                 .dynamic_state
                                 .players
                                 .get_mut(&client_id)
-                                .unwrap();
-                            game_state
-                                .dynamic_state
-                                .entities
-                                .insert(rng.gen(), card.to_entity(client_id, player, x, y));
+                                .unwrap()
+                                .hand
+                                .try_play(card_id)
+                            {
+                                card_from_idx.get_card_data().play_fn.exec(
+                                    target,
+                                    client_id,
+                                    &game_state.static_state,
+                                    &mut game_state.dynamic_state,
+                                );
+                            }
                         }
                         ClientCommand::JoinGame => {
-                            let client_id = hash_client_addr(&client_addr);
                             if !client_addresses.contains_key(&client_id) {
                                 client_addresses.insert(client_id, client_addr);
-                                if let Some(available_config) = vec![
-                                    (Direction::Positive, YELLOW),
-                                    (Direction::Negative, PURPLE),
-                                ]
-                                .get(game_state.dynamic_state.players.len())
+                                if let Some(available_config) = level_config::PLAYER_CONFIGS
+                                    .get(game_state.dynamic_state.players.len())
                                 {
-                                    let (available_direction, available_color) = available_config;
+                                    let (base_pos, available_direction, available_color) =
+                                        available_config;
                                     game_state.dynamic_state.players.insert(
                                         client_id,
                                         ServerPlayer::new(
                                             available_direction.clone(),
-                                            game_state.static_state.path_to_world_pos(
-                                                available_direction.to_start_path_pos(),
-                                            ),
                                             *available_color,
                                         ),
                                     );
+                                    let server_player = game_state
+                                        .dynamic_state
+                                        .players
+                                        .get_mut(&client_id)
+                                        .unwrap();
+                                    server_player.hand.energy = 10;
+                                    for _ in 0..7 {
+                                        server_player.hand.draw();
+                                    }
+                                    game_state.dynamic_state.entities.push(Entity {
+                                        id: rng.gen(),
+                                        owner: client_id,
+                                        pos: base_pos.clone(),
+                                        tag: EntityTag::Base,
+                                        state: EntityState::Moving,
+                                        movement_behavior: MovementBehavior::None,
+                                        radius: 48.0,
+                                        health: 1000.0,
+                                        damage_animation: 0.0,
+                                        hitbox_radius: 150.0,
+                                        usable_as_spawn_point: true,
+                                        ranged_attack: None,
+                                        melee_attack: None,
+                                        seconds_left_to_live: None,
+                                    });
                                 }
                             }
                         }
@@ -128,32 +142,28 @@ fn main() -> std::io::Result<()> {
 
         game_state.dynamic_state.server_tick += 1;
         for (_client_id, client) in game_state.dynamic_state.players.iter_mut() {
-            client.card_draw_counter += dt / 12.0;
-            client.energy_counter += dt / 8.0;
+            client.hand.step(dt)
         }
 
-        let mut other_entities_external_effects = HashMap::<u64, EntityExternalEffects>::new();
-        game_state.dynamic_state.entities = game_state
+        let mut new_entities: Vec<Entity> = Vec::new();
+        let mut entity_ids_to_remove: Vec<u64> = Vec::new();
+
+        for i in 0..game_state.dynamic_state.entities.len() {
+            let mut entity = game_state.dynamic_state.entities.swap_remove(i);
+            update_entity(
+                &mut entity,
+                &mut game_state.dynamic_state.entities,
+                dt,
+                &game_state.static_state,
+                &mut new_entities,
+                &mut entity_ids_to_remove,
+            );
+            game_state.dynamic_state.entities.insert(i, entity);
+        }
+        game_state.dynamic_state.entities.append(&mut new_entities);
+        game_state
             .dynamic_state
             .entities
-            .iter()
-            .flat_map(|(id, entity)| {
-                game_loop::update_entity(
-                    &id,
-                    &entity,
-                    &game_state.dynamic_state.entities,
-                    &mut other_entities_external_effects,
-                    dt,
-                    &game_state.static_state,
-                    &mut rng,
-                )
-            })
-            .collect();
-        for (id, entity) in game_state.dynamic_state.entities.iter_mut() {
-            if let Some(external_effects) = other_entities_external_effects.get(id) {
-                entity.health += external_effects.health;
-                entity.damage_animation = 0.1;
-            }
-        }
+            .retain(|entity| !entity_ids_to_remove.contains(&entity.id));
     }
 }

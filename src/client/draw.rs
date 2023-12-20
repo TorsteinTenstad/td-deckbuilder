@@ -1,19 +1,14 @@
+use crate::{physical_card::CARD_BORDER, rect_transform::RectTransform};
 use common::{card::Card, *};
 use macroquad::{
-    color::{Color, BLACK, BLUE, GRAY, LIGHTGRAY, RED, WHITE, YELLOW},
+    color::{Color, BLACK, BLUE, GRAY, LIGHTGRAY, WHITE, YELLOW},
     math::Vec2,
-    shapes::{
-        draw_circle, draw_circle_lines, draw_hexagon, draw_poly, draw_rectangle, draw_rectangle_ex,
-        DrawRectangleParams, draw_line,
-    },
+    shapes::{draw_circle, draw_rectangle, draw_rectangle_ex, DrawRectangleParams},
     text::{camera_font_scale, draw_text_ex, measure_text, TextDimensions, TextParams},
     texture::{draw_texture_ex, load_texture, DrawTextureParams, Texture2D},
-    window::{clear_background, screen_height, screen_width},
+    window::{screen_height, screen_width},
 };
 use std::collections::HashMap;
-use itertools::Itertools;
-
-use crate::{input::mouse_position_vec, ClientGameState};
 
 #[allow(dead_code)]
 pub enum TextOriginX {
@@ -31,185 +26,53 @@ pub enum TextOriginY {
     Bottom,
 }
 
-const GOLDEN_RATIO: f32 = 1.61803398875;
+pub const GOLDEN_RATIO: f32 = 1.61803398875;
 
-const GRASS_COLOR: Color = Color {
-    r: 0.686,
-    g: 0.784,
-    b: 0.490,
-    a: 1.0,
-};
-
-const PATH_COLOR: Color = Color {
-    r: 0.843,
-    g: 0.803,
-    b: 0.627,
-    a: 1.0,
-};
-
-// TODO overloading?
-pub fn cell_w() -> f32 {
-    screen_width() / 16.0 // state.static_game_state.grid_w as f32; TODO
-}
-pub fn cell_h() -> f32 {
-    (7.0 / 9.0) * screen_height() / 7.0 // state.static_game_state.grid_h as f32; TODO
-}
-
-
-fn to_screen_x<T>(x: T) -> f32
+pub fn to_screen_x<T>(x: T) -> f32
 where
     T: Into<f32>,
 {
-    x.into() * cell_w()
+    x.into() * screen_width() / level_config::LEVEL_WIDTH as f32
 }
-fn to_screen_y<T>(y: T) -> f32
+pub fn to_screen_y<T>(y: T) -> f32
 where
     T: Into<f32>,
 {
-    y.into() * cell_w()
+    y.into() * screen_height() / level_config::LEVEL_HEIGHT as f32
 }
 
-fn to_screen_size<T>(size: T) -> f32
+pub fn to_world_x<T>(x: T) -> f32
 where
     T: Into<f32>,
 {
-    size.into() * cell_w()
+    x.into() * level_config::LEVEL_WIDTH as f32 / screen_width()
+}
+pub fn to_world_y<T>(y: T) -> f32
+where
+    T: Into<f32>,
+{
+    y.into() * level_config::LEVEL_HEIGHT as f32 / screen_height()
 }
 
-pub fn main_draw(state: &ClientGameState) {
-    // board
-    clear_background(BLACK);
-    for x in 0..state.static_game_state.grid_w {
-        for y in 0..state.static_game_state.grid_h {
-            draw_rectangle(
-                to_screen_x(x as f32),
-                to_screen_y(y as f32),
-                cell_w(),
-                cell_h(),
-                GRASS_COLOR
-            );
-        }
-    }
-    for ((x1, y1), (x2, y2)) in state.static_game_state.path.iter().tuple_windows(){
-        let x1 = to_screen_x(*x1 as f32);
-        let y1 = to_screen_x(*y1 as f32);
-        let x2 = to_screen_x(*x2 as f32);
-        let y2 = to_screen_x(*y2 as f32);
-        draw_line(x1, y1, x2, y2, 5.0, PATH_COLOR);
-    }
+pub fn to_screen_size<T>(size: T) -> f32
+where
+    T: Into<f32>,
+{
+    size.into() * screen_width() / level_config::LEVEL_WIDTH as f32
+}
 
-    // entities
-    for entity in state.dynamic_game_state.entities.values() {
-        let player = state.dynamic_game_state.players.get(&entity.owner);
-        let color = if entity.damage_animation > 0.0 {
-            RED
-        } else {
-            player.map_or(WHITE, |player| player.color)
-        };
-        let pos_x = to_screen_x(entity.pos.x);
-        let pos_y = to_screen_y(entity.pos.y);
-        let r = to_screen_size(entity.radius);
-
-        match entity.tag {
-            EntityTag::Tower => {
-                draw_hexagon(pos_x, pos_y, 20.0, 0.0, false, color, color);
-            }
-            EntityTag::Unit => {
-                draw_circle(pos_x, pos_y, r, color);
-            }
-            EntityTag::Drone => {
-                let rotation = if let Behavior::Drone(DroneBehavior {
-                    target_entity_id, ..
-                }) = entity.behavior
-                {
-                    if let Some(target_entity) =
-                        target_entity_id.and_then(|id| state.dynamic_game_state.entities.get(&id))
-                    {
-                        (target_entity.pos - entity.pos).angle_between(Vec2::NEG_X)
-                    } else {
-                        0.0
-                    }
-                } else {
-                    0.0
-                };
-                draw_poly(pos_x, pos_y, 3, r, 360.0 * rotation, color);
-            }
-            EntityTag::Bullet => {
-                draw_circle(pos_x, pos_y, to_screen_size(PROJECTILE_RADIUS), GRAY);
-            }
-        }
-    }
-
-    // range_circle_preview
-    let mut range_circle_preview: Option<(f32, f32, f32, Color)> = None;
-    if let Some((x, y)) = state.preview_tower_pos {
-        if state.input.mouse_in_world {
-            let color = if state.input.mouse_over_occupied_tile {
-                RED
-            } else {
-                BLUE
-            };
-            draw_hexagon(
-                to_screen_x(x),
-                to_screen_y(y),
-                20.0,
-                0.0,
-                false,
-                GRAY,
-                Color { a: 0.5, ..color },
-            );
-            range_circle_preview = Some((x as f32, y as f32, 3.0, color));
-        }
-    } else if let Some(entity) = state
-        .selected_entity_id
-        .and_then(|id| state.dynamic_game_state.entities.get(&id))
-    {
-        if let Some(RangedAttack { range, .. }) = entity.ranged_attack {
-            range_circle_preview = Some((entity.pos.x, entity.pos.y, range, BLUE));
-        }
-    }
-    if let Some((x, y, range, color)) = range_circle_preview {
-        let x = to_screen_x(x);
-        let y = to_screen_y(y);
-        let r = to_screen_size(range);
-
-        draw_circle(x, y, r, Color { a: 0.2, ..color });
-        draw_circle_lines(x, y, r, 2.0, color);
-    }
-
-    // Progress bars
-    if let Some(player) = state.dynamic_game_state.players.get(&state.player_id) {
-        let margin = 10.0;
-        let outline_w = 5.0;
-        let w = 25.0;
-        let h = 100.0;
-        let draw_progress = player.card_draw_counter;
-        draw_progress_bar(
-            screen_width() - w - margin,
-            screen_height() - h - margin,
-            w,
-            h,
-            outline_w,
-            draw_progress,
-            state.hand.hand.len() as i32,
-            YELLOW,
-            WHITE,
-            BLACK,
-        );
-        let energy_progress = player.energy_counter;
-        draw_progress_bar(
-            screen_width() - 2.0 * w - 2.0 * margin,
-            screen_height() - h - margin,
-            w,
-            h,
-            outline_w,
-            energy_progress,
-            state.hand.energy,
-            BLUE,
-            WHITE,
-            BLACK,
-        );
-    }
+pub fn draw_rect_transform(transform: &RectTransform, color: Color) {
+    draw_rectangle_ex(
+        transform.x,
+        transform.y,
+        transform.w,
+        transform.h,
+        DrawRectangleParams {
+            rotation: transform.rotation,
+            offset: transform.offset,
+            color,
+        },
+    );
 }
 
 pub fn draw_text_with_origin(
@@ -299,28 +162,6 @@ pub fn draw_progress_bar(
     )
 }
 
-const CARD_BORDER: f32 = 5.0;
-const CARD_VISIBLE_HEIGHT: f32 = 0.8;
-
-pub fn card_is_hovering(transform: &RectTransform) -> bool {
-    let local_mouse_pos = Vec2::from_angle(-transform.rotation).rotate(
-        mouse_position_vec()
-            - Vec2 {
-                x: transform.x,
-                y: transform.y,
-            },
-    ) + transform.offset
-        * Vec2 {
-            x: transform.w,
-            y: transform.h,
-        };
-
-    local_mouse_pos.cmpgt(Vec2::ZERO).all()
-        && local_mouse_pos
-            .cmplt(Vec2::new(transform.w, transform.h))
-            .all()
-}
-
 pub fn draw_card(
     card: &Card,
     transform: &RectTransform,
@@ -328,23 +169,13 @@ pub fn draw_card(
     textures: &HashMap<String, Texture2D>,
 ) {
     draw_circle(transform.x, transform.y, 3.0, YELLOW);
-    draw_rectangle_ex(
-        transform.x,
-        transform.y,
-        transform.w,
-        transform.h,
-        DrawRectangleParams {
-            color: Color { a: alpha, ..GRAY },
-            rotation: transform.rotation,
-            offset: transform.offset,
-            ..Default::default()
-        },
-    );
+    draw_rect_transform(transform, Color { a: alpha, ..GRAY });
     let inner_offset = transform.offset
         + Vec2 {
             x: 0.0,
             y: (2.0 * transform.offset.y - 1.0) * CARD_BORDER / transform.h,
         };
+
     draw_rectangle_ex(
         transform.x,
         transform.y,
@@ -380,7 +211,7 @@ pub fn draw_card(
         card_name_pos.y,
         20.0,
         transform.rotation,
-        BLACK,
+        Color { a: alpha, ..BLACK },
         TextOriginX::Right,
         TextOriginY::Top,
     );
@@ -391,35 +222,7 @@ pub fn draw_card(
         width_relative_margin * transform.w / transform.h,
     );
 
-    let mut icons: Vec<(&str, f32)> = Vec::new();
-    let entity = card.to_entity(
-        0,
-        &ServerPlayer::new(Direction::Positive, Vec2::ZERO, BLACK),
-        0.0,
-        0.0,
-    );
-
-    icons.push(("shield", entity.health));
-    if let Some(RangedAttack {
-        range,
-        damage,
-        fire_interval,
-        ..
-    }) = entity.ranged_attack
-    {
-        icons.push(("bow", damage));
-        icons.push(("range", range));
-        icons.push(("hourglass_bow", fire_interval));
-    }
-    if let Some(MeleeAttack {
-        damage,
-        attack_interval,
-        ..
-    }) = entity.melee_attack
-    {
-        icons.push(("sword", damage));
-        icons.push(("hourglass_sword", attack_interval));
-    };
+    let icons: Vec<(&str, f32)> = Vec::new();
 
     for (i, (texture_id, value)) in icons.iter().filter(|(_, value)| *value > 0.001).enumerate() {
         let width_relative_icon_size = 0.2;
@@ -439,7 +242,7 @@ pub fn draw_card(
             texture,
             on_card_icon_pos.x,
             on_card_icon_pos.y,
-            WHITE,
+            Color { a: alpha, ..WHITE },
             DrawTextureParams {
                 rotation: transform.rotation,
                 dest_size: Some(icon_size),
@@ -453,7 +256,7 @@ pub fn draw_card(
             on_card_value_pos.y,
             26.0,
             transform.rotation,
-            BLACK,
+            Color { a: alpha, ..BLACK },
             TextOriginX::Left,
             TextOriginY::AbsoluteCenter,
         );
@@ -477,77 +280,6 @@ pub fn draw_card(
     );
 }
 
-#[derive(Default)]
-pub struct RectTransform {
-    w: f32,
-    h: f32,
-    x: f32,
-    y: f32,
-    rotation: f32,
-    offset: Vec2,
-}
-
-pub fn card_transform(
-    i: usize,
-    n: usize,
-    relative_splay_radius: f32,
-    card_delta_angle: f32,
-) -> RectTransform {
-    let w = screen_width() / 12.0;
-    let h = w * GOLDEN_RATIO;
-    return RectTransform {
-        w,
-        h,
-        x: screen_width() / 2.0,
-        y: screen_height() + (relative_splay_radius * h) - (CARD_VISIBLE_HEIGHT * h),
-        rotation: (i as f32 - ((n - 1) as f32 / 2.0)) * card_delta_angle,
-        offset: Vec2 {
-            x: 0.5,
-            y: relative_splay_radius,
-        },
-    };
-}
-
-pub fn draw_out_of_hand_card(card: &Card, x: f32, y: f32, textures: &HashMap<String, Texture2D>) {
-    let w = screen_width() / 10.0;
-    let transform = RectTransform {
-        w,
-        h: w * GOLDEN_RATIO,
-        x,
-        y,
-        rotation: 0.0,
-        offset: 0.5 * Vec2::ONE,
-    };
-    draw_card(card, &transform, 1.0, textures)
-}
-
-pub fn draw_highlighted_card(
-    card: &Card,
-    i: usize,
-    relative_splay_radius: f32,
-    card_delta_angle: f32,
-    textures: &HashMap<String, Texture2D>,
-    hand_size: usize,
-) {
-    let w = screen_width() / 10.0;
-    let h = w * GOLDEN_RATIO;
-    let x = screen_width() / 2.0
-        + ((relative_splay_radius * h) - (CARD_VISIBLE_HEIGHT * h))
-            * f32::sin((i as f32 - ((hand_size - 1) as f32 / 2.0)) * card_delta_angle);
-    let y = screen_height();
-
-    let transform = RectTransform {
-        w,
-        h: w * GOLDEN_RATIO,
-        x,
-        y,
-        rotation: 0.0,
-        offset: Vec2 { x: 0.5, y: 1.0 },
-    };
-
-    draw_card(card, &transform, 1.0, textures);
-}
-
 pub async fn load_textures() -> HashMap<String, Texture2D> {
     let mut textures: HashMap<String, Texture2D> = HashMap::new();
     for texture_id in vec![
@@ -558,6 +290,7 @@ pub async fn load_textures() -> HashMap<String, Texture2D> {
         "shield",
         "sword",
         "bow",
+        "concept",
     ] {
         textures.insert(
             texture_id.to_string(),
