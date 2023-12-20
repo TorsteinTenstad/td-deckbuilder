@@ -1,5 +1,6 @@
 use crate::{
     game_state::{DynamicGameState, StaticGameState},
+    ids::{BuildingLocationId, EntityId, PathId, PlayerId},
     rect_transform::RectTransform,
     world::{get_path_pos, Direction},
 };
@@ -14,19 +15,19 @@ pub struct WorldPosTarget {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UnitSpawnpointTarget {
-    pub path_id: u64,
+    pub path_id: PathId,
     pub path_idx: usize,
     pub direction: Direction,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BuildingSpotTarget {
-    pub id: u64,
+    pub id: BuildingLocationId,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EntityTarget {
-    pub id: u64,
+    pub id: EntityId,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -38,17 +39,19 @@ pub enum PlayTarget {
 }
 
 pub enum PlayFn {
-    WorldPos(fn(WorldPosTarget, u64, &StaticGameState, &mut DynamicGameState) -> bool),
-    UnitSpawnPoint(fn(UnitSpawnpointTarget, u64, &StaticGameState, &mut DynamicGameState) -> bool),
-    BuildingSpot(fn(BuildingSpotTarget, u64, &StaticGameState, &mut DynamicGameState) -> bool),
-    Entity(fn(EntityTarget, u64, &StaticGameState, &mut DynamicGameState) -> bool),
+    WorldPos(fn(WorldPosTarget, PlayerId, &StaticGameState, &mut DynamicGameState) -> bool),
+    UnitSpawnPoint(
+        fn(UnitSpawnpointTarget, PlayerId, &StaticGameState, &mut DynamicGameState) -> bool,
+    ),
+    BuildingSpot(fn(BuildingSpotTarget, PlayerId, &StaticGameState, &mut DynamicGameState) -> bool),
+    Entity(fn(EntityTarget, PlayerId, &StaticGameState, &mut DynamicGameState) -> bool),
 }
 
 impl PlayFn {
     pub fn exec(
         &self,
         target: PlayTarget,
-        owner: u64,
+        owner: PlayerId,
         static_game_state: &StaticGameState,
         dynamic_game_state: &mut DynamicGameState,
     ) -> bool {

@@ -1,6 +1,6 @@
 use crate::card::{Card, CardInstance};
+use crate::ids::CardInstanceId;
 use crate::vector::{pop_where, shuffle_vec};
-use rand::Rng;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -24,9 +24,8 @@ impl Hand {
             (3, Card::DirectDamageTest),
         ] {
             for _ in 0..quantity {
-                let id = rand::thread_rng().gen();
                 deck.push(CardInstance {
-                    id,
+                    id: CardInstanceId::new(),
                     card: card.clone(),
                 });
             }
@@ -70,7 +69,7 @@ impl Hand {
         }
     }
 
-    pub fn try_play(&mut self, card_id: u64) -> Option<Card> {
+    pub fn try_play(&mut self, card_id: CardInstanceId) -> Option<Card> {
         let Some(card_instance) = pop_where(&mut self.cards, |card_instance| {
             card_instance.id == card_id && card_instance.card.energy_cost() <= self.energy
         }) else {
@@ -81,7 +80,7 @@ impl Hand {
         Some(card_instance.card)
     }
 
-    pub fn try_play_(&mut self, card_id: u64) -> Option<Card> {
+    pub fn try_play_(&mut self, card_id: CardInstanceId) -> Option<Card> {
         let card_instance = pop_where(&mut self.cards, |card_instance| {
             card_instance.id == card_id && card_instance.card.energy_cost() <= self.energy
         })?;

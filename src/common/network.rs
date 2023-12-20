@@ -1,18 +1,22 @@
-use crate::play_target::PlayTarget;
+use crate::{
+    ids::{CardInstanceId, PlayerId},
+    play_target::PlayTarget,
+};
 use serde::{Deserialize, Serialize};
 use std::{
     hash::{Hash, Hasher},
     net::SocketAddr,
 };
 
-pub fn hash_client_addr(addr: &SocketAddr) -> u64 {
+pub fn hash_client_addr(addr: &SocketAddr) -> PlayerId {
     let mut hasher = std::collections::hash_map::DefaultHasher::new();
     addr.to_string().hash(&mut hasher);
-    hasher.finish()
+    let id = hasher.finish();
+    PlayerId(id)
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum ClientCommand {
-    PlayCard(u64, PlayTarget),
+    PlayCard(CardInstanceId, PlayTarget),
     JoinGame,
 }

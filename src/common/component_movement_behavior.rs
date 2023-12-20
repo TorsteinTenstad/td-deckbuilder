@@ -1,6 +1,7 @@
 use crate::{
     entity::Entity,
     game_state::StaticGameState,
+    ids::{EntityId, PathId},
     play_target::UnitSpawnpointTarget,
     serde_defs::Vec2Def,
     world::{get_path_pos, next_path_idx, Direction},
@@ -64,12 +65,12 @@ impl MovementBehavior {
 pub struct BulletMovementBehavior {
     #[serde(with = "Vec2Def")]
     pub velocity: Vec2,
-    pub target_entity_id: Option<u64>,
+    pub target_entity_id: Option<EntityId>,
 }
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct PathMovementBehavior {
-    pub path_id: u64,
+    pub path_id: PathId,
     pub target_path_idx: usize,
     pub direction: Direction,
 }

@@ -1,8 +1,9 @@
 use common::{
-    attack::Attack,
+    component_attack::Attack,
     component_movement_behavior::MovementBehavior,
     entity::{Entity, EntityState},
     game_state::StaticGameState,
+    ids::EntityId,
     world::find_entity_in_range,
 };
 
@@ -12,7 +13,7 @@ pub fn update_entity<'a>(
     dt: f32,
     static_state: &StaticGameState,
     new_entities: &mut Vec<Entity>,
-    entity_ids_to_remove: &mut Vec<u64>,
+    entity_ids_to_remove: &mut Vec<EntityId>,
 ) {
     let can_attack = entity.attacks.iter().any(|attack| {
         find_entity_in_range(

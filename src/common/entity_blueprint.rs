@@ -1,8 +1,9 @@
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    attack::{Attack, AttackVariant},
+    component_attack::{Attack, AttackVariant},
     entity::{Entity, EntityState, EntityTag},
+    ids::PlayerId,
 };
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -14,7 +15,7 @@ pub enum EntityBlueprint {
 }
 
 impl EntityBlueprint {
-    pub fn create(&self, owner: u64, state: EntityState) -> Entity {
+    pub fn create(&self, owner: PlayerId, state: EntityState) -> Entity {
         let tag = match self {
             EntityBlueprint::BasicUnit | EntityBlueprint::BasicRanger => EntityTag::Unit,
             EntityBlueprint::BasicTower | EntityBlueprint::SpawnPointTest => EntityTag::Tower,

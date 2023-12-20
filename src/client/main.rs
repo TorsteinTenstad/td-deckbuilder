@@ -1,5 +1,5 @@
 use client_game_state::ClientGameState;
-use common::attack::{Attack, AttackVariant};
+use common::component_attack::{Attack, AttackVariant};
 use common::entity::EntityTag;
 use common::play_target::{unit_spawnpoint_target_transform, PlayFn};
 use common::rect_transform::point_inside;
