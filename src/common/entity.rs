@@ -1,12 +1,10 @@
+use crate::attack::{Attack, AttackVariant};
 use crate::component_movement_behavior::{
     BulletMovementBehavior, MovementBehavior, PathMovementBehavior,
 };
 use crate::serde_defs::Vec2Def;
 use crate::world::{get_path_pos, next_path_idx, Direction};
-use crate::{
-    component_attack_melee::MeleeAttack, component_attack_ranged::RangedAttack,
-    config::PROJECTILE_RADIUS, game_state::StaticGameState,
-};
+use crate::{config::PROJECTILE_RADIUS, game_state::StaticGameState};
 use macroquad::math::Vec2;
 use rand::Rng;
 use serde::{Deserialize, Serialize};
@@ -39,8 +37,7 @@ pub struct Entity {
     pub damage_animation: f32,
     pub hitbox_radius: f32,
     pub usable_as_spawn_point: bool,
-    pub ranged_attack: Option<RangedAttack>,
-    pub melee_attack: Option<MeleeAttack>,
+    pub attacks: Vec<Attack>,
     pub seconds_left_to_live: Option<f32>,
 }
 
@@ -79,21 +76,26 @@ impl Entity {
             damage_animation: 0.0,
             hitbox_radius: radius,
             usable_as_spawn_point: false,
-            ranged_attack: Some(RangedAttack {
-                can_target: vec![EntityTag::Unit, EntityTag::Tower],
-                range,
-                damage: ranged_damage,
-                fire_interval,
-                cooldown_timer: 0.0,
-            }),
-            melee_attack: Some(MeleeAttack {
-                can_target: vec![EntityTag::Unit, EntityTag::Tower],
-                range,
-                damage,
-                attack_interval,
-                cooldown_timer: 0.0,
-                die_on_hit: false,
-            }),
+            attacks: vec![
+                Attack {
+                    variant: AttackVariant::RangedAttack,
+                    can_target: vec![EntityTag::Unit, EntityTag::Tower],
+                    range,
+                    damage: ranged_damage,
+                    attack_interval: fire_interval,
+                    cooldown_timer: 0.0,
+                    self_destruct: false,
+                },
+                Attack {
+                    variant: AttackVariant::MeleeAttack,
+                    can_target: vec![EntityTag::Unit, EntityTag::Tower],
+                    range: radius,
+                    damage,
+                    attack_interval,
+                    cooldown_timer: 0.0,
+                    self_destruct: false,
+                },
+            ],
             seconds_left_to_live: None,
         }
     }
@@ -114,23 +116,21 @@ impl Entity {
             state: EntityState::Attacking,
             owner,
             movement_behavior: MovementBehavior::None,
-            pos: Vec2 {
-                x: x as i32 as f32, // snap to grid
-                y: y as i32 as f32, // snap to grid
-            },
+            pos: Vec2 { x, y },
             radius,
             health,
             damage_animation: 0.0,
             hitbox_radius: radius,
             usable_as_spawn_point: false,
-            ranged_attack: Some(RangedAttack {
+            attacks: vec![Attack {
+                variant: AttackVariant::RangedAttack,
                 can_target: vec![EntityTag::Unit],
                 range,
                 damage,
-                fire_interval,
+                attack_interval: fire_interval,
                 cooldown_timer: 0.0,
-            }),
-            melee_attack: None,
+                self_destruct: false,
+            }],
             seconds_left_to_live: None,
         }
     }
@@ -140,6 +140,7 @@ impl Entity {
         target_entity_id: u64,
         damage: f32,
         speed: f32,
+        can_target: Vec<EntityTag>,
     ) -> Self {
         let radius = PROJECTILE_RADIUS;
         Self {
@@ -159,15 +160,15 @@ impl Entity {
             damage_animation: 0.0,
             hitbox_radius: radius,
             usable_as_spawn_point: false,
-            ranged_attack: None,
-            melee_attack: Some(MeleeAttack {
-                can_target: vec![EntityTag::Unit],
+            attacks: vec![Attack {
+                variant: AttackVariant::MeleeAttack,
+                can_target,
                 range: radius,
                 damage,
                 attack_interval: 0.5,
                 cooldown_timer: 0.0,
-                die_on_hit: true,
-            }),
+                self_destruct: true,
+            }],
         }
     }
 }

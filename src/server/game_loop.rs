@@ -1,9 +1,9 @@
 use common::{
-    component_attack_melee::MeleeAttack,
-    component_attack_ranged::RangedAttack,
+    attack::Attack,
     component_movement_behavior::MovementBehavior,
     entity::{Entity, EntityState},
     game_state::StaticGameState,
+    world::find_entity_in_range,
 };
 
 pub fn update_entity<'a>(
@@ -14,16 +14,31 @@ pub fn update_entity<'a>(
     new_entities: &mut Vec<Entity>,
     entity_ids_to_remove: &mut Vec<u64>,
 ) {
-    // State change happens here, so they need to update regardless of state
-    RangedAttack::update(entity, other_entities, dt, new_entities);
-    MeleeAttack::update(entity, other_entities, dt);
+    let can_attack = entity.attacks.iter().any(|attack| {
+        find_entity_in_range(
+            entity.pos,
+            entity.owner,
+            attack.range,
+            &attack.can_target,
+            other_entities,
+        )
+        .is_some()
+    });
 
     match entity.state {
         EntityState::Moving => {
             MovementBehavior::update(entity, other_entities, dt, static_state);
+            if can_attack {
+                entity.state = EntityState::Attacking;
+            }
         }
 
-        EntityState::Attacking => {}
+        EntityState::Attacking => {
+            Attack::update(entity, other_entities, dt, new_entities);
+            if !can_attack {
+                entity.state = EntityState::Moving
+            }
+        }
     }
 
     entity.damage_animation -= dt;

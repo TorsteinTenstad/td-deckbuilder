@@ -61,6 +61,17 @@ where
     size.into() * screen_width() / level_config::LEVEL_WIDTH as f32
 }
 
+pub fn to_screen_transform(transform: &RectTransform) -> RectTransform {
+    RectTransform {
+        x: to_screen_x(transform.x),
+        y: to_screen_y(transform.y),
+        w: to_screen_size(transform.w),
+        h: to_screen_size(transform.h),
+        rotation: transform.rotation,
+        offset: transform.offset,
+    }
+}
+
 pub fn draw_rect_transform(transform: &RectTransform, color: Color) {
     draw_rectangle_ex(
         transform.x,

@@ -123,8 +123,7 @@ fn main() -> std::io::Result<()> {
                                         damage_animation: 0.0,
                                         hitbox_radius: 150.0,
                                         usable_as_spawn_point: true,
-                                        ranged_attack: None,
-                                        melee_attack: None,
+                                        attacks: Vec::new(),
                                         seconds_left_to_live: None,
                                     });
                                 }

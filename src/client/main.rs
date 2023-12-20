@@ -1,5 +1,5 @@
 use client_game_state::ClientGameState;
-use common::component_attack_ranged::RangedAttack;
+use common::attack::{Attack, AttackVariant};
 use common::entity::EntityTag;
 use common::play_target::{unit_spawnpoint_target_transform, PlayFn};
 use common::rect_transform::point_inside;
@@ -136,8 +136,12 @@ fn main_draw(state: &ClientGameState) {
             .iter()
             .find(|entity| entity.id == id)
     }) {
-        if let Some(RangedAttack { range, .. }) = entity.ranged_attack {
-            range_circle_preview = Some((entity.pos.x, entity.pos.y, range, BLUE));
+        if let Some(Attack { range, .. }) = entity
+            .attacks
+            .iter()
+            .find(|attack| attack.variant == AttackVariant::RangedAttack)
+        {
+            range_circle_preview = Some((entity.pos.x, entity.pos.y, *range, BLUE));
         }
     }
     if let Some((x, y, range, color)) = range_circle_preview {
@@ -222,11 +226,13 @@ fn main_draw(state: &ClientGameState) {
             );
         }
     }
+
+    // spawnpoint indicators
     for target in state.unit_spawnpoint_targets.iter() {
         let transform = &unit_spawnpoint_target_transform(target, &state.static_game_state);
         let hovering = point_inside(mouse_world_position(), transform);
         draw_rect_transform(
-            transform,
+            &to_screen_transform(transform),
             Color {
                 a: if hovering { 0.8 } else { 0.5 },
                 ..RED

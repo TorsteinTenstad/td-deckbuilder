@@ -1,6 +1,5 @@
 pub mod card;
-pub mod component_attack_melee;
-pub mod component_attack_ranged;
+pub mod attack;
 pub mod component_movement_behavior;
 pub mod config;
 pub mod entity;
