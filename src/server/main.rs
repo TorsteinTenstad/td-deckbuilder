@@ -144,11 +144,13 @@ fn main() -> std::io::Result<()> {
         let mut new_entities: Vec<Entity> = Vec::new();
         let mut entity_ids_to_remove: Vec<EntityId> = Vec::new();
 
+        // TODO: new_entities and entity_ids_to_remove bad ??
         for i in 0..game_state.dynamic_state.entities.len() {
             let mut entity = game_state.dynamic_state.entities.swap_remove(i);
             update_entity(
                 &mut entity,
                 &mut game_state.dynamic_state.entities,
+                &mut game_state.dynamic_state.building_locations,
                 dt,
                 &game_state.static_state,
                 &mut new_entities,

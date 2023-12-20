@@ -34,19 +34,16 @@ const CARD_DATA: &[CardData] = &[
         name: "Tower",
         energy_cost: 3,
         play_fn: PlayFn::BuildingSpot(|target, owner, _static_game_state, dynamic_game_state| {
-            let BuildingLocation {
-                pos: position,
-                entity_id: building,
-            } = dynamic_game_state
+            let BuildingLocation { pos, entity_id } = dynamic_game_state
                 .building_locations
                 .get_mut(&target.id)
                 .unwrap();
-            if let Some(_) = building {
+            if let Some(_) = entity_id {
                 return false;
             }
-            let mut entity = EntityBlueprint::BasicTower.create(owner, EntityState::Attacking);
-            entity.pos = *position;
-            *building = Some(entity.id);
+            let mut entity = EntityBlueprint::BasicTower.create(owner);
+            entity.pos = *pos;
+            *entity_id = Some(entity.id);
             dynamic_game_state.entities.push(entity);
             return true;
         }),
@@ -55,19 +52,16 @@ const CARD_DATA: &[CardData] = &[
         name: "Spawn Point",
         energy_cost: 2,
         play_fn: PlayFn::BuildingSpot(|target, owner, _static_game_state, dynamic_game_state| {
-            let BuildingLocation {
-                pos: position,
-                entity_id: building,
-            } = dynamic_game_state
+            let BuildingLocation { pos, entity_id } = dynamic_game_state
                 .building_locations
                 .get_mut(&target.id)
                 .unwrap();
-            if let Some(_) = building {
+            if let Some(_) = entity_id {
                 return false;
             }
-            let mut entity = EntityBlueprint::SpawnPointTest.create(owner, EntityState::Moving);
-            entity.pos = *position;
-            *building = Some(entity.id);
+            let mut entity = EntityBlueprint::SpawnPointTest.create(owner);
+            entity.pos = *pos;
+            *entity_id = Some(entity.id);
             dynamic_game_state.entities.push(entity);
             return true;
         }),
@@ -76,7 +70,7 @@ const CARD_DATA: &[CardData] = &[
         name: "Ground Unit",
         energy_cost: 1,
         play_fn: PlayFn::UnitSpawnPoint(|target, owner, static_game_state, dynamic_game_state| {
-            let mut entity = EntityBlueprint::BasicUnit.create(owner, EntityState::Moving);
+            let mut entity = EntityBlueprint::BasicUnit.create(owner);
             entity.pos = get_path_pos(static_game_state, target.path_id, target.path_idx);
             entity.movement_behavior = MovementBehavior::Path(target.into());
             dynamic_game_state.entities.push(entity);
@@ -87,7 +81,7 @@ const CARD_DATA: &[CardData] = &[
         name: "Ranger",
         energy_cost: 1,
         play_fn: PlayFn::UnitSpawnPoint(|target, owner, static_game_state, dynamic_game_state| {
-            let mut entity = EntityBlueprint::BasicRanger.create(owner, EntityState::Moving);
+            let mut entity = EntityBlueprint::BasicRanger.create(owner);
             entity.pos = get_path_pos(static_game_state, target.path_id, target.path_idx);
             entity.movement_behavior = MovementBehavior::Path(target.into());
             dynamic_game_state.entities.push(entity);

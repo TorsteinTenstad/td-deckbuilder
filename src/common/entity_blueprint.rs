@@ -15,11 +15,17 @@ pub enum EntityBlueprint {
     SpawnPointTest,
 }
 
+// TODO: state: EntityState may be defined by Blueprint
 impl EntityBlueprint {
-    pub fn create(&self, owner: PlayerId, state: EntityState) -> Entity {
+    pub fn create(&self, owner: PlayerId) -> Entity {
         let tag = match self {
             EntityBlueprint::BasicUnit | EntityBlueprint::BasicRanger => EntityTag::Unit,
             EntityBlueprint::BasicTower | EntityBlueprint::SpawnPointTest => EntityTag::Tower,
+        };
+        let state = match self {
+            EntityBlueprint::BasicUnit | EntityBlueprint::BasicRanger => EntityState::Moving,
+            EntityBlueprint::BasicTower => EntityState::Attacking,
+            EntityBlueprint::SpawnPointTest => EntityState::Passive,
         };
         let mut entity = Entity::new(tag, owner, state);
         match self {

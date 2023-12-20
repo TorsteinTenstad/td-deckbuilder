@@ -19,6 +19,7 @@ pub enum EntityState {
     Moving,
     Attacking,
     Passive,
+    Building,
 }
 
 #[derive(Clone, Serialize, Deserialize)]
