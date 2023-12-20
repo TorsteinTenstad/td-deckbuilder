@@ -39,6 +39,8 @@ pub fn update_entity<'a>(
                 entity.state = EntityState::Moving
             }
         }
+
+        EntityState::Passive => {}
     }
 
     entity.damage_animation -= dt;

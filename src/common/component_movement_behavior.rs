@@ -1,6 +1,7 @@
 use crate::{
     entity::Entity,
     game_state::StaticGameState,
+    play_target::UnitSpawnpointTarget,
     serde_defs::Vec2Def,
     world::{get_path_pos, next_path_idx, Direction},
 };
@@ -26,12 +27,11 @@ impl MovementBehavior {
                 path_id,
                 target_path_idx,
                 direction,
-                speed,
             }) => {
                 if *target_path_idx < static_game_state.paths.get(path_id).unwrap().len() {
                     let target_pos = get_path_pos(static_game_state, *path_id, *target_path_idx);
                     let delta = target_pos - entity.pos;
-                    entity.pos += delta.normalize_or_zero() * *speed * dt;
+                    entity.pos += delta.normalize_or_zero() * entity.speed * dt;
                     let updated_delta = target_pos - entity.pos;
                     if delta.length_squared() < updated_delta.length_squared() {
                         *target_path_idx = next_path_idx(*target_path_idx, *direction)
@@ -41,7 +41,6 @@ impl MovementBehavior {
             MovementBehavior::Bullet(BulletMovementBehavior {
                 velocity,
                 target_entity_id,
-                speed,
             }) => {
                 *velocity = target_entity_id
                     .and_then(|target_entity_id| {
@@ -49,7 +48,7 @@ impl MovementBehavior {
                             .iter()
                             .find(|entity| entity.id == target_entity_id)
                             .map(|target_entity| {
-                                (target_entity.pos - entity.pos).normalize_or_zero() * *speed
+                                (target_entity.pos - entity.pos).normalize_or_zero() * entity.speed
                             })
                     })
                     .unwrap_or(*velocity);
@@ -66,7 +65,6 @@ pub struct BulletMovementBehavior {
     #[serde(with = "Vec2Def")]
     pub velocity: Vec2,
     pub target_entity_id: Option<u64>,
-    pub speed: f32,
 }
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -74,5 +72,14 @@ pub struct PathMovementBehavior {
     pub path_id: u64,
     pub target_path_idx: usize,
     pub direction: Direction,
-    pub speed: f32,
+}
+
+impl From<UnitSpawnpointTarget> for PathMovementBehavior {
+    fn from(target: UnitSpawnpointTarget) -> Self {
+        Self {
+            path_id: target.path_id,
+            target_path_idx: target.path_idx,
+            direction: target.direction,
+        }
+    }
 }

@@ -137,8 +137,8 @@ pub fn hand_step(state: &mut ClientGameState) {
                         .building_locations
                         .iter()
                         .find(|(_, loc)| {
-                            let x = to_screen_x(loc.position.0);
-                            let y = to_screen_y(loc.position.1);
+                            let x = to_screen_x(loc.pos.x);
+                            let y = to_screen_y(loc.pos.y);
                             let r = 20.0;
                             (mouse_screen_position() - Vec2 { x, y }).length() < r
                         })

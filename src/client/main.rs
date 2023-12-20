@@ -90,8 +90,8 @@ fn main_draw(state: &ClientGameState) {
 
     // locations
     for (_id, loc) in state.dynamic_game_state.building_locations.iter() {
-        let x = to_screen_x(loc.position.0 as f32);
-        let y = to_screen_y(loc.position.1 as f32);
+        let x = to_screen_x(loc.pos.x as f32);
+        let y = to_screen_y(loc.pos.y as f32);
         draw_circle(x, y, 20.0, WHITE);
     }
 
@@ -211,8 +211,8 @@ fn main_draw(state: &ClientGameState) {
         .is_some()
     {
         for (_id, loc) in state.dynamic_game_state.building_locations.iter() {
-            let x = to_screen_x(loc.position.0);
-            let y = to_screen_y(loc.position.1);
+            let x = to_screen_x(loc.pos.x);
+            let y = to_screen_y(loc.pos.y);
             let r = 20.0;
             let hovering = (mouse_screen_position() - Vec2 { x, y }).length() < r;
             draw_circle_lines(

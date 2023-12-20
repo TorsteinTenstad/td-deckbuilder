@@ -1,4 +1,3 @@
-use common::component_movement_behavior::MovementBehavior;
 use common::config::SERVER_ADDR;
 use common::entity::{Entity, EntityState, EntityTag};
 use common::game_state::ServerGameState;
@@ -8,6 +7,7 @@ use common::server_player::ServerPlayer;
 use common::world::BuildingLocation;
 use common::*;
 use game_loop::update_entity;
+use macroquad::math::Vec2;
 use rand::Rng;
 use std::collections::HashMap;
 use std::net::{SocketAddr, UdpSocket};
@@ -33,7 +33,10 @@ fn main() -> std::io::Result<()> {
         game_state.dynamic_state.building_locations.insert(
             rng.gen(),
             BuildingLocation {
-                position: (*x as f32, *y as f32),
+                pos: Vec2 {
+                    x: *x as f32,
+                    y: *y as f32,
+                },
                 entity_id: None,
             },
         );
@@ -111,21 +114,16 @@ fn main() -> std::io::Result<()> {
                                     for _ in 0..7 {
                                         server_player.hand.draw();
                                     }
-                                    game_state.dynamic_state.entities.push(Entity {
-                                        id: rng.gen(),
-                                        owner: client_id,
-                                        pos: base_pos.clone(),
-                                        tag: EntityTag::Base,
-                                        state: EntityState::Moving,
-                                        movement_behavior: MovementBehavior::None,
-                                        radius: 48.0,
-                                        health: 1000.0,
-                                        damage_animation: 0.0,
-                                        hitbox_radius: 150.0,
-                                        usable_as_spawn_point: true,
-                                        attacks: Vec::new(),
-                                        seconds_left_to_live: None,
-                                    });
+                                    let mut base_entity = Entity::new(
+                                        EntityTag::Base,
+                                        client_id,
+                                        EntityState::Attacking,
+                                    );
+                                    base_entity.pos = *base_pos;
+                                    base_entity.radius = 48.0;
+                                    base_entity.health = 1000.0;
+                                    base_entity.hitbox_radius = 150.0;
+                                    game_state.dynamic_state.entities.push(base_entity);
                                 }
                             }
                         }

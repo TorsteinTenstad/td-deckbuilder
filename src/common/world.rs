@@ -1,13 +1,15 @@
 use crate::{
     entity::{Entity, EntityTag},
     game_state::StaticGameState,
+    serde_defs::Vec2Def,
 };
 use macroquad::math::Vec2;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize)]
 pub struct BuildingLocation {
-    pub position: (f32, f32),
+    #[serde(with = "Vec2Def")]
+    pub pos: Vec2,
     pub entity_id: Option<u64>,
 }
 
@@ -54,13 +56,17 @@ pub fn find_entity_in_range<'a>(
     entity_pos: Vec2,
     entity_owner: u64,
     range: f32,
-    can_target: &Vec<EntityTag>,
+    can_target: &Option<Vec<EntityTag>>,
     other_entities: &'a mut Vec<Entity>,
 ) -> Option<&'a mut Entity> {
     other_entities
         .iter_mut()
         .filter(|other_entity| other_entity.owner != entity_owner)
-        .filter(|other_entity| can_target.contains(&other_entity.tag))
+        .filter(|other_entity| {
+            can_target
+                .as_ref()
+                .is_some_and(|v| v.contains(&other_entity.tag))
+        })
         .filter(|other_entity| {
             (other_entity.pos - entity_pos).length_squared()
                 < (range + other_entity.hitbox_radius).powi(2)
