@@ -142,31 +142,31 @@ fn main() -> std::io::Result<()> {
             client.hand.step(dt)
         }
 
-        let mut new_entities: Vec<Entity> = Vec::new();
-        let mut entity_ids_to_remove: Vec<EntityId> = Vec::new();
-
-        // TODO: new_entities and entity_ids_to_remove bad ??
-        for i in 0..game_state.dynamic_state.entities.len() {
+        //TODO: This implementation may cause entities to not be updated if the update_entities directly removes entities.
+        // This could be solved by cashing the update state of all entities, or by only killing entities by setting their state to dead.
+        let mut i = 0;
+        while i < game_state.dynamic_state.entities.len() {
             let mut entity = game_state.dynamic_state.entities.swap_remove(i);
             update_entity(
                 &mut entity,
-                &mut game_state.dynamic_state.entities,
-                &mut game_state.dynamic_state.building_locations,
-                dt,
                 &game_state.static_state,
-                &mut new_entities,
-                &mut entity_ids_to_remove,
+                &mut game_state.dynamic_state,
+                dt,
             );
             game_state.dynamic_state.entities.insert(i, entity);
+            i += 1;
         }
-        game_state.dynamic_state.entities.append(&mut new_entities);
-        for entity_id in entity_ids_to_remove.iter() {
-            cleanup_entity(*entity_id, &mut game_state);
+
+        let mut i = 0;
+        while i < game_state.dynamic_state.entities.len() {
+            let entity = &game_state.dynamic_state.entities.get(i).unwrap();
+            if entity.state == EntityState::Dead {
+                cleanup_entity(entity.id, &mut game_state);
+                game_state.dynamic_state.entities.swap_remove(i);
+            } else {
+                i += 1;
+            }
         }
-        game_state
-            .dynamic_state
-            .entities
-            .retain(|entity| !entity_ids_to_remove.contains(&entity.id));
     }
 }
 

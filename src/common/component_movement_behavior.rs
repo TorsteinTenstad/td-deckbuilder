@@ -19,7 +19,7 @@ pub enum MovementBehavior {
 impl MovementBehavior {
     pub fn update(
         entity: &mut Entity,
-        other_entities: &mut Vec<Entity>,
+        entities: &mut Vec<Entity>,
         dt: f32,
         static_game_state: &StaticGameState,
     ) {
@@ -45,7 +45,7 @@ impl MovementBehavior {
             }) => {
                 *velocity = target_entity_id
                     .and_then(|target_entity_id| {
-                        other_entities
+                        entities
                             .iter()
                             .find(|entity| entity.id == target_entity_id)
                             .map(|target_entity| {

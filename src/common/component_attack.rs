@@ -39,19 +39,14 @@ pub enum AttackVariant {
 }
 
 impl Attack {
-    pub fn update(
-        entity: &mut Entity,
-        other_entities: &mut Vec<Entity>,
-        dt: f32,
-        new_entities: &mut Vec<Entity>,
-    ) {
+    pub fn update(entity: &mut Entity, entities: &mut Vec<Entity>, dt: f32) {
         for attack in &mut entity.attacks {
             let Some(target_entity) = find_entity_in_range(
                 entity.pos,
                 entity.owner,
                 attack.range,
                 &attack.can_target,
-                other_entities,
+                entities,
             ) else {
                 continue;
             };
@@ -82,7 +77,7 @@ impl Attack {
                             self_destruct: true,
                         });
 
-                        new_entities.push(bullet);
+                        entities.push(bullet);
                     }
                     AttackVariant::MeleeAttack => {
                         if attack.self_destruct {

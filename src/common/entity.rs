@@ -14,12 +14,13 @@ pub enum EntityTag {
     Bullet,
 }
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(PartialEq, Eq, Clone, Serialize, Deserialize)]
 pub enum EntityState {
     Moving,
     Attacking,
     Passive,
     Building,
+    Dead,
 }
 
 #[derive(Clone, Serialize, Deserialize)]
