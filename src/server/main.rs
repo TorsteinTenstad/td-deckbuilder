@@ -122,6 +122,7 @@ fn main() -> std::io::Result<()> {
                                     base_entity.radius = 48.0;
                                     base_entity.health = 1000.0;
                                     base_entity.hitbox_radius = 150.0;
+                                    base_entity.usable_as_spawn_point = true;
                                     game_state.dynamic_state.entities.push(base_entity);
                                 }
                             }

@@ -46,6 +46,7 @@ impl EntityBlueprint {
                 entity.radius = 24.0;
                 entity.health = 50.0;
                 entity.hitbox_radius = entity.radius;
+                entity.speed = 100.0;
                 entity.sprite_id = SpriteId::UnitArcher;
                 entity
                     .attacks

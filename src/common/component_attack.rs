@@ -67,15 +67,20 @@ impl Attack {
                                 velocity: Vec2::ZERO,
                                 target_entity_id: Some(target_entity.id),
                             });
+                        bullet.speed = 500.0;
                         bullet.radius = PROJECTILE_RADIUS;
                         bullet.health = 1.0;
                         bullet.hitbox_radius = PROJECTILE_RADIUS;
-                        bullet.attacks.push(Attack::new(
-                            AttackVariant::MeleeAttack,
-                            PROJECTILE_RADIUS,
-                            attack.damage,
-                            0.0,
-                        ));
+                        bullet.seconds_left_to_live = Some(3.0);
+                        bullet.attacks.push(Attack {
+                            variant: AttackVariant::MeleeAttack,
+                            can_target: None,
+                            range: PROJECTILE_RADIUS,
+                            damage: attack.damage,
+                            attack_interval: 1.0,
+                            cooldown_timer: 0.0,
+                            self_destruct: true,
+                        });
 
                         new_entities.push(bullet);
                     }
