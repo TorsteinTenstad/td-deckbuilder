@@ -79,7 +79,7 @@ impl From<UnitSpawnpointTarget> for PathMovementBehavior {
     fn from(target: UnitSpawnpointTarget) -> Self {
         Self {
             path_id: target.path_id,
-            target_path_idx: target.path_idx,
+            target_path_idx: next_path_idx(target.path_idx, target.direction),
             direction: target.direction,
         }
     }

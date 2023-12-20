@@ -1,9 +1,11 @@
 use client_game_state::ClientGameState;
 use common::component_attack::{Attack, AttackVariant};
+use common::component_movement_behavior::MovementBehavior;
 use common::entity::EntityTag;
 use common::play_target::{unit_spawnpoint_target_transform, PlayFn};
 use common::rect_transform::point_inside;
 use common::textures::SpriteId;
+use common::world::Direction;
 use common::*;
 use macroquad::color::{Color, BLACK, BLUE, GRAY, RED, WHITE, YELLOW};
 use macroquad::math::Vec2;
@@ -121,13 +123,21 @@ fn main_draw(state: &ClientGameState) {
             }
             EntityTag::Unit => {
                 if let Some(texture) = state.sprites.get(&entity.sprite_id) {
+                    let flip_x = match &entity.movement_behavior {
+                        MovementBehavior::Path(path_movement_behavior) => {
+                            path_movement_behavior.direction == Direction::Negative
+                        }
+                        _ => false,
+                    };
+
                     draw_texture_ex(
                         texture,
-                        pos_x,
-                        pos_y,
+                        pos_x - entity.radius,
+                        pos_y - entity.radius,
                         color,
                         DrawTextureParams {
                             dest_size: Some(Vec2::splat(entity.radius * 2.0)),
+                            flip_x,
                             ..Default::default()
                         },
                     )
