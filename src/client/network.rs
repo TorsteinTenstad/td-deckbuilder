@@ -1,13 +1,11 @@
+use crate::{hand::hand_sync, ClientGameState, PhysicalHand};
+use common::{hash_client_addr, ClientCommand, ServerGameState, SERVER_ADDR};
+use local_ip_address::local_ip;
+use macroquad::input::is_key_down;
 use std::{
     net::{SocketAddr, UdpSocket},
     time::SystemTime,
 };
-
-use common::{hash_client_addr, ClientCommand, ServerGameState, SERVER_ADDR};
-use local_ip_address::local_ip;
-use macroquad::input::is_key_down;
-
-use crate::{update_from_hand, ClientGameState, PhysicalHand};
 
 pub fn udp_init_socket() -> (UdpSocket, u64) {
     let local_ip = local_ip().unwrap();
@@ -59,7 +57,7 @@ pub fn udp_update_game_state(state: &mut ClientGameState) {
                     state.dynamic_game_state = received_game_state.dynamic_state;
                     state.static_game_state = received_game_state.static_state;
 
-                    update_from_hand(state);
+                    hand_sync(state);
                 }
             }
             Err(e) => match e.kind() {

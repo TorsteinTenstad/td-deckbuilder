@@ -1,4 +1,5 @@
-use crate::{Direction, DynamicGameState, StaticGameState};
+use crate::{get_path_pos, rect::RectTransform, Direction, DynamicGameState, StaticGameState};
+use macroquad::math::Vec2;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -62,5 +63,26 @@ impl PlayFn {
             }
             _ => panic!("Invalid target for play fn"),
         }
+    }
+}
+
+pub fn unit_spawnpoint_target_transform(
+    target: &UnitSpawnpointTarget,
+    static_game_state: &StaticGameState,
+) -> RectTransform {
+    let UnitSpawnpointTarget {
+        path_id,
+        path_idx,
+        direction: _,
+    } = target;
+
+    let Vec2 { x, y } = get_path_pos(&static_game_state, *path_id, *path_idx);
+    RectTransform {
+        x,
+        y,
+        w: 50.0,
+        h: 50.0,
+        offset: Vec2::splat(0.5),
+        ..Default::default()
     }
 }

@@ -1,18 +1,14 @@
-use common::{card::Card, play_target::UnitSpawnpointTarget, ranged_attack::RangedAttack, *};
+use crate::{physical_card::CARD_BORDER, rect::RectTransform};
+use common::{card::Card, *};
 use macroquad::{
-    color::{Color, BLACK, BLUE, GRAY, LIGHTGRAY, RED, WHITE, YELLOW},
+    color::{Color, BLACK, BLUE, GRAY, LIGHTGRAY, WHITE, YELLOW},
     math::Vec2,
-    shapes::{
-        draw_circle, draw_circle_lines, draw_hexagon, draw_rectangle, draw_rectangle_ex,
-        DrawRectangleParams,
-    },
+    shapes::{draw_circle, draw_rectangle, draw_rectangle_ex, DrawRectangleParams},
     text::{camera_font_scale, draw_text_ex, measure_text, TextDimensions, TextParams},
     texture::{draw_texture_ex, load_texture, DrawTextureParams, Texture2D},
     window::{screen_height, screen_width},
 };
 use std::collections::HashMap;
-
-use crate::{input::mouse_position_vec, ClientGameState};
 
 #[allow(dead_code)]
 pub enum TextOriginX {
@@ -30,7 +26,7 @@ pub enum TextOriginY {
     Bottom,
 }
 
-const GOLDEN_RATIO: f32 = 1.61803398875;
+pub const GOLDEN_RATIO: f32 = 1.61803398875;
 
 pub fn to_screen_x<T>(x: T) -> f32
 where
@@ -63,143 +59,6 @@ where
     T: Into<f32>,
 {
     size.into() * screen_width() / level_config::LEVEL_WIDTH as f32
-}
-
-pub fn main_draw(state: &ClientGameState) {
-    // for (_, path) in state.static_game_state.paths.iter() {
-    //     for ((x1, y1), (x2, y2)) in path.iter().tuple_windows() {
-    //         let x1 = to_screen_x(*x1 as f32);
-    //         let y1 = to_screen_y(*y1 as f32);
-    //         let x2 = to_screen_x(*x2 as f32);
-    //         let y2 = to_screen_y(*y2 as f32);
-    //         draw_line(x1, y1, x2, y2, 5.0,
-    //            Color {
-    //               r: 0.843,
-    //               g: 0.803,
-    //               b: 0.627,
-    //               a: 1.0,
-    //               },
-    //            );
-    //     }
-    // }
-
-    for (_id, loc) in state.dynamic_game_state.building_locations.iter() {
-        let x = to_screen_x(loc.position.0 as f32);
-        let y = to_screen_y(loc.position.1 as f32);
-        draw_circle(x, y, 20.0, WHITE);
-    }
-
-    // entities
-    for entity in state.dynamic_game_state.entities.iter() {
-        let player = state.dynamic_game_state.players.get(&entity.owner);
-        let color = if entity.damage_animation > 0.0 {
-            RED
-        } else {
-            player.map_or(WHITE, |player| player.color)
-        };
-        let pos_x = to_screen_x(entity.pos.x);
-        let pos_y = to_screen_y(entity.pos.y);
-
-        match entity.tag {
-            EntityTag::Tower | EntityTag::Base => {
-                draw_hexagon(
-                    pos_x,
-                    pos_y,
-                    to_screen_size(entity.radius),
-                    0.0,
-                    false,
-                    color,
-                    color,
-                );
-            }
-            EntityTag::Unit => {
-                draw_circle(pos_x, pos_y, to_screen_size(entity.radius), color);
-            }
-            EntityTag::Bullet => {
-                draw_circle(pos_x, pos_y, to_screen_size(entity.radius), GRAY);
-            }
-        }
-    }
-
-    // range_circle_preview
-    let mut range_circle_preview: Option<(f32, f32, f32, Color)> = None;
-    if let Some((x, y)) = state.preview_tower_pos {
-        if state.input.mouse_in_world {
-            let color = if state.input.mouse_over_occupied_tile {
-                RED
-            } else {
-                BLUE
-            };
-            draw_hexagon(
-                to_screen_x(x),
-                to_screen_y(y),
-                20.0,
-                0.0,
-                false,
-                GRAY,
-                Color { a: 0.5, ..color },
-            );
-            range_circle_preview = Some((x as f32, y as f32, 3.0, color));
-        }
-    } else if let Some(entity) = state.selected_entity_id.and_then(|id| {
-        state
-            .dynamic_game_state
-            .entities
-            .iter()
-            .find(|entity| entity.id == id)
-    }) {
-        if let Some(RangedAttack { range, .. }) = entity.ranged_attack {
-            range_circle_preview = Some((entity.pos.x, entity.pos.y, range, BLUE));
-        }
-    }
-    if let Some((x, y, range, color)) = range_circle_preview {
-        let x = to_screen_x(x);
-        let y = to_screen_y(y);
-        let r = to_screen_size(range);
-
-        draw_circle(x, y, r, Color { a: 0.2, ..color });
-        draw_circle_lines(x, y, r, 2.0, color);
-    }
-
-    // Progress bars
-    if let Some(player) = state.dynamic_game_state.players.get(&state.player_id) {
-        let margin = 10.0;
-        let outline_w = 5.0;
-        let w = 25.0;
-        let h = 100.0;
-        let draw_progress = player.hand.card_draw_counter;
-        draw_progress_bar(
-            screen_width() - w - margin,
-            screen_height() - h - margin,
-            w,
-            h,
-            outline_w,
-            draw_progress,
-            state.physical_hand.cards.len() as i32,
-            YELLOW,
-            WHITE,
-            BLACK,
-        );
-        let energy_progress = player.hand.energy_counter;
-        draw_progress_bar(
-            screen_width() - 2.0 * w - 2.0 * margin,
-            screen_height() - h - margin,
-            w,
-            h,
-            outline_w,
-            energy_progress,
-            state
-                .dynamic_game_state
-                .players
-                .get(&state.player_id)
-                .unwrap()
-                .hand
-                .energy,
-            BLUE,
-            WHITE,
-            BLACK,
-        );
-    }
 }
 
 pub fn draw_rect_transform(transform: &RectTransform, color: Color) {
@@ -301,49 +160,6 @@ pub fn draw_progress_bar(
         TextOriginX::Center,
         TextOriginY::Bottom,
     )
-}
-
-const CARD_BORDER: f32 = 5.0;
-const CARD_VISIBLE_HEIGHT: f32 = 0.8;
-
-pub fn unit_spawnpoint_gui_indicator_transform(
-    target: &UnitSpawnpointTarget,
-    static_game_state: &StaticGameState,
-) -> RectTransform {
-    let UnitSpawnpointTarget {
-        path_id,
-        path_idx,
-        direction: _,
-    } = target;
-
-    let Vec2 { x, y } = get_path_pos(&static_game_state, *path_id, *path_idx);
-    RectTransform {
-        x: to_screen_x(x),
-        y: to_screen_y(y),
-        w: 50.0,
-        h: 50.0,
-        offset: Vec2::splat(0.5),
-        ..Default::default()
-    }
-}
-
-pub fn curser_is_inside(transform: &RectTransform) -> bool {
-    let local_mouse_pos = Vec2::from_angle(-transform.rotation).rotate(
-        mouse_position_vec()
-            - Vec2 {
-                x: transform.x,
-                y: transform.y,
-            },
-    ) + transform.offset
-        * Vec2 {
-            x: transform.w,
-            y: transform.h,
-        };
-
-    local_mouse_pos.cmpgt(Vec2::ZERO).all()
-        && local_mouse_pos
-            .cmplt(Vec2::new(transform.w, transform.h))
-            .all()
 }
 
 pub fn draw_card(
@@ -462,85 +278,6 @@ pub fn draw_card(
         TextOriginX::Center,
         TextOriginY::AbsoluteCenter,
     );
-}
-
-#[derive(Debug, Default, Clone)]
-pub struct RectTransform {
-    pub w: f32,
-    pub h: f32,
-    pub x: f32,
-    pub y: f32,
-    pub rotation: f32,
-    pub offset: Vec2,
-}
-
-impl RectTransform {
-    pub fn animate_towards(&mut self, target: &RectTransform, snap: f32) {
-        let self_weight = (0.5f32).powf(snap);
-        let target_weight = 1.0 - self_weight;
-        self.x = target_weight * target.x + self_weight * self.x;
-        self.y = target_weight * target.y + self_weight * self.y;
-        self.rotation = target_weight * target.rotation + self_weight * self.rotation;
-        self.offset = target_weight * target.offset + self_weight * self.offset;
-        self.w = target_weight * target.w + self_weight * self.w;
-        self.h = target_weight * target.h + self_weight * self.h;
-    }
-}
-
-pub fn card_transform(
-    card_idx: usize,
-    hand_size: usize,
-    relative_splay_radius: f32,
-    card_delta_angle: f32,
-) -> RectTransform {
-    let w = screen_width() / 12.0;
-    let h = w * GOLDEN_RATIO;
-    RectTransform {
-        w,
-        h,
-        x: screen_width() / 2.0,
-        y: screen_height() + (relative_splay_radius * h) - (CARD_VISIBLE_HEIGHT * h),
-        rotation: (card_idx as f32 - ((hand_size - 1) as f32 / 2.0)) * card_delta_angle,
-        offset: Vec2 {
-            x: 0.5,
-            y: relative_splay_radius,
-        },
-    }
-}
-
-pub fn out_of_hand_card_transform(x: f32, y: f32) -> RectTransform {
-    let w = screen_width() / 10.0;
-    RectTransform {
-        w,
-        h: w * GOLDEN_RATIO,
-        x,
-        y,
-        rotation: 0.0,
-        offset: 0.5 * Vec2::ONE,
-    }
-}
-
-pub fn hovered_card_transform(
-    card_idx: usize,
-    hand_size: usize,
-    relative_splay_radius: f32,
-    card_delta_angle: f32,
-) -> RectTransform {
-    let w = screen_width() / 10.0;
-    let h = w * GOLDEN_RATIO;
-    let x = screen_width() / 2.0
-        + ((relative_splay_radius * h) - (CARD_VISIBLE_HEIGHT * h))
-            * f32::sin((card_idx as f32 - ((hand_size - 1) as f32 / 2.0)) * card_delta_angle);
-    let y = screen_height();
-
-    RectTransform {
-        w,
-        h: w * GOLDEN_RATIO,
-        x,
-        y,
-        rotation: 0.0,
-        offset: Vec2 { x: 0.5, y: 1.0 },
-    }
 }
 
 pub async fn load_textures() -> HashMap<String, Texture2D> {

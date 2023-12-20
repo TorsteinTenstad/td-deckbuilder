@@ -20,6 +20,7 @@ pub mod hand;
 pub mod melee_attack;
 pub mod movement_behavior;
 pub mod ranged_attack;
+pub mod rect;
 pub mod vector;
 
 pub const SERVER_ADDR: &str = "192.168.43.224:7878";
