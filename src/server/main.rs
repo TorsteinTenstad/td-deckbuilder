@@ -1,6 +1,7 @@
 use common::config::SERVER_ADDR;
 use common::entity::{Entity, EntityState, EntityTag};
 use common::game_state::ServerGameState;
+use common::ids::{BuildingLocationId, EntityId, PathId, PlayerId};
 use common::level_config::BUILDING_LOCATIONS;
 use common::network::{hash_client_addr, ClientCommand};
 use common::server_player::ServerPlayer;
@@ -8,20 +9,18 @@ use common::world::BuildingLocation;
 use common::*;
 use game_loop::update_entity;
 use macroquad::math::Vec2;
-use rand::Rng;
 use std::collections::HashMap;
 use std::net::{SocketAddr, UdpSocket};
 use std::time::{Duration, SystemTime};
 mod game_loop;
 
 fn main() -> std::io::Result<()> {
-    let mut rng = rand::thread_rng();
     let mut game_state = ServerGameState::new();
-    let mut client_addresses = HashMap::<u64, SocketAddr>::new();
+    let mut client_addresses = HashMap::<PlayerId, SocketAddr>::new();
 
     for path in level_config::PATHS {
         game_state.static_state.paths.insert(
-            rng.gen(),
+            PathId::new(),
             path.to_vec()
                 .iter()
                 .map(|(x, y)| (*x as f32, *y as f32))
@@ -31,7 +30,7 @@ fn main() -> std::io::Result<()> {
 
     for (x, y) in BUILDING_LOCATIONS {
         game_state.dynamic_state.building_locations.insert(
-            rng.gen(),
+            BuildingLocationId::new(),
             BuildingLocation {
                 pos: Vec2 {
                     x: *x as f32,
@@ -143,7 +142,7 @@ fn main() -> std::io::Result<()> {
         }
 
         let mut new_entities: Vec<Entity> = Vec::new();
-        let mut entity_ids_to_remove: Vec<u64> = Vec::new();
+        let mut entity_ids_to_remove: Vec<EntityId> = Vec::new();
 
         for i in 0..game_state.dynamic_state.entities.len() {
             let mut entity = game_state.dynamic_state.entities.swap_remove(i);
@@ -168,7 +167,7 @@ fn main() -> std::io::Result<()> {
     }
 }
 
-fn cleanup_entity(entity_id: u64, game_state: &mut ServerGameState) {
+fn cleanup_entity(entity_id: EntityId, game_state: &mut ServerGameState) {
     if let Some((_id, building_location)) = game_state
         .dynamic_state
         .building_locations

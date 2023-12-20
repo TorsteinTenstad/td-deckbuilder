@@ -1,5 +1,5 @@
-pub mod attack;
 pub mod card;
+pub mod component_attack;
 pub mod component_movement_behavior;
 pub mod config;
 pub mod entity;
@@ -7,6 +7,7 @@ pub mod entity_blueprint;
 pub mod game_state;
 pub mod get_unit_spawnpoints;
 pub mod hand;
+pub mod ids;
 pub mod level_config;
 pub mod network;
 pub mod play_target;

@@ -1,6 +1,7 @@
 use crate::{
     entity::{Entity, EntityTag},
     game_state::StaticGameState,
+    ids::{EntityId, PathId, PlayerId},
     serde_defs::Vec2Def,
 };
 use macroquad::math::Vec2;
@@ -10,7 +11,7 @@ use serde::{Deserialize, Serialize};
 pub struct BuildingLocation {
     #[serde(with = "Vec2Def")]
     pub pos: Vec2,
-    pub entity_id: Option<u64>,
+    pub entity_id: Option<EntityId>,
 }
 
 #[derive(Copy, Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
@@ -42,7 +43,7 @@ pub fn next_path_idx(path_idx: usize, direction: Direction) -> usize {
         next_path_idx as usize
     }
 }
-pub fn get_path_pos(static_game_state: &StaticGameState, path_id: u64, path_idx: usize) -> Vec2 {
+pub fn get_path_pos(static_game_state: &StaticGameState, path_id: PathId, path_idx: usize) -> Vec2 {
     static_game_state
         .paths
         .get(&path_id)
@@ -54,7 +55,7 @@ pub fn get_path_pos(static_game_state: &StaticGameState, path_id: u64, path_idx:
 
 pub fn find_entity_in_range<'a>(
     entity_pos: Vec2,
-    entity_owner: u64,
+    entity_owner: PlayerId,
     range: f32,
     can_target: &Option<Vec<EntityTag>>,
     other_entities: &'a mut Vec<Entity>,

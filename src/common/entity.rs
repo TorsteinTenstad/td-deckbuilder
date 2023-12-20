@@ -1,9 +1,9 @@
 use crate::component_movement_behavior::MovementBehavior;
 use crate::entity_blueprint::EntityBlueprint;
+use crate::ids::{BuildingLocationId, EntityId};
 use crate::serde_defs::Vec2Def;
-use crate::{attack::Attack, textures::SpriteId};
+use crate::{component_attack::Attack, ids::PlayerId, textures::SpriteId};
 use macroquad::math::Vec2;
-use rand::{thread_rng, Rng};
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -23,9 +23,9 @@ pub enum EntityState {
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct Entity {
-    pub id: u64,
+    pub id: EntityId,
     pub tag: EntityTag,
-    pub owner: u64,
+    pub owner: PlayerId,
     pub state: EntityState,
     pub speed: f32,
     pub movement_behavior: MovementBehavior,
@@ -38,14 +38,14 @@ pub struct Entity {
     pub usable_as_spawn_point: bool,
     pub attacks: Vec<Attack>,
     pub seconds_left_to_live: Option<f32>,
-    pub building_to_construct: Option<(u64, EntityBlueprint)>,
+    pub building_to_construct: Option<(BuildingLocationId, EntityBlueprint)>,
     pub sprite_id: SpriteId,
 }
 
 impl Entity {
-    pub fn new(tag: EntityTag, owner: u64, state: EntityState) -> Self {
+    pub fn new(tag: EntityTag, owner: PlayerId, state: EntityState) -> Self {
         Self {
-            id: thread_rng().gen(),
+            id: EntityId::new(),
             tag,
             owner,
             state,

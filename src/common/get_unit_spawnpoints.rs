@@ -1,12 +1,13 @@
 use crate::{
     game_state::{DynamicGameState, StaticGameState},
+    ids::PlayerId,
     level_config,
     play_target::UnitSpawnpointTarget,
 };
 use macroquad::math::Vec2;
 
 pub fn get_unit_spawnpoints(
-    player_id: u64,
+    player_id: PlayerId,
     static_game_state: &StaticGameState,
     dynamic_game_state: &DynamicGameState,
 ) -> Vec<UnitSpawnpointTarget> {

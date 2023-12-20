@@ -1,6 +1,7 @@
 use crate::{draw::load_sprites, network::udp_init_socket, physical_hand::PhysicalHand};
 use common::{
     game_state::{DynamicGameState, StaticGameState},
+    ids::{EntityId, PlayerId},
     network::ClientCommand,
     play_target::UnitSpawnpointTarget,
     server_player::ServerPlayer,
@@ -13,11 +14,11 @@ pub struct ClientGameState {
     time: SystemTime,
     pub static_game_state: StaticGameState,
     pub dynamic_game_state: DynamicGameState,
-    pub selected_entity_id: Option<u64>,
+    pub selected_entity_id: Option<EntityId>,
     pub frames_since_last_received: i32,
     pub commands: Vec<ClientCommand>,
     pub udp_socket: UdpSocket,
-    pub player_id: u64,
+    pub player_id: PlayerId,
     pub dt: f32,
     pub sprites: HashMap<SpriteId, Texture2D>,
     pub unit_spawnpoint_targets: Vec<UnitSpawnpointTarget>,

@@ -2,6 +2,7 @@ use crate::{
     component_movement_behavior::MovementBehavior,
     entity::EntityState,
     entity_blueprint::EntityBlueprint,
+    ids::CardInstanceId,
     play_target::PlayFn,
     world::{get_path_pos, BuildingLocation},
 };
@@ -18,7 +19,7 @@ pub enum Card {
 
 #[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq)]
 pub struct CardInstance {
-    pub id: u64,
+    pub id: CardInstanceId,
     pub card: Card,
 }
 

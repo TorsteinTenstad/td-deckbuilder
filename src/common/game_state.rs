@@ -1,5 +1,9 @@
-use crate::{entity::Entity, server_player::ServerPlayer, world::BuildingLocation};
-use rand::Rng;
+use crate::{
+    entity::Entity,
+    ids::{BuildingLocationId, GameId, PathId, PlayerId},
+    server_player::ServerPlayer,
+    world::BuildingLocation,
+};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -11,14 +15,14 @@ pub struct ServerGameState {
 
 #[derive(Serialize, Deserialize)]
 pub struct StaticGameState {
-    pub game_id: u64,
-    pub paths: HashMap<u64, Vec<(f32, f32)>>,
+    pub game_id: GameId,
+    pub paths: HashMap<PathId, Vec<(f32, f32)>>,
 }
 
 impl StaticGameState {
     pub fn new() -> Self {
         Self {
-            game_id: rand::thread_rng().gen(),
+            game_id: GameId::new(),
             paths: HashMap::new(),
         }
     }
@@ -28,9 +32,8 @@ impl StaticGameState {
 pub struct DynamicGameState {
     pub server_tick: u32,
     pub entities: Vec<Entity>,
-    pub players: HashMap<u64, ServerPlayer>,
-    pub building_locations: HashMap<u64, BuildingLocation>,
-    pub next_entity_id: u64,
+    pub players: HashMap<PlayerId, ServerPlayer>,
+    pub building_locations: HashMap<BuildingLocationId, BuildingLocation>,
 }
 
 impl DynamicGameState {
@@ -40,7 +43,6 @@ impl DynamicGameState {
             entities: Vec::new(),
             players: HashMap::new(),
             building_locations: HashMap::new(),
-            next_entity_id: 0,
         }
     }
 }

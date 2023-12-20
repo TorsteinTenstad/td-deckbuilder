@@ -2,6 +2,7 @@ use crate::{physical_hand::hand_sync, ClientGameState, PhysicalHand};
 use common::{
     config::SERVER_ADDR,
     game_state::ServerGameState,
+    ids::PlayerId,
     network::{hash_client_addr, ClientCommand},
 };
 use local_ip_address::local_ip;
@@ -11,7 +12,7 @@ use std::{
     time::SystemTime,
 };
 
-pub fn udp_init_socket() -> (UdpSocket, u64) {
+pub fn udp_init_socket() -> (UdpSocket, PlayerId) {
     let local_ip = local_ip().unwrap();
     let udp_socket = std::iter::successors(Some(6968), |port| Some(port + 1))
         .find_map(|port| {
