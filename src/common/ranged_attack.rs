@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::{Entity, EntityTag};
+use crate::{Entity, EntityState, EntityTag};
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct RangedAttack {
@@ -26,22 +26,23 @@ impl RangedAttack {
                 fire_interval,
                 cooldown_timer,
             }) => {
-                if *cooldown_timer <= 0.0 {
-                    if let Some((target_entity_id, _entity)) = other_entities
-                        .iter()
-                        .filter(|other_entity| other_entity.owner != entity.owner)
-                        .filter(|other_entity| can_target.contains(&other_entity.tag))
-                        .map(|other_entity| {
-                            (
-                                other_entity.id,
-                                (entity.pos - other_entity.pos).length_squared(),
-                            )
-                        })
-                        .filter(|(_id, length_squared)| length_squared < &range.powi(2))
-                        .min_by(|(_, length_squared_a), (_, length_squared_b)| {
-                            length_squared_a.partial_cmp(length_squared_b).unwrap()
-                        })
-                    {
+                if let Some((target_entity_id, _entity)) = other_entities
+                    .iter()
+                    .filter(|other_entity| other_entity.owner != entity.owner)
+                    .filter(|other_entity| can_target.contains(&other_entity.tag))
+                    .map(|other_entity| {
+                        (
+                            other_entity.id,
+                            (entity.pos - other_entity.pos).length_squared(),
+                        )
+                    })
+                    .filter(|(_id, length_squared)| length_squared < &range.powi(2))
+                    .min_by(|(_, length_squared_a), (_, length_squared_b)| {
+                        length_squared_a.partial_cmp(length_squared_b).unwrap()
+                    })
+                {
+                    entity.state = EntityState::Attacking;
+                    if *cooldown_timer <= 0.0 {
                         *cooldown_timer = *fire_interval;
                         new_entities.push(Entity::new_bullet(
                             entity.owner,
@@ -50,9 +51,11 @@ impl RangedAttack {
                             *damage,
                             300.0,
                         ));
+                    } else {
+                        *cooldown_timer -= dt;
                     }
                 } else {
-                    *cooldown_timer -= dt;
+                    entity.state = EntityState::Moving;
                 }
             }
             None => {}

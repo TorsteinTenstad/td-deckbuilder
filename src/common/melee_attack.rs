@@ -5,7 +5,7 @@ use crate::{Entity, EntityState, EntityTag};
 #[derive(Clone, Serialize, Deserialize)]
 pub struct MeleeAttack {
     pub can_target: Vec<EntityTag>,
-    pub range: Option<f32>,
+    pub range: f32,
     pub damage: f32,
     pub attack_interval: f32,
     pub cooldown_timer: f32,
@@ -29,13 +29,13 @@ impl MeleeAttack {
                     .filter(|other_entity| can_target.contains(&other_entity.tag))
                     .filter(|other_entity| {
                         (other_entity.pos - entity.pos).length_squared()
-                            < (range.unwrap_or(entity.radius) + other_entity.radius).powi(2)
+                            < (*range + other_entity.hitbox_radius).powi(2)
                     })
                     .min_by(|other_entity_a, other_entity_b| {
                         let signed_distance_a = (other_entity_a.pos - entity.pos).length_squared()
-                            - (range.unwrap_or(entity.radius) + other_entity_a.radius).powi(2);
+                            - (*range + other_entity_a.hitbox_radius).powi(2);
                         let signed_distance_b = (other_entity_b.pos - entity.pos).length_squared()
-                            - (range.unwrap_or(entity.radius) + other_entity_b.radius).powi(2);
+                            - (*range + other_entity_b.hitbox_radius).powi(2);
                         signed_distance_a.partial_cmp(&signed_distance_b).unwrap()
                     })
                 {

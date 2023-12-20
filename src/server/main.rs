@@ -113,6 +113,7 @@ fn main() -> std::io::Result<()> {
                                         radius: 48.0,
                                         health: 1000.0,
                                         damage_animation: 0.0,
+                                        hitbox_radius: 150.0,
                                         usable_as_spawn_point: true,
                                         ranged_attack: None,
                                         melee_attack: None,

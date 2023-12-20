@@ -193,6 +193,7 @@ pub struct Entity {
     pub radius: f32,
     pub health: f32,
     pub damage_animation: f32,
+    pub hitbox_radius: f32,
     pub usable_as_spawn_point: bool,
     pub ranged_attack: Option<RangedAttack>,
     pub melee_attack: Option<MeleeAttack>,
@@ -214,6 +215,7 @@ impl Entity {
         ranged_damage: f32,
         fire_interval: f32,
     ) -> Self {
+        let radius = 24.0;
         Self {
             id: rand::thread_rng().gen(),
             tag: EntityTag::Unit,
@@ -228,20 +230,21 @@ impl Entity {
                 },
             },
             pos: get_path_pos(static_game_state, path_id, path_idx),
-            radius: 24.0,
+            radius,
             health,
             damage_animation: 0.0,
+            hitbox_radius: radius,
             usable_as_spawn_point: false,
             ranged_attack: Some(RangedAttack {
-                can_target: vec![EntityTag::Unit],
+                can_target: vec![EntityTag::Unit, EntityTag::Tower],
                 range,
                 damage: ranged_damage,
                 fire_interval,
                 cooldown_timer: 0.0,
             }),
             melee_attack: Some(MeleeAttack {
-                can_target: vec![EntityTag::Unit],
-                range: None,
+                can_target: vec![EntityTag::Unit, EntityTag::Tower],
+                range: range,
                 damage,
                 attack_interval,
                 cooldown_timer: 0.0,
@@ -260,6 +263,7 @@ impl Entity {
         damage: f32,
         fire_interval: f32,
     ) -> Self {
+        let radius = 24.0;
         Self {
             id: rand::thread_rng().gen(),
             tag: EntityTag::Tower,
@@ -270,9 +274,10 @@ impl Entity {
                 x: x as i32 as f32, // snap to grid
                 y: y as i32 as f32, // snap to grid
             },
-            radius: 24.0,
+            radius: radius,
             health,
             damage_animation: 0.0,
+            hitbox_radius: radius,
             usable_as_spawn_point: false,
             ranged_attack: Some(RangedAttack {
                 can_target: vec![EntityTag::Unit],
@@ -292,6 +297,7 @@ impl Entity {
         damage: f32,
         speed: f32,
     ) -> Self {
+        let radius = PROJECTILE_RADIUS;
         Self {
             id: rand::thread_rng().gen(),
             tag: EntityTag::Bullet,
@@ -304,14 +310,15 @@ impl Entity {
             }),
             pos,
             seconds_left_to_live: Some(3.0),
-            radius: PROJECTILE_RADIUS,
+            radius,
             health: 1.0,
             damage_animation: 0.0,
+            hitbox_radius: radius,
             usable_as_spawn_point: false,
             ranged_attack: None,
             melee_attack: Some(MeleeAttack {
                 can_target: vec![EntityTag::Unit],
-                range: None,
+                range: radius,
                 damage,
                 attack_interval: 0.5,
                 cooldown_timer: 0.0,

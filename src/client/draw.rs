@@ -1,15 +1,14 @@
 use common::{card::Card, play_target::UnitSpawnpointTarget, ranged_attack::RangedAttack, *};
-use itertools::Itertools;
 use macroquad::{
     color::{Color, BLACK, BLUE, GRAY, LIGHTGRAY, RED, WHITE, YELLOW},
     math::Vec2,
     shapes::{
-        draw_circle, draw_circle_lines, draw_hexagon, draw_line, draw_rectangle, draw_rectangle_ex,
+        draw_circle, draw_circle_lines, draw_hexagon, draw_rectangle, draw_rectangle_ex,
         DrawRectangleParams,
     },
     text::{camera_font_scale, draw_text_ex, measure_text, TextDimensions, TextParams},
     texture::{draw_texture_ex, load_texture, DrawTextureParams, Texture2D},
-    window::{clear_background, screen_height, screen_width},
+    window::{screen_height, screen_width},
 };
 use std::collections::HashMap;
 
@@ -32,13 +31,6 @@ pub enum TextOriginY {
 }
 
 const GOLDEN_RATIO: f32 = 1.61803398875;
-
-const PATH_COLOR: Color = Color {
-    r: 0.843,
-    g: 0.803,
-    b: 0.627,
-    a: 1.0,
-};
 
 pub fn to_screen_x<T>(x: T) -> f32
 where
@@ -80,7 +72,14 @@ pub fn main_draw(state: &ClientGameState) {
     //         let y1 = to_screen_y(*y1 as f32);
     //         let x2 = to_screen_x(*x2 as f32);
     //         let y2 = to_screen_y(*y2 as f32);
-    //         draw_line(x1, y1, x2, y2, 5.0, PATH_COLOR);
+    //         draw_line(x1, y1, x2, y2, 5.0,
+    //            Color {
+    //               r: 0.843,
+    //               g: 0.803,
+    //               b: 0.627,
+    //               a: 1.0,
+    //               },
+    //            );
     //     }
     // }
 
