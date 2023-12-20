@@ -106,35 +106,28 @@ fn main_draw(state: &ClientGameState) {
         };
         let pos_x = to_screen_x(entity.pos.x);
         let pos_y = to_screen_y(entity.pos.y);
+        let radius = to_screen_size(entity.radius);
 
         match entity.tag {
             EntityTag::Tower | EntityTag::Base => {
-                draw_hexagon(
-                    pos_x,
-                    pos_y,
-                    to_screen_size(entity.radius),
-                    0.0,
-                    false,
-                    color,
-                    color,
-                );
+                draw_hexagon(pos_x, pos_y, radius, 0.0, false, color, color);
             }
             EntityTag::Unit => {
                 if let Some(texture) = state.sprites.get(&entity.sprite_id) {
                     draw_texture_ex(
                         texture,
-                        pos_x,
-                        pos_y,
+                        pos_x - radius,
+                        pos_y - radius,
                         color,
                         DrawTextureParams {
-                            dest_size: Some(Vec2::splat(entity.radius * 2.0)),
+                            dest_size: Some(Vec2::splat(radius * 2.0)),
                             ..Default::default()
                         },
                     )
                 }
             }
             EntityTag::Bullet => {
-                draw_circle(pos_x, pos_y, to_screen_size(entity.radius), GRAY);
+                draw_circle(pos_x, pos_y, radius, GRAY);
             }
         }
     }
