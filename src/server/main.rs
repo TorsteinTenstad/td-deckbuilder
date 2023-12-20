@@ -153,6 +153,7 @@ fn main() -> std::io::Result<()> {
                 &mut game_state.dynamic_state,
                 dt,
             );
+            // TODO: Inserting at i causes a lot of memory movement, this can be optimized using a better swap routine for updating.
             game_state.dynamic_state.entities.insert(i, entity);
             i += 1;
         }
