@@ -113,8 +113,8 @@ fn main() -> std::io::Result<()> {
                                         .players
                                         .get_mut(&client_id)
                                         .unwrap();
-                                    server_player.hand.energy = 10;
-                                    for _ in 0..7 {
+                                    server_player.hand.energy = 3;
+                                    for _ in 0..3 {
                                         server_player.hand.draw();
                                     }
                                     let mut base_entity = Entity::new(
