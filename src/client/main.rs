@@ -101,17 +101,15 @@ fn main_draw(state: &ClientGameState) {
     // entities
     for entity in state.dynamic_game_state.entities.iter() {
         let player = state.dynamic_game_state.players.get(&entity.owner);
-        let color = if entity.damage_animation > 0.0 {
-            RED
-        } else {
-            player.map_or(WHITE, |player| player.color)
-        };
+        let player_color = player.map_or(WHITE, |player| player.color);
+        let damage_animation_color = (entity.damage_animation > 0.0).then_some(RED);
         let pos_x = to_screen_x(entity.pos.x);
         let pos_y = to_screen_y(entity.pos.y);
         let radius = to_screen_size(entity.radius);
 
         match entity.tag {
             EntityTag::Tower | EntityTag::Base => {
+                let color = damage_animation_color.unwrap_or(player_color);
                 draw_hexagon(pos_x, pos_y, radius, 0.0, false, color, color);
             }
             EntityTag::Unit => {
@@ -127,7 +125,7 @@ fn main_draw(state: &ClientGameState) {
                         texture,
                         pos_x - radius,
                         pos_y - radius,
-                        color,
+                        damage_animation_color.unwrap_or(WHITE),
                         DrawTextureParams {
                             dest_size: Some(Vec2::splat(radius * 2.0)),
                             flip_x,

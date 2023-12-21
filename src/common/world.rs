@@ -68,7 +68,7 @@ pub fn find_entity_in_range<'a>(
         .filter(|other_entity| {
             can_target
                 .as_ref()
-                .unwrap_or(&vec![EntityTag::Tower, EntityTag::Unit])
+                .unwrap_or(&vec![EntityTag::Tower, EntityTag::Unit, EntityTag::Base])
                 .contains(&other_entity.tag)
         })
         .filter(|other_entity| {
