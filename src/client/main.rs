@@ -70,7 +70,7 @@ fn main_draw(state: &ClientGameState) {
     );
 
     //paths
-    let draw_debug_paths = false;
+    let draw_debug_paths = true;
     if draw_debug_paths {
         for (_, path) in state.static_game_state.paths.iter() {
             for ((x1, y1), (x2, y2)) in path.iter().tuple_windows() {

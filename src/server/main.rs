@@ -1,4 +1,4 @@
-use common::config::server_addr;
+use common::config::SERVER_PORT;
 use common::entity::{Entity, EntityState, EntityTag};
 use common::game_state::ServerGameState;
 use common::ids::{BuildingLocationId, EntityId, PathId, PlayerId};
@@ -41,7 +41,11 @@ fn main() -> std::io::Result<()> {
         );
     }
 
-    let udp_socket = UdpSocket::bind(server_addr()).unwrap();
+    let server_ip = local_ip_address::local_ip()
+        .map(|ip| format!("{}:{}", ip, SERVER_PORT))
+        .unwrap();
+    let udp_socket = UdpSocket::bind(server_ip).unwrap();
+    println!("Server started on {}", udp_socket.local_addr().unwrap());
     udp_socket
         .set_read_timeout(Some(Duration::from_millis(10)))
         .unwrap();
