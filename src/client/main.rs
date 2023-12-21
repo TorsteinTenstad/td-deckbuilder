@@ -8,7 +8,7 @@ use common::textures::SpriteId;
 use common::world::{find_entity, Direction};
 use common::*;
 use itertools::Itertools;
-use macroquad::color::{Color, BLACK, BLUE, GRAY, PINK, PURPLE, RED, WHITE, YELLOW};
+use macroquad::color::{Color, BLACK, BLUE, GRAY, PINK, RED, WHITE, YELLOW};
 use macroquad::math::Vec2;
 use macroquad::shapes::{draw_circle, draw_circle_lines, draw_hexagon, draw_line};
 use macroquad::texture::{draw_texture_ex, DrawTextureParams};
@@ -66,7 +66,7 @@ fn main_draw(state: &ClientGameState) {
     );
 
     //paths
-    let draw_debug_paths = false;
+    let draw_debug_paths = true;
     if draw_debug_paths {
         for (_, path) in state.static_game_state.paths.iter() {
             for ((x1, y1), (x2, y2)) in path.iter().tuple_windows() {

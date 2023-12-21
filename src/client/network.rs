@@ -1,6 +1,5 @@
-use crate::{physical_hand::hand_sync, ClientGameState, PhysicalHand};
+use crate::{config::server_addr, physical_hand::hand_sync, ClientGameState, PhysicalHand};
 use common::{
-    config::server_addr,
     game_state::ServerGameState,
     ids::PlayerId,
     network::{hash_client_addr, ClientCommand},

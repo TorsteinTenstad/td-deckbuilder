@@ -59,9 +59,9 @@ impl EntityBlueprint {
                 entity.radius = BUILDING_RADIUS;
                 entity.health = 200.0;
                 entity.hitbox_radius = range / 2.0;
-                entity
-                    .attacks
-                    .push(Attack::new(AttackVariant::RangedAttack, range, 5.0, 0.5));
+                let mut attack = Attack::new(AttackVariant::RangedAttack, range, 5.0, 0.5);
+                attack.can_target = Some(vec![EntityTag::Unit]);
+                entity.attacks.push(attack);
             }
             EntityBlueprint::SpawnPointTest => {
                 entity.radius = BUILDING_RADIUS;
