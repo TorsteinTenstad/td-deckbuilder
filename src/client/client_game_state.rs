@@ -51,6 +51,12 @@ impl ClientGameState {
             physical_hand: PhysicalHand::default(),
         }
     }
+    pub fn has_player(&self) -> bool {
+        self.dynamic_game_state
+            .players
+            .get(&self.player_id)
+            .is_some()
+    }
     pub fn get_player(&self) -> &ServerPlayer {
         self.dynamic_game_state
             .players

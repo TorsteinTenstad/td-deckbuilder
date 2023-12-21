@@ -313,7 +313,7 @@ pub fn sprite_get_team_texture(
         return sprite;
     }
     match team {
-        Some(Direction::Positive) => sprites.sprites_blue.get(&sprite_id),
+        Some(Direction::Positive) => sprites.sprites_red.get(&sprite_id),
         Some(Direction::Negative) => sprites.sprites_blue.get(&sprite_id),
         _ => None,
     }

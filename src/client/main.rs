@@ -49,6 +49,10 @@ fn main_step(state: &mut ClientGameState) {
 }
 
 fn main_draw(state: &ClientGameState) {
+    if !state.has_player() {
+        return;
+    }
+
     // board
     clear_background(BLACK);
     draw_texture_ex(
@@ -112,8 +116,10 @@ fn main_draw(state: &ClientGameState) {
 
     // entities
     for entity in state.dynamic_game_state.entities.iter() {
-        let player = state.dynamic_game_state.players.get(&entity.owner);
-        let player_color = player.map_or(WHITE, |player| player.color);
+        let Some(player) = state.dynamic_game_state.players.get(&entity.owner) else {
+            continue;
+        };
+        let player_color = player.color;
         let damage_animation_color = (entity.damage_animation > 0.0).then_some(RED);
         let pos_x = to_screen_x(entity.pos.x);
         let pos_y = to_screen_y(entity.pos.y);
@@ -125,7 +131,11 @@ fn main_draw(state: &ClientGameState) {
                 draw_hexagon(pos_x, pos_y, radius, 0.0, false, color, color);
             }
             EntityTag::Unit => {
-                let texture = sprite_get_texture(&state.sprites, entity.sprite_id);
+                let texture = sprite_get_team_texture(
+                    &state.sprites,
+                    entity.sprite_id,
+                    Some(player.direction),
+                );
 
                 let flip_x = match &entity.movement_behavior {
                     MovementBehavior::Path(path_movement_behavior) => {
