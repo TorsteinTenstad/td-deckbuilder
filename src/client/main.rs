@@ -7,9 +7,10 @@ use common::rect_transform::point_inside;
 use common::textures::SpriteId;
 use common::world::{find_entity, Direction};
 use common::*;
-use macroquad::color::{Color, BLACK, BLUE, GRAY, RED, WHITE, YELLOW};
+use itertools::Itertools;
+use macroquad::color::{Color, BLACK, BLUE, GRAY, PINK, PURPLE, RED, WHITE, YELLOW};
 use macroquad::math::Vec2;
-use macroquad::shapes::{draw_circle, draw_circle_lines, draw_hexagon};
+use macroquad::shapes::{draw_circle, draw_circle_lines, draw_hexagon, draw_line};
 use macroquad::texture::{draw_texture_ex, DrawTextureParams};
 use macroquad::window::{clear_background, screen_height, screen_width};
 use macroquad::{window::next_frame, window::request_new_screen_size};
@@ -48,23 +49,6 @@ fn main_step(state: &mut ClientGameState) {
 }
 
 fn main_draw(state: &ClientGameState) {
-    // for (_, path) in state.static_game_state.paths.iter() {
-    //     for ((x1, y1), (x2, y2)) in path.iter().tuple_windows() {
-    //         let x1 = to_screen_x(*x1 as f32);
-    //         let y1 = to_screen_y(*y1 as f32);
-    //         let x2 = to_screen_x(*x2 as f32);
-    //         let y2 = to_screen_y(*y2 as f32);
-    //         draw_line(x1, y1, x2, y2, 5.0,
-    //            Color {
-    //               r: 0.843,
-    //               g: 0.803,
-    //               b: 0.627,
-    //               a: 1.0,
-    //               },
-    //            );
-    //     }
-    // }
-
     // board
     clear_background(BLACK);
     draw_texture_ex(
@@ -80,6 +64,34 @@ fn main_draw(state: &ClientGameState) {
             ..Default::default()
         },
     );
+
+    //paths
+    let draw_debug_paths = false;
+    if draw_debug_paths {
+        for (_, path) in state.static_game_state.paths.iter() {
+            for ((x1, y1), (x2, y2)) in path.iter().tuple_windows() {
+                let x1 = to_screen_x(*x1 as f32);
+                let y1 = to_screen_y(*y1 as f32);
+                let x2 = to_screen_x(*x2 as f32);
+                let y2 = to_screen_y(*y2 as f32);
+                draw_circle(x1, y1, 10.0, PINK);
+                draw_circle(x2, y2, 10.0, PINK);
+                draw_line(
+                    x1,
+                    y1,
+                    x2,
+                    y2,
+                    5.0,
+                    Color {
+                        r: 0.843,
+                        g: 0.803,
+                        b: 0.627,
+                        a: 1.0,
+                    },
+                );
+            }
+        }
+    }
 
     // hand
     for physical_card in state.physical_hand.cards.iter() {

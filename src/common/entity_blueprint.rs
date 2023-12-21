@@ -9,7 +9,7 @@ use crate::{
 
 #[derive(Clone, Serialize, Deserialize)]
 pub enum EntityBlueprint {
-    BasicUnit,
+    BasicSwordsman,
     BasicRanger,
     BasicTower,
     SpawnPointTest,
@@ -21,17 +21,17 @@ const BUILDING_RADIUS: f32 = 24.0;
 impl EntityBlueprint {
     pub fn create(&self, owner: PlayerId) -> Entity {
         let tag = match self {
-            EntityBlueprint::BasicUnit | EntityBlueprint::BasicRanger => EntityTag::Unit,
+            EntityBlueprint::BasicSwordsman | EntityBlueprint::BasicRanger => EntityTag::Unit,
             EntityBlueprint::BasicTower | EntityBlueprint::SpawnPointTest => EntityTag::Tower,
         };
         let state = match self {
-            EntityBlueprint::BasicUnit | EntityBlueprint::BasicRanger => EntityState::Moving,
+            EntityBlueprint::BasicSwordsman | EntityBlueprint::BasicRanger => EntityState::Moving,
             EntityBlueprint::BasicTower => EntityState::Attacking,
             EntityBlueprint::SpawnPointTest => EntityState::Passive,
         };
         let mut entity = Entity::new(tag, owner, state);
         match self {
-            EntityBlueprint::BasicUnit => {
+            EntityBlueprint::BasicSwordsman => {
                 entity.radius = UNIT_RADIUS;
                 entity.health = 100.0;
                 entity.hitbox_radius = entity.radius;

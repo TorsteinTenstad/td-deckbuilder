@@ -10,7 +10,7 @@ use serde::{Deserialize, Serialize};
 pub enum Card {
     BasicTower,
     SpawnPointTest,
-    BasicUnit,
+    BasicSwordsman,
     BasicRanger,
     DirectDamageTest,
 }
@@ -45,10 +45,10 @@ const CARD_DATA: &[CardData] = &[
         }),
     },
     CardData {
-        name: "Ground Unit",
+        name: "Swordsman",
         energy_cost: 1,
         play_fn: PlayFn::UnitSpawnPoint(|target, owner, static_game_state, dynamic_game_state| {
-            let entity = EntityBlueprint::BasicUnit.create(owner);
+            let entity = EntityBlueprint::BasicSwordsman.create(owner);
             world_place_entity(static_game_state, dynamic_game_state, entity, target);
             return true;
         }),

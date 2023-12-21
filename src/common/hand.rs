@@ -18,7 +18,7 @@ impl Hand {
         let mut deck = Vec::new();
         for (quantity, card) in vec![
             (3, Card::BasicTower),
-            (3, Card::BasicUnit),
+            (3, Card::BasicSwordsman),
             (3, Card::SpawnPointTest),
             (3, Card::BasicRanger),
             (3, Card::DirectDamageTest),
