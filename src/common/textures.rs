@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Copy, Deserialize, Serialize, PartialEq, Eq, Hash)]
 pub enum SpriteId {
-    X,
+    Empty,
     Hourglass,
     HourglassBow,
     HourglassSword,
@@ -12,5 +12,5 @@ pub enum SpriteId {
     Bow,
     Concept,
     UnitArcher,
-    UnitSoldier,
+    UnitSwordsman,
 }

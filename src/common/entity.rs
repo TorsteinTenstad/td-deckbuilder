@@ -51,7 +51,7 @@ impl Entity {
             tag,
             owner,
             state,
-            sprite_id: SpriteId::X,
+            sprite_id: SpriteId::Empty,
             speed: 0.0,
             movement_behavior: MovementBehavior::None,
             pos: Vec2::ZERO,

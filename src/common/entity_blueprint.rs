@@ -34,7 +34,7 @@ impl EntityBlueprint {
                 entity.health = 100.0;
                 entity.hitbox_radius = entity.radius;
                 entity.speed = 100.0;
-                entity.sprite_id = SpriteId::UnitSoldier;
+                entity.sprite_id = SpriteId::UnitSwordsman;
                 entity.attacks.push(Attack::new(
                     AttackVariant::MeleeAttack,
                     entity.radius,

@@ -1,5 +1,5 @@
 use crate::{physical_card::CARD_BORDER, rect_transform::RectTransform};
-use common::{card::Card, textures::SpriteId, *};
+use common::{card::Card, textures::SpriteId, world::Direction, *};
 use macroquad::{
     color::{Color, BLACK, BLUE, GRAY, LIGHTGRAY, WHITE, YELLOW},
     math::Vec2,
@@ -173,12 +173,7 @@ pub fn draw_progress_bar(
     )
 }
 
-pub fn draw_card(
-    card: &Card,
-    transform: &RectTransform,
-    alpha: f32,
-    textures: &HashMap<SpriteId, Texture2D>,
-) {
+pub fn draw_card(card: &Card, transform: &RectTransform, alpha: f32, sprites: &Sprites) {
     draw_circle(transform.x, transform.y, 3.0, YELLOW);
     draw_rect_transform(transform, Color { a: alpha, ..GRAY });
     let inner_offset = transform.offset
@@ -235,7 +230,7 @@ pub fn draw_card(
 
     let icons: Vec<(SpriteId, f32)> = Vec::new();
 
-    for (i, (texture_id, value)) in icons.iter().filter(|(_, value)| *value > 0.001).enumerate() {
+    for (i, (sprite_id, value)) in icons.iter().filter(|(_, value)| *value > 0.001).enumerate() {
         let width_relative_icon_size = 0.2;
         let on_card_icon_pos = get_on_card_pos(
             width_relative_margin,
@@ -246,9 +241,7 @@ pub fn draw_card(
             2.0 * width_relative_margin + (i as f32 + 0.25) * (width_relative_icon_size),
         );
         let icon_size = Vec2::splat(transform.w * width_relative_icon_size);
-        let texture = textures
-            .get(texture_id)
-            .expect(format!("Texture \"{}\" not found", sprite_id_to_string(*texture_id)).as_str());
+        let texture = &sprite_get_texture(sprites, *sprite_id);
         draw_texture_ex(
             texture,
             on_card_icon_pos.x,
@@ -291,8 +284,8 @@ pub fn draw_card(
     );
 }
 
-pub fn sprite_id_to_string(texture_id: SpriteId) -> &'static str {
-    match texture_id {
+pub fn sprite_id_to_string(sprite_id: SpriteId) -> &'static str {
+    match sprite_id {
         SpriteId::Bow => "bow",
         SpriteId::Concept => "concept",
         SpriteId::Hourglass => "hourglass",
@@ -301,14 +294,45 @@ pub fn sprite_id_to_string(texture_id: SpriteId) -> &'static str {
         SpriteId::Range => "range",
         SpriteId::Shield => "shield",
         SpriteId::UnitArcher => "unit_archer",
-        SpriteId::UnitSoldier => "unit_soldier",
+        SpriteId::UnitSwordsman => "unit_swordsman",
         SpriteId::Sword => "sword",
-        SpriteId::X => "x",
+        SpriteId::Empty => "x",
     }
 }
 
-pub async fn load_sprites() -> HashMap<SpriteId, Texture2D> {
-    let mut sprites: HashMap<SpriteId, Texture2D> = HashMap::new();
+pub fn sprite_get_texture(sprites: &Sprites, sprite_id: SpriteId) -> &Texture2D {
+    sprite_get_team_texture(sprites, sprite_id, None)
+}
+
+pub fn sprite_get_team_texture(
+    sprites: &Sprites,
+    sprite_id: SpriteId,
+    team: Option<Direction>,
+) -> &Texture2D {
+    if let Some(sprite) = sprites.sprites.get(&sprite_id) {
+        return sprite;
+    }
+    match team {
+        Some(Direction::Positive) => sprites.sprites_blue.get(&sprite_id),
+        Some(Direction::Negative) => sprites.sprites_blue.get(&sprite_id),
+        _ => None,
+    }
+    .unwrap_or(&sprites.sprites[&SpriteId::Empty])
+}
+
+pub struct Sprites {
+    sprites: HashMap<SpriteId, Texture2D>,
+    sprites_red: HashMap<SpriteId, Texture2D>,
+    sprites_blue: HashMap<SpriteId, Texture2D>,
+}
+
+pub async fn load_sprites() -> Sprites {
+    let mut sprites = Sprites {
+        sprites: HashMap::new(),
+        sprites_red: HashMap::new(),
+        sprites_blue: HashMap::new(),
+    };
+
     for sprite_id in vec![
         SpriteId::Bow,
         SpriteId::Concept,
@@ -317,12 +341,10 @@ pub async fn load_sprites() -> HashMap<SpriteId, Texture2D> {
         SpriteId::HourglassSword,
         SpriteId::Range,
         SpriteId::Shield,
-        SpriteId::UnitArcher,
-        SpriteId::UnitSoldier,
         SpriteId::Sword,
-        SpriteId::X,
+        SpriteId::Empty,
     ] {
-        sprites.insert(
+        sprites.sprites.insert(
             sprite_id.clone(),
             load_texture(
                 format!("assets/textures/{}.png", sprite_id_to_string(sprite_id)).as_str(),
@@ -331,5 +353,30 @@ pub async fn load_sprites() -> HashMap<SpriteId, Texture2D> {
             .unwrap(),
         );
     }
+    for (color, sprites) in vec![
+        ("red", &mut sprites.sprites_red),
+        ("blue", &mut sprites.sprites_blue),
+    ] {
+        for sprite_id in vec![SpriteId::UnitArcher, SpriteId::UnitSwordsman] {
+            sprites.insert(
+                sprite_id.clone(),
+                load_texture(
+                    format!(
+                        "assets/textures/{}/{}.png",
+                        color,
+                        sprite_id_to_string(sprite_id)
+                    )
+                    .as_str(),
+                )
+                .await
+                .unwrap(),
+            );
+        }
+    }
+
+    if !sprites.sprites.contains_key(&SpriteId::Empty) {
+        sprites.sprites.insert(SpriteId::Empty, Texture2D::empty());
+    }
+
     return sprites;
 }

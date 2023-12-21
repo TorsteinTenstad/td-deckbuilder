@@ -68,7 +68,7 @@ fn main_draw(state: &ClientGameState) {
     // board
     clear_background(BLACK);
     draw_texture_ex(
-        state.sprites.get(&SpriteId::Concept).unwrap(),
+        &sprite_get_texture(&state.sprites, SpriteId::Concept),
         0.0,
         0.0,
         WHITE,
@@ -115,26 +115,25 @@ fn main_draw(state: &ClientGameState) {
                 draw_hexagon(pos_x, pos_y, radius, 0.0, false, color, color);
             }
             EntityTag::Unit => {
-                if let Some(texture) = state.sprites.get(&entity.sprite_id) {
-                    let flip_x = match &entity.movement_behavior {
-                        MovementBehavior::Path(path_movement_behavior) => {
-                            path_movement_behavior.direction == Direction::Negative
-                        }
-                        _ => false,
-                    };
+                let texture = sprite_get_texture(&state.sprites, entity.sprite_id);
+                let flip_x = match &entity.movement_behavior {
+                    MovementBehavior::Path(path_movement_behavior) => {
+                        path_movement_behavior.direction == Direction::Negative
+                    }
+                    _ => false,
+                };
 
-                    draw_texture_ex(
-                        texture,
-                        pos_x - radius,
-                        pos_y - radius,
-                        color,
-                        DrawTextureParams {
-                            dest_size: Some(Vec2::splat(radius * 2.0)),
-                            flip_x,
-                            ..Default::default()
-                        },
-                    )
-                }
+                draw_texture_ex(
+                    &texture,
+                    pos_x - radius,
+                    pos_y - radius,
+                    color,
+                    DrawTextureParams {
+                        dest_size: Some(Vec2::splat(radius * 2.0)),
+                        flip_x,
+                        ..Default::default()
+                    },
+                )
             }
             EntityTag::Bullet => {
                 draw_circle(pos_x, pos_y, radius, GRAY);
