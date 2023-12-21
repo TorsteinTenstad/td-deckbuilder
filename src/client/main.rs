@@ -7,9 +7,10 @@ use common::rect_transform::point_inside;
 use common::textures::SpriteId;
 use common::world::{find_entity, Direction};
 use common::*;
-use macroquad::color::{Color, BLACK, BLUE, GRAY, RED, WHITE, YELLOW};
+use itertools::Itertools;
+use macroquad::color::{Color, BLACK, BLUE, GRAY, PINK, RED, WHITE, YELLOW};
 use macroquad::math::Vec2;
-use macroquad::shapes::{draw_circle, draw_circle_lines, draw_hexagon};
+use macroquad::shapes::{draw_circle, draw_circle_lines, draw_hexagon, draw_line};
 use macroquad::texture::{draw_texture_ex, DrawTextureParams};
 use macroquad::window::{clear_background, screen_height, screen_width};
 use macroquad::{window::next_frame, window::request_new_screen_size};
@@ -48,23 +49,6 @@ fn main_step(state: &mut ClientGameState) {
 }
 
 fn main_draw(state: &ClientGameState) {
-    // for (_, path) in state.static_game_state.paths.iter() {
-    //     for ((x1, y1), (x2, y2)) in path.iter().tuple_windows() {
-    //         let x1 = to_screen_x(*x1 as f32);
-    //         let y1 = to_screen_y(*y1 as f32);
-    //         let x2 = to_screen_x(*x2 as f32);
-    //         let y2 = to_screen_y(*y2 as f32);
-    //         draw_line(x1, y1, x2, y2, 5.0,
-    //            Color {
-    //               r: 0.843,
-    //               g: 0.803,
-    //               b: 0.627,
-    //               a: 1.0,
-    //               },
-    //            );
-    //     }
-    // }
-
     // board
     clear_background(BLACK);
     draw_texture_ex(
@@ -80,6 +64,34 @@ fn main_draw(state: &ClientGameState) {
             ..Default::default()
         },
     );
+
+    //paths
+    let draw_debug_paths = false;
+    if draw_debug_paths {
+        for (_, path) in state.static_game_state.paths.iter() {
+            for ((x1, y1), (x2, y2)) in path.iter().tuple_windows() {
+                let x1 = to_screen_x(*x1 as f32);
+                let y1 = to_screen_y(*y1 as f32);
+                let x2 = to_screen_x(*x2 as f32);
+                let y2 = to_screen_y(*y2 as f32);
+                draw_circle(x1, y1, 10.0, PINK);
+                draw_circle(x2, y2, 10.0, PINK);
+                draw_line(
+                    x1,
+                    y1,
+                    x2,
+                    y2,
+                    5.0,
+                    Color {
+                        r: 0.843,
+                        g: 0.803,
+                        b: 0.627,
+                        a: 1.0,
+                    },
+                );
+            }
+        }
+    }
 
     // hand
     for physical_card in state.physical_hand.cards.iter() {
@@ -101,21 +113,20 @@ fn main_draw(state: &ClientGameState) {
     // entities
     for entity in state.dynamic_game_state.entities.iter() {
         let player = state.dynamic_game_state.players.get(&entity.owner);
-        let color = if entity.damage_animation > 0.0 {
-            RED
-        } else {
-            player.map_or(WHITE, |player| player.color)
-        };
+        let player_color = player.map_or(WHITE, |player| player.color);
+        let damage_animation_color = (entity.damage_animation > 0.0).then_some(RED);
         let pos_x = to_screen_x(entity.pos.x);
         let pos_y = to_screen_y(entity.pos.y);
         let radius = to_screen_size(entity.radius);
 
         match entity.tag {
             EntityTag::Tower | EntityTag::Base => {
+                let color = damage_animation_color.unwrap_or(player_color);
                 draw_hexagon(pos_x, pos_y, radius, 0.0, false, color, color);
             }
             EntityTag::Unit => {
                 let texture = sprite_get_texture(&state.sprites, entity.sprite_id);
+
                 let flip_x = match &entity.movement_behavior {
                     MovementBehavior::Path(path_movement_behavior) => {
                         path_movement_behavior.direction == Direction::Negative
@@ -124,10 +135,10 @@ fn main_draw(state: &ClientGameState) {
                 };
 
                 draw_texture_ex(
-                    &texture,
+                    texture,
                     pos_x - radius,
                     pos_y - radius,
-                    color,
+                    damage_animation_color.unwrap_or(WHITE),
                     DrawTextureParams {
                         dest_size: Some(Vec2::splat(radius * 2.0)),
                         flip_x,

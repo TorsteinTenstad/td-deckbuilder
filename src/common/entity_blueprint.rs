@@ -9,28 +9,30 @@ use crate::{
 
 #[derive(Clone, Serialize, Deserialize)]
 pub enum EntityBlueprint {
-    BasicUnit,
+    BasicSwordsman,
     BasicRanger,
     BasicTower,
     SpawnPointTest,
 }
 
-// TODO: state: EntityState may be defined by Blueprint
+const UNIT_RADIUS: f32 = 36.0;
+const BUILDING_RADIUS: f32 = 24.0;
+
 impl EntityBlueprint {
     pub fn create(&self, owner: PlayerId) -> Entity {
         let tag = match self {
-            EntityBlueprint::BasicUnit | EntityBlueprint::BasicRanger => EntityTag::Unit,
+            EntityBlueprint::BasicSwordsman | EntityBlueprint::BasicRanger => EntityTag::Unit,
             EntityBlueprint::BasicTower | EntityBlueprint::SpawnPointTest => EntityTag::Tower,
         };
         let state = match self {
-            EntityBlueprint::BasicUnit | EntityBlueprint::BasicRanger => EntityState::Moving,
+            EntityBlueprint::BasicSwordsman | EntityBlueprint::BasicRanger => EntityState::Moving,
             EntityBlueprint::BasicTower => EntityState::Attacking,
             EntityBlueprint::SpawnPointTest => EntityState::Passive,
         };
         let mut entity = Entity::new(tag, owner, state);
         match self {
-            EntityBlueprint::BasicUnit => {
-                entity.radius = 24.0;
+            EntityBlueprint::BasicSwordsman => {
+                entity.radius = UNIT_RADIUS;
                 entity.health = 100.0;
                 entity.hitbox_radius = entity.radius;
                 entity.speed = 100.0;
@@ -43,7 +45,7 @@ impl EntityBlueprint {
                 ));
             }
             EntityBlueprint::BasicRanger => {
-                entity.radius = 24.0;
+                entity.radius = UNIT_RADIUS;
                 entity.health = 50.0;
                 entity.hitbox_radius = entity.radius;
                 entity.speed = 100.0;
@@ -54,7 +56,7 @@ impl EntityBlueprint {
             }
             EntityBlueprint::BasicTower => {
                 let range = 350.0;
-                entity.radius = 24.0;
+                entity.radius = BUILDING_RADIUS;
                 entity.health = 200.0;
                 entity.hitbox_radius = range / 2.0;
                 entity
@@ -62,7 +64,7 @@ impl EntityBlueprint {
                     .push(Attack::new(AttackVariant::RangedAttack, range, 5.0, 0.5));
             }
             EntityBlueprint::SpawnPointTest => {
-                entity.radius = 24.0;
+                entity.radius = BUILDING_RADIUS;
                 entity.health = 200.0;
                 entity.hitbox_radius = 250.0;
                 entity.usable_as_spawn_point = true;

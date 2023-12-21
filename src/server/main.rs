@@ -1,4 +1,4 @@
-use common::config::SERVER_ADDR;
+use common::config::server_addr;
 use common::entity::{Entity, EntityState, EntityTag};
 use common::game_state::ServerGameState;
 use common::ids::{BuildingLocationId, EntityId, PathId, PlayerId};
@@ -41,7 +41,7 @@ fn main() -> std::io::Result<()> {
         );
     }
 
-    let udp_socket = UdpSocket::bind(SERVER_ADDR).unwrap();
+    let udp_socket = UdpSocket::bind(server_addr()).unwrap();
     udp_socket
         .set_read_timeout(Some(Duration::from_millis(10)))
         .unwrap();
@@ -121,7 +121,7 @@ fn main() -> std::io::Result<()> {
                                     base_entity.pos = *base_pos;
                                     base_entity.radius = 48.0;
                                     base_entity.health = 1000.0;
-                                    base_entity.hitbox_radius = 150.0;
+                                    base_entity.hitbox_radius = 200.0;
                                     base_entity.usable_as_spawn_point = true;
                                     game_state.dynamic_state.entities.push(base_entity);
                                 }
