@@ -1,7 +1,9 @@
 use crate::{
+    component_movement_behavior::MovementBehavior,
     entity::{Entity, EntityTag},
-    game_state::StaticGameState,
+    game_state::{DynamicGameState, StaticGameState},
     ids::{EntityId, PathId, PlayerId},
+    play_target::{BuildingSpotTarget, UnitSpawnpointTarget},
     serde_defs::Vec2Def,
 };
 use macroquad::math::Vec2;
@@ -80,4 +82,41 @@ pub fn find_entity_in_range<'a>(
                 - (range + other_entity_b.hitbox_radius).powi(2);
             signed_distance_a.partial_cmp(&signed_distance_b).unwrap()
         })
+}
+
+pub fn find_entity_mut(entities: &mut Vec<Entity>, id: Option<EntityId>) -> Option<&mut Entity> {
+    return id.and_then(|id| entities.iter_mut().find(|entity| entity.id == id));
+}
+
+pub fn find_entity(entities: &Vec<Entity>, id: Option<EntityId>) -> Option<&Entity> {
+    return id.and_then(|id| entities.iter().find(|entity| entity.id == id));
+}
+
+pub fn world_place_entity(
+    static_game_state: &StaticGameState,
+    dynamic_game_state: &mut DynamicGameState,
+    mut entity: Entity,
+    target: UnitSpawnpointTarget,
+) {
+    entity.pos = get_path_pos(static_game_state, target.path_id, target.path_idx);
+    entity.movement_behavior = MovementBehavior::Path(target.into());
+    dynamic_game_state.entities.push(entity);
+}
+
+pub fn world_place_building(
+    dynamic_game_state: &mut DynamicGameState,
+    mut entity: Entity,
+    target: BuildingSpotTarget,
+) -> bool {
+    let BuildingLocation { pos, entity_id } = dynamic_game_state
+        .building_locations
+        .get_mut(&target.id)
+        .unwrap();
+    if let Some(_) = entity_id {
+        return false;
+    }
+    entity.pos = *pos;
+    *entity_id = Some(entity.id);
+    dynamic_game_state.entities.push(entity);
+    return true;
 }

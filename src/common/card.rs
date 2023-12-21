@@ -1,9 +1,8 @@
 use crate::{
-    component_movement_behavior::MovementBehavior,
     entity_blueprint::EntityBlueprint,
     ids::CardInstanceId,
     play_target::PlayFn,
-    world::{get_path_pos, BuildingLocation},
+    world::{find_entity_mut, world_place_building, world_place_entity},
 };
 use serde::{Deserialize, Serialize};
 
@@ -33,46 +32,24 @@ const CARD_DATA: &[CardData] = &[
         name: "Tower",
         energy_cost: 3,
         play_fn: PlayFn::BuildingSpot(|target, owner, _static_game_state, dynamic_game_state| {
-            let BuildingLocation { pos, entity_id } = dynamic_game_state
-                .building_locations
-                .get_mut(&target.id)
-                .unwrap();
-            if let Some(_) = entity_id {
-                return false;
-            }
-            let mut entity = EntityBlueprint::BasicTower.create(owner);
-            entity.pos = *pos;
-            *entity_id = Some(entity.id);
-            dynamic_game_state.entities.push(entity);
-            return true;
+            let entity = EntityBlueprint::BasicTower.create(owner);
+            return world_place_building(dynamic_game_state, entity, target);
         }),
     },
     CardData {
         name: "Spawn Point",
         energy_cost: 2,
         play_fn: PlayFn::BuildingSpot(|target, owner, _static_game_state, dynamic_game_state| {
-            let BuildingLocation { pos, entity_id } = dynamic_game_state
-                .building_locations
-                .get_mut(&target.id)
-                .unwrap();
-            if let Some(_) = entity_id {
-                return false;
-            }
-            let mut entity = EntityBlueprint::SpawnPointTest.create(owner);
-            entity.pos = *pos;
-            *entity_id = Some(entity.id);
-            dynamic_game_state.entities.push(entity);
-            return true;
+            let entity = EntityBlueprint::SpawnPointTest.create(owner);
+            return world_place_building(dynamic_game_state, entity, target);
         }),
     },
     CardData {
         name: "Ground Unit",
         energy_cost: 1,
         play_fn: PlayFn::UnitSpawnPoint(|target, owner, static_game_state, dynamic_game_state| {
-            let mut entity = EntityBlueprint::BasicUnit.create(owner);
-            entity.pos = get_path_pos(static_game_state, target.path_id, target.path_idx);
-            entity.movement_behavior = MovementBehavior::Path(target.into());
-            dynamic_game_state.entities.push(entity);
+            let entity = EntityBlueprint::BasicUnit.create(owner);
+            world_place_entity(static_game_state, dynamic_game_state, entity, target);
             return true;
         }),
     },
@@ -80,10 +57,8 @@ const CARD_DATA: &[CardData] = &[
         name: "Ranger",
         energy_cost: 1,
         play_fn: PlayFn::UnitSpawnPoint(|target, owner, static_game_state, dynamic_game_state| {
-            let mut entity = EntityBlueprint::BasicRanger.create(owner);
-            entity.pos = get_path_pos(static_game_state, target.path_id, target.path_idx);
-            entity.movement_behavior = MovementBehavior::Path(target.into());
-            dynamic_game_state.entities.push(entity);
+            let entity = EntityBlueprint::BasicRanger.create(owner);
+            world_place_entity(static_game_state, dynamic_game_state, entity, target);
             return true;
         }),
     },
@@ -91,11 +66,11 @@ const CARD_DATA: &[CardData] = &[
         name: "Direct Damage",
         energy_cost: 1,
         play_fn: PlayFn::Entity(|target, _owner, _static_game_state, dynamic_game_state| {
-            let target_entity = dynamic_game_state
-                .entities
-                .iter_mut()
-                .find(|entity| entity.id == target.id)
-                .unwrap();
+            let Some(target_entity) =
+                find_entity_mut(&mut dynamic_game_state.entities, Some(target.id))
+            else {
+                return false;
+            };
             target_entity.health -= 100.0;
             target_entity.damage_animation = 0.1;
             return true;

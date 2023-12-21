@@ -4,7 +4,7 @@ use crate::{
     ids::{EntityId, PathId},
     play_target::UnitSpawnpointTarget,
     serde_defs::Vec2Def,
-    world::{get_path_pos, next_path_idx, Direction},
+    world::{find_entity, get_path_pos, next_path_idx, Direction},
 };
 use macroquad::math::Vec2;
 use serde::{Deserialize, Serialize};
@@ -43,14 +43,9 @@ impl MovementBehavior {
                 velocity,
                 target_entity_id,
             }) => {
-                *velocity = target_entity_id
-                    .and_then(|target_entity_id| {
-                        entities
-                            .iter()
-                            .find(|entity| entity.id == target_entity_id)
-                            .map(|target_entity| {
-                                (target_entity.pos - entity.pos).normalize_or_zero() * entity.speed
-                            })
+                *velocity = find_entity(entities, *target_entity_id)
+                    .map(|target_entity| {
+                        (target_entity.pos - entity.pos).normalize_or_zero() * entity.speed
                     })
                     .unwrap_or(*velocity);
 

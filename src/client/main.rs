@@ -5,7 +5,7 @@ use common::entity::EntityTag;
 use common::play_target::{unit_spawnpoint_target_transform, PlayFn};
 use common::rect_transform::point_inside;
 use common::textures::SpriteId;
-use common::world::Direction;
+use common::world::{find_entity, Direction};
 use common::*;
 use macroquad::color::{Color, BLACK, BLUE, GRAY, RED, WHITE, YELLOW};
 use macroquad::math::Vec2;
@@ -144,13 +144,8 @@ fn main_draw(state: &ClientGameState) {
 
     // range_circle_preview
     let mut range_circle_preview: Vec<(f32, f32, f32, Color)> = Vec::new();
-    if let Some(entity) = state.selected_entity_id.and_then(|id| {
-        state
-            .dynamic_game_state
-            .entities
-            .iter()
-            .find(|entity| entity.id == id)
-    }) {
+    if let Some(entity) = find_entity(&state.dynamic_game_state.entities, state.selected_entity_id)
+    {
         if let Some(Attack { range, .. }) = entity
             .attacks
             .iter()
