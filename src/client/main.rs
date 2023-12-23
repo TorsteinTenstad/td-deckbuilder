@@ -23,6 +23,7 @@ use input::*;
 mod network;
 use network::*;
 mod client_game_state;
+mod hit_numbers;
 mod physical_card;
 mod physical_hand;
 
@@ -45,7 +46,10 @@ async fn main() {
 fn main_step(state: &mut ClientGameState) {
     state.step();
     main_input(state);
-    hand_step(state)
+    hand_step(state);
+    state
+        .hit_numbers
+        .step(&state.dynamic_game_state.entities, state.dt);
 }
 
 fn main_draw(state: &ClientGameState) {
@@ -280,4 +284,7 @@ fn main_draw(state: &ClientGameState) {
             },
         );
     }
+
+    // hit numbers
+    state.hit_numbers.draw();
 }

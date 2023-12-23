@@ -1,5 +1,6 @@
 use crate::{
     draw::{load_sprites, Sprites},
+    hit_numbers::HitNumbers,
     network::udp_init_socket,
     physical_hand::PhysicalHand,
 };
@@ -25,6 +26,7 @@ pub struct ClientGameState {
     pub sprites: Sprites,
     pub unit_spawnpoint_targets: Vec<UnitSpawnpointTarget>,
     pub physical_hand: PhysicalHand,
+    pub hit_numbers: HitNumbers,
     // TODO: temp
     pub card_delta_angle: f32,
     pub relative_splay_radius: f32,
@@ -49,6 +51,7 @@ impl ClientGameState {
             sprites: load_sprites().await,
             unit_spawnpoint_targets: Vec::new(),
             physical_hand: PhysicalHand::default(),
+            hit_numbers: HitNumbers::new(),
         }
     }
     pub fn has_player(&self) -> bool {
