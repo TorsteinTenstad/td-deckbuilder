@@ -297,6 +297,9 @@ pub fn sprite_id_to_string(sprite_id: SpriteId) -> &'static str {
         SpriteId::UnitSwordsman => "unit_swordsman",
         SpriteId::Sword => "sword",
         SpriteId::Empty => "x",
+        SpriteId::BuildingBase => "building_base",
+        SpriteId::BuildingTower => "building_tower",
+        SpriteId::BuildingSpawnpoint => "building_spawnpoint",
     }
 }
 
@@ -357,7 +360,13 @@ pub async fn load_sprites() -> Sprites {
         ("red", &mut sprites.sprites_red),
         ("blue", &mut sprites.sprites_blue),
     ] {
-        for sprite_id in vec![SpriteId::UnitArcher, SpriteId::UnitSwordsman] {
+        for sprite_id in vec![
+            SpriteId::UnitArcher,
+            SpriteId::UnitSwordsman,
+            SpriteId::BuildingBase,
+            SpriteId::BuildingTower,
+            SpriteId::BuildingSpawnpoint,
+        ] {
             sprites.insert(
                 sprite_id.clone(),
                 load_texture(

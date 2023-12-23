@@ -13,4 +13,7 @@ pub enum SpriteId {
     Concept,
     UnitArcher,
     UnitSwordsman,
+    BuildingBase,
+    BuildingTower,
+    BuildingSpawnpoint,
 }

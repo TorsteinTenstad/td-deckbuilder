@@ -21,7 +21,7 @@ pub enum EntityBlueprint {
 }
 
 const UNIT_RADIUS: f32 = 36.0;
-const BUILDING_RADIUS: f32 = 24.0;
+const BUILDING_RADIUS: f32 = 64.0;
 
 impl EntityBlueprint {
     pub fn create(&self, owner: PlayerId) -> Entity {
@@ -139,18 +139,21 @@ impl EntityBlueprint {
                     0.5,
                     vec![EntityTag::Unit],
                 ));
+                entity.sprite_id = SpriteId::BuildingTower
             }
             EntityBlueprint::SpawnPoint => {
                 entity.radius = BUILDING_RADIUS;
                 entity.health = 200.0;
                 entity.hitbox_radius = entity.radius;
                 entity.usable_as_spawn_point = true;
+                entity.sprite_id = SpriteId::BuildingSpawnpoint
             }
             EntityBlueprint::Base => {
                 entity.radius = 48.0;
                 entity.health = 1000.0;
                 entity.hitbox_radius = entity.radius;
                 entity.usable_as_spawn_point = true;
+                entity.sprite_id = SpriteId::BuildingBase
             }
         }
         entity
