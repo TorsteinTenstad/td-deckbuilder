@@ -12,6 +12,7 @@ use crate::{
 #[derive(Clone, Serialize, Deserialize)]
 pub enum EntityBlueprint {
     BasicSwordsman,
+    DemonPig,
     BasicRanger,
     BasicTower,
     BasicTowerBuilder,
@@ -27,6 +28,7 @@ impl EntityBlueprint {
     pub fn create(&self, owner: PlayerId) -> Entity {
         let tag = match self {
             EntityBlueprint::BasicSwordsman
+            | EntityBlueprint::DemonPig
             | EntityBlueprint::BasicRanger
             | EntityBlueprint::BasicTowerBuilder
             | EntityBlueprint::SpawnPointBuilder => EntityTag::Unit,
@@ -35,6 +37,7 @@ impl EntityBlueprint {
         };
         let state = match self {
             EntityBlueprint::BasicSwordsman
+            | EntityBlueprint::DemonPig
             | EntityBlueprint::BasicRanger
             | EntityBlueprint::BasicTowerBuilder
             | EntityBlueprint::SpawnPointBuilder => EntityState::Moving,
@@ -52,7 +55,7 @@ impl EntityBlueprint {
                     speed: 100.0,
                     detection_radius: 150.0,
                 });
-                entity.sprite_id = SpriteId::UnitSwordsman;
+                entity.sprite_id = SpriteId::UnitBuilder;
                 entity.attacks.push(Attack::new(
                     AttackVariant::MeleeAttack,
                     entity.radius,
@@ -76,7 +79,7 @@ impl EntityBlueprint {
                     speed: 100.0,
                     detection_radius: 150.0,
                 });
-                entity.sprite_id = SpriteId::UnitSwordsman;
+                entity.sprite_id = SpriteId::UnitBuilder;
                 entity.attacks.push(Attack::new(
                     AttackVariant::MeleeAttack,
                     entity.radius,
@@ -106,6 +109,24 @@ impl EntityBlueprint {
                     entity.radius,
                     10.0,
                     0.5,
+                    vec![EntityTag::Base, EntityTag::Tower, EntityTag::Unit],
+                ));
+            }
+            EntityBlueprint::DemonPig => {
+                entity.radius = UNIT_RADIUS;
+                entity.health = 50.0;
+                entity.hitbox_radius = entity.radius;
+                entity.movement_behavior = MovementBehavior::Path(PathMovementBehavior {
+                    path_state: None,
+                    speed: 300.0,
+                    detection_radius: 150.0,
+                });
+                entity.sprite_id = SpriteId::UnitDemonPig;
+                entity.attacks.push(Attack::new(
+                    AttackVariant::MeleeAttack,
+                    entity.radius,
+                    3.0,
+                    0.25,
                     vec![EntityTag::Base, EntityTag::Tower, EntityTag::Unit],
                 ));
             }

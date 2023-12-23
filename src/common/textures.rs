@@ -13,4 +13,6 @@ pub enum SpriteId {
     Concept,
     UnitArcher,
     UnitSwordsman,
+    UnitBuilder,
+    UnitDemonPig,
 }
