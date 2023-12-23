@@ -299,6 +299,9 @@ pub fn sprite_id_to_string(sprite_id: SpriteId) -> &'static str {
         SpriteId::UnitDemonPig => "unit_demon_pig",
         SpriteId::Sword => "sword",
         SpriteId::Empty => "x",
+        SpriteId::BuildingBase => "building_base",
+        SpriteId::BuildingTower => "building_tower",
+        SpriteId::BuildingSpawnpoint => "building_spawnpoint",
     }
 }
 
@@ -362,6 +365,9 @@ pub async fn load_sprites() -> Sprites {
         for sprite_id in vec![
             SpriteId::UnitArcher,
             SpriteId::UnitSwordsman,
+            SpriteId::BuildingBase,
+            SpriteId::BuildingTower,
+            SpriteId::BuildingSpawnpoint,
             SpriteId::UnitBuilder,
             SpriteId::UnitDemonPig,
         ] {

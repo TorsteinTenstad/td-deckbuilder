@@ -10,7 +10,7 @@ use common::*;
 use itertools::Itertools;
 use macroquad::color::{Color, BLACK, BLUE, GRAY, PINK, RED, WHITE, YELLOW};
 use macroquad::math::Vec2;
-use macroquad::shapes::{draw_circle, draw_circle_lines, draw_hexagon, draw_line};
+use macroquad::shapes::{draw_circle, draw_circle_lines, draw_line};
 use macroquad::texture::{draw_texture_ex, DrawTextureParams};
 use macroquad::window::{clear_background, screen_height, screen_width};
 use macroquad::{window::next_frame, window::request_new_screen_size};
@@ -123,18 +123,13 @@ fn main_draw(state: &ClientGameState) {
         let Some(player) = state.dynamic_game_state.players.get(&entity.owner) else {
             continue;
         };
-        let player_color = player.color;
         let damage_animation_color = (entity.damage_animation > 0.0).then_some(RED);
         let pos_x = to_screen_x(entity.pos.x);
         let pos_y = to_screen_y(entity.pos.y);
         let radius = to_screen_size(entity.radius);
 
         match entity.tag {
-            EntityTag::Tower | EntityTag::Base => {
-                let color = damage_animation_color.unwrap_or(player_color);
-                draw_hexagon(pos_x, pos_y, radius, 0.0, false, color, color);
-            }
-            EntityTag::Unit => {
+            EntityTag::Tower | EntityTag::Base | EntityTag::Unit => {
                 let texture = sprite_get_team_texture(
                     &state.sprites,
                     entity.sprite_id,
