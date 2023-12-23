@@ -1,6 +1,7 @@
 use crate::component_movement_behavior::MovementBehavior;
 use crate::entity_blueprint::EntityBlueprint;
-use crate::ids::{BuildingLocationId, EntityId};
+use crate::ids::EntityId;
+use crate::play_target::{BuildingSpotTarget, EntityTarget, WorldPosTarget};
 use crate::serde_defs::Vec2Def;
 use crate::{component_attack::Attack, ids::PlayerId, textures::SpriteId};
 use macroquad::math::Vec2;
@@ -24,12 +25,21 @@ pub enum EntityState {
 }
 
 #[derive(Clone, Serialize, Deserialize)]
+pub enum MoveTarget {
+    WorldPos(WorldPosTarget),
+    BuildingSpot(BuildingSpotTarget),
+    Entity(EntityTarget),
+    None,
+}
+
+#[derive(Serialize, Deserialize)]
 pub struct Entity {
     pub id: EntityId,
     pub tag: EntityTag,
     pub owner: PlayerId,
     pub state: EntityState,
     pub movement_behavior: MovementBehavior,
+    pub move_target: MoveTarget,
     #[serde(with = "Vec2Def")]
     pub pos: Vec2,
     pub radius: f32,
@@ -39,7 +49,7 @@ pub struct Entity {
     pub usable_as_spawn_point: bool,
     pub attacks: Vec<Attack>,
     pub seconds_left_to_live: Option<f32>,
-    pub building_to_construct: Option<(BuildingLocationId, EntityBlueprint)>,
+    pub building_to_construct: Option<(BuildingSpotTarget, EntityBlueprint)>,
     pub sprite_id: SpriteId,
 }
 
@@ -52,6 +62,7 @@ impl Entity {
             state,
             sprite_id: SpriteId::Empty,
             movement_behavior: MovementBehavior::None,
+            move_target: MoveTarget::None,
             pos: Vec2::ZERO,
             radius: 0.0,
             health: 0.0,

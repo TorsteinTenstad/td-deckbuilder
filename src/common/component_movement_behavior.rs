@@ -1,10 +1,13 @@
 use crate::{
-    entity::{Entity, EntityTag},
-    game_state::StaticGameState,
+    entity::{Entity, EntityState, EntityTag},
+    game_state::{DynamicGameState, StaticGameState},
     ids::{EntityId, PathId},
     play_target::UnitSpawnpointTarget,
     serde_defs::Vec2Def,
-    world::{find_entity, find_entity_in_range, get_path_pos, next_path_idx, Direction},
+    world::{
+        find_entity, find_entity_in_range, get_path_pos, next_path_idx, world_place_building,
+        Direction,
+    },
 };
 use macroquad::math::Vec2;
 use serde::{Deserialize, Serialize};
@@ -47,7 +50,7 @@ impl PathState {
 impl MovementBehavior {
     pub fn update(
         entity: &mut Entity,
-        entities: &mut Vec<Entity>,
+        dynamic_game_state: &mut DynamicGameState,
         dt: f32,
         static_game_state: &StaticGameState,
     ) {
@@ -67,26 +70,63 @@ impl MovementBehavior {
                         .flat_map(|attack| attack.can_target.clone().into_iter())
                         .collect();
 
-                    let target_pos = match find_entity_in_range(
-                        entity.pos,
-                        entity.owner,
-                        path_movement_behavior.detection_radius,
-                        &can_target,
-                        entities,
-                    ) {
-                        Some(target_entity) => target_entity.pos,
-                        None => get_path_pos(
-                            static_game_state,
-                            path_state.path_id,
-                            path_state.target_path_idx,
-                        ),
+                    let update_position = |pos: &mut Vec2, target_pos: Vec2| -> bool {
+                        let delta = target_pos - *pos;
+                        *pos += delta.normalize_or_zero() * path_movement_behavior.speed * dt;
+                        let updated_delta = target_pos - *pos;
+                        delta.length_squared() < updated_delta.length_squared()
                     };
-                    let delta = target_pos - entity.pos;
-                    entity.pos += delta.normalize_or_zero() * path_movement_behavior.speed * dt;
-                    let updated_delta = target_pos - entity.pos;
-                    if delta.length_squared() < updated_delta.length_squared() {
-                        path_state.incr();
-                    }
+
+                    match entity.building_to_construct.clone() {
+                        Some((building_spot_target, entity_blueprint))
+                            if (dynamic_game_state
+                                .building_locations
+                                .get(&building_spot_target.id)
+                                .unwrap()
+                                .pos
+                                - entity.pos)
+                                .length()
+                                < path_movement_behavior.detection_radius =>
+                        {
+                            let building_pos = dynamic_game_state
+                                .building_locations
+                                .get_mut(&building_spot_target.id)
+                                .unwrap()
+                                .pos;
+                            if update_position(&mut entity.pos, building_pos) {
+                                world_place_building(
+                                    dynamic_game_state,
+                                    entity_blueprint.create(entity.owner),
+                                    building_spot_target,
+                                );
+                                entity.state = EntityState::Dead;
+                            }
+                        }
+                        _ => {
+                            match find_entity_in_range(
+                                entity.pos,
+                                entity.owner,
+                                path_movement_behavior.detection_radius,
+                                &can_target,
+                                &mut dynamic_game_state.entities,
+                            ) {
+                                Some(target_entity) => {
+                                    update_position(&mut entity.pos, target_entity.pos);
+                                }
+                                None => {
+                                    let target_pos = get_path_pos(
+                                        static_game_state,
+                                        path_state.path_id,
+                                        path_state.target_path_idx,
+                                    );
+
+                                    if update_position(&mut entity.pos, target_pos) {
+                                        path_state.incr();
+                                    }
+                                }
+                            }
+                        }
+                    };
                 }
             }
             MovementBehavior::Bullet(BulletMovementBehavior {
@@ -94,7 +134,7 @@ impl MovementBehavior {
                 velocity,
                 target_entity_id,
             }) => {
-                *velocity = find_entity(entities, *target_entity_id)
+                *velocity = find_entity(&mut dynamic_game_state.entities, *target_entity_id)
                     .map(|target_entity| {
                         (target_entity.pos - entity.pos).normalize_or_zero() * *speed
                     })

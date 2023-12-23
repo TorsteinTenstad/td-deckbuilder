@@ -1,5 +1,5 @@
 use common::config::SERVER_PORT;
-use common::entity::{Entity, EntityState, EntityTag};
+use common::entity::EntityState;
 use common::entity_blueprint::EntityBlueprint;
 use common::game_state::ServerGameState;
 use common::ids::{BuildingLocationId, EntityId, PathId, PlayerId};

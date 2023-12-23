@@ -2,7 +2,7 @@ use crate::{
     entity_blueprint::EntityBlueprint,
     ids::CardInstanceId,
     play_target::PlayFn,
-    world::{find_entity_mut, world_place_building, world_place_path_entity},
+    world::{find_entity_mut, world_place_builder, world_place_path_entity},
 };
 use serde::{Deserialize, Serialize};
 
@@ -31,17 +31,29 @@ const CARD_DATA: &[CardData] = &[
     CardData {
         name: "Tower",
         energy_cost: 3,
-        play_fn: PlayFn::BuildingSpot(|target, owner, _static_game_state, dynamic_game_state| {
-            let entity = EntityBlueprint::BasicTower.create(owner);
-            return world_place_building(dynamic_game_state, entity, target);
+        play_fn: PlayFn::BuildingSpot(|target, owner, static_game_state, dynamic_game_state| {
+            let entity = EntityBlueprint::BasicTowerBuilder.create(owner);
+            return world_place_builder(
+                dynamic_game_state,
+                static_game_state,
+                owner,
+                entity,
+                target,
+            );
         }),
     },
     CardData {
         name: "Spawn Point",
         energy_cost: 2,
-        play_fn: PlayFn::BuildingSpot(|target, owner, _static_game_state, dynamic_game_state| {
-            let entity = EntityBlueprint::SpawnPointTest.create(owner);
-            return world_place_building(dynamic_game_state, entity, target);
+        play_fn: PlayFn::BuildingSpot(|target, owner, static_game_state, dynamic_game_state| {
+            let entity = EntityBlueprint::SpawnPointBuilder.create(owner);
+            return world_place_builder(
+                dynamic_game_state,
+                static_game_state,
+                owner,
+                entity,
+                target,
+            );
         }),
     },
     CardData {

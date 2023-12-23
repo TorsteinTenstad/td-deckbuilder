@@ -25,7 +25,7 @@ pub fn update_entity<'a>(
 
     match entity.state {
         EntityState::Moving => {
-            MovementBehavior::update(entity, &mut dynamic_game_state.entities, dt, static_state);
+            MovementBehavior::update(entity, dynamic_game_state, dt, static_state);
             if can_attack {
                 entity.state = EntityState::Attacking;
             }
@@ -43,7 +43,7 @@ pub fn update_entity<'a>(
                 let mut building = entity_blueprint.create(entity.owner);
                 let building_location = dynamic_game_state
                     .building_locations
-                    .get_mut(building_location_id)
+                    .get_mut(&building_location_id.id)
                     .unwrap();
                 building.pos = building_location.pos;
                 building_location.entity_id = Some(building.id);

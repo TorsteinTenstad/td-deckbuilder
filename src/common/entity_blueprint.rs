@@ -4,7 +4,8 @@ use crate::{
     component_attack::{Attack, AttackVariant},
     component_movement_behavior::{MovementBehavior, PathMovementBehavior},
     entity::{Entity, EntityState, EntityTag},
-    ids::PlayerId,
+    ids::{BuildingLocationId, PlayerId},
+    play_target::BuildingSpotTarget,
     textures::SpriteId,
 };
 
@@ -13,7 +14,9 @@ pub enum EntityBlueprint {
     BasicSwordsman,
     BasicRanger,
     BasicTower,
-    SpawnPointTest,
+    BasicTowerBuilder,
+    SpawnPoint,
+    SpawnPointBuilder,
     Base,
 }
 
@@ -23,17 +26,71 @@ const BUILDING_RADIUS: f32 = 24.0;
 impl EntityBlueprint {
     pub fn create(&self, owner: PlayerId) -> Entity {
         let tag = match self {
-            EntityBlueprint::BasicSwordsman | EntityBlueprint::BasicRanger => EntityTag::Unit,
-            EntityBlueprint::BasicTower | EntityBlueprint::SpawnPointTest => EntityTag::Tower,
+            EntityBlueprint::BasicSwordsman
+            | EntityBlueprint::BasicRanger
+            | EntityBlueprint::BasicTowerBuilder
+            | EntityBlueprint::SpawnPointBuilder => EntityTag::Unit,
+            EntityBlueprint::BasicTower | EntityBlueprint::SpawnPoint => EntityTag::Tower,
             EntityBlueprint::Base => EntityTag::Base,
         };
         let state = match self {
-            EntityBlueprint::BasicSwordsman | EntityBlueprint::BasicRanger => EntityState::Moving,
+            EntityBlueprint::BasicSwordsman
+            | EntityBlueprint::BasicRanger
+            | EntityBlueprint::BasicTowerBuilder
+            | EntityBlueprint::SpawnPointBuilder => EntityState::Moving,
             EntityBlueprint::BasicTower => EntityState::Attacking,
-            EntityBlueprint::SpawnPointTest | EntityBlueprint::Base => EntityState::Passive,
+            EntityBlueprint::SpawnPoint | EntityBlueprint::Base => EntityState::Passive,
         };
         let mut entity = Entity::new(tag, owner, state);
         match self {
+            EntityBlueprint::BasicTowerBuilder => {
+                entity.radius = UNIT_RADIUS;
+                entity.health = 100.0;
+                entity.hitbox_radius = entity.radius;
+                entity.movement_behavior = MovementBehavior::Path(PathMovementBehavior {
+                    path_state: None,
+                    speed: 100.0,
+                    detection_radius: 150.0,
+                });
+                entity.sprite_id = SpriteId::UnitSwordsman;
+                entity.attacks.push(Attack::new(
+                    AttackVariant::MeleeAttack,
+                    entity.radius,
+                    10.0,
+                    0.5,
+                    vec![EntityTag::Base, EntityTag::Tower, EntityTag::Unit],
+                ));
+                entity.building_to_construct = Some((
+                    BuildingSpotTarget {
+                        id: BuildingLocationId(0),
+                    },
+                    EntityBlueprint::BasicTower,
+                ));
+            }
+            EntityBlueprint::SpawnPointBuilder => {
+                entity.radius = UNIT_RADIUS;
+                entity.health = 100.0;
+                entity.hitbox_radius = entity.radius;
+                entity.movement_behavior = MovementBehavior::Path(PathMovementBehavior {
+                    path_state: None,
+                    speed: 100.0,
+                    detection_radius: 150.0,
+                });
+                entity.sprite_id = SpriteId::UnitSwordsman;
+                entity.attacks.push(Attack::new(
+                    AttackVariant::MeleeAttack,
+                    entity.radius,
+                    10.0,
+                    0.5,
+                    vec![EntityTag::Base, EntityTag::Tower, EntityTag::Unit],
+                ));
+                entity.building_to_construct = Some((
+                    BuildingSpotTarget {
+                        id: BuildingLocationId(0),
+                    },
+                    EntityBlueprint::SpawnPoint,
+                ));
+            }
             EntityBlueprint::BasicSwordsman => {
                 entity.radius = UNIT_RADIUS;
                 entity.health = 100.0;
@@ -83,7 +140,7 @@ impl EntityBlueprint {
                     vec![EntityTag::Unit],
                 ));
             }
-            EntityBlueprint::SpawnPointTest => {
+            EntityBlueprint::SpawnPoint => {
                 entity.radius = BUILDING_RADIUS;
                 entity.health = 200.0;
                 entity.hitbox_radius = entity.radius;
