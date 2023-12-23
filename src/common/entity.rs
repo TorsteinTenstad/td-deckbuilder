@@ -29,7 +29,6 @@ pub struct Entity {
     pub tag: EntityTag,
     pub owner: PlayerId,
     pub state: EntityState,
-    pub speed: f32,
     pub movement_behavior: MovementBehavior,
     #[serde(with = "Vec2Def")]
     pub pos: Vec2,
@@ -52,7 +51,6 @@ impl Entity {
             owner,
             state,
             sprite_id: SpriteId::Empty,
-            speed: 0.0,
             movement_behavior: MovementBehavior::None,
             pos: Vec2::ZERO,
             radius: 0.0,

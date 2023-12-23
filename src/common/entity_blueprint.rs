@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     component_attack::{Attack, AttackVariant},
+    component_movement_behavior::{MovementBehavior, PathMovementBehavior},
     entity::{Entity, EntityState, EntityTag},
     ids::PlayerId,
     textures::SpriteId,
@@ -35,7 +36,11 @@ impl EntityBlueprint {
                 entity.radius = UNIT_RADIUS;
                 entity.health = 100.0;
                 entity.hitbox_radius = entity.radius;
-                entity.speed = 100.0;
+                entity.movement_behavior = MovementBehavior::Path(PathMovementBehavior {
+                    path_state: None,
+                    speed: 100.0,
+                    detection_radius: 100.0,
+                });
                 entity.sprite_id = SpriteId::UnitSwordsman;
                 entity.attacks.push(Attack::new(
                     AttackVariant::MeleeAttack,
@@ -48,7 +53,11 @@ impl EntityBlueprint {
                 entity.radius = UNIT_RADIUS;
                 entity.health = 50.0;
                 entity.hitbox_radius = entity.radius;
-                entity.speed = 100.0;
+                entity.movement_behavior = MovementBehavior::Path(PathMovementBehavior {
+                    path_state: None,
+                    speed: 100.0,
+                    detection_radius: 100.0,
+                });
                 entity.sprite_id = SpriteId::UnitArcher;
                 entity
                     .attacks

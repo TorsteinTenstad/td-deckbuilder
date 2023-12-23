@@ -59,10 +59,10 @@ impl Attack {
                         bullet.pos = entity.pos;
                         bullet.movement_behavior =
                             MovementBehavior::Bullet(BulletMovementBehavior {
+                                speed: 500.0,
                                 velocity: Vec2::ZERO,
                                 target_entity_id: Some(target_entity.id),
                             });
-                        bullet.speed = 500.0;
                         bullet.radius = PROJECTILE_RADIUS;
                         bullet.health = 1.0;
                         bullet.hitbox_radius = PROJECTILE_RADIUS;

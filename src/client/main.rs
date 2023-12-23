@@ -1,6 +1,6 @@
 use client_game_state::ClientGameState;
 use common::component_attack::{Attack, AttackVariant};
-use common::component_movement_behavior::MovementBehavior;
+use common::component_movement_behavior::{MovementBehavior, PathMovementBehavior};
 use common::entity::EntityTag;
 use common::play_target::{unit_spawnpoint_target_transform, PlayFn};
 use common::rect_transform::point_inside;
@@ -138,9 +138,10 @@ fn main_draw(state: &ClientGameState) {
                 );
 
                 let flip_x = match &entity.movement_behavior {
-                    MovementBehavior::Path(path_movement_behavior) => {
-                        path_movement_behavior.direction == Direction::Negative
-                    }
+                    MovementBehavior::Path(PathMovementBehavior {
+                        path_state: Some(path_state),
+                        ..
+                    }) => path_state.direction == Direction::Negative,
                     _ => false,
                 };
 

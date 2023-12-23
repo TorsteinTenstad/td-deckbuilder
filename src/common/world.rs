@@ -92,14 +92,18 @@ pub fn find_entity(entities: &Vec<Entity>, id: Option<EntityId>) -> Option<&Enti
     return id.and_then(|id| entities.iter().find(|entity| entity.id == id));
 }
 
-pub fn world_place_entity(
+pub fn world_place_path_entity(
     static_game_state: &StaticGameState,
     dynamic_game_state: &mut DynamicGameState,
     mut entity: Entity,
     target: UnitSpawnpointTarget,
 ) {
+    let MovementBehavior::Path(path_movement_behavior) = &mut entity.movement_behavior else {
+        assert!(false);
+        return;
+    };
     entity.pos = get_path_pos(static_game_state, target.path_id, target.path_idx);
-    entity.movement_behavior = MovementBehavior::Path(target.into());
+    path_movement_behavior.path_state = Some(target.into());
     dynamic_game_state.entities.push(entity);
 }
 

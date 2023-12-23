@@ -2,7 +2,7 @@ use crate::{
     entity_blueprint::EntityBlueprint,
     ids::CardInstanceId,
     play_target::PlayFn,
-    world::{find_entity_mut, world_place_building, world_place_entity},
+    world::{find_entity_mut, world_place_building, world_place_path_entity},
 };
 use serde::{Deserialize, Serialize};
 
@@ -49,7 +49,7 @@ const CARD_DATA: &[CardData] = &[
         energy_cost: 1,
         play_fn: PlayFn::UnitSpawnPoint(|target, owner, static_game_state, dynamic_game_state| {
             let entity = EntityBlueprint::BasicSwordsman.create(owner);
-            world_place_entity(static_game_state, dynamic_game_state, entity, target);
+            world_place_path_entity(static_game_state, dynamic_game_state, entity, target);
             return true;
         }),
     },
@@ -58,7 +58,7 @@ const CARD_DATA: &[CardData] = &[
         energy_cost: 1,
         play_fn: PlayFn::UnitSpawnPoint(|target, owner, static_game_state, dynamic_game_state| {
             let entity = EntityBlueprint::BasicRanger.create(owner);
-            world_place_entity(static_game_state, dynamic_game_state, entity, target);
+            world_place_path_entity(static_game_state, dynamic_game_state, entity, target);
             return true;
         }),
     },
