@@ -1,10 +1,10 @@
 use crate::{
-    entity::Entity,
+    entity::{Entity, EntityTag},
     game_state::StaticGameState,
     ids::{EntityId, PathId},
     play_target::UnitSpawnpointTarget,
     serde_defs::Vec2Def,
-    world::{find_entity, get_path_pos, next_path_idx, Direction},
+    world::{find_entity, find_entity_in_range, get_path_pos, next_path_idx, Direction},
 };
 use macroquad::math::Vec2;
 use serde::{Deserialize, Serialize};
@@ -61,11 +61,26 @@ impl MovementBehavior {
                         .unwrap()
                         .len()
                 {
-                    let target_pos = get_path_pos(
-                        static_game_state,
-                        path_state.path_id,
-                        path_state.target_path_idx,
-                    );
+                    let can_target: Vec<EntityTag> = entity
+                        .attacks
+                        .iter()
+                        .flat_map(|attack| attack.can_target.clone().into_iter())
+                        .collect();
+
+                    let target_pos = match find_entity_in_range(
+                        entity.pos,
+                        entity.owner,
+                        path_movement_behavior.detection_radius,
+                        &can_target,
+                        entities,
+                    ) {
+                        Some(target_entity) => target_entity.pos,
+                        None => get_path_pos(
+                            static_game_state,
+                            path_state.path_id,
+                            path_state.target_path_idx,
+                        ),
+                    };
                     let delta = target_pos - entity.pos;
                     entity.pos += delta.normalize_or_zero() * path_movement_behavior.speed * dt;
                     let updated_delta = target_pos - entity.pos;

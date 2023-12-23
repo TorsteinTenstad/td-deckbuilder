@@ -10,7 +10,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Clone, Serialize, Deserialize)]
 pub struct Attack {
     pub variant: AttackVariant,
-    pub can_target: Option<Vec<EntityTag>>,
+    pub can_target: Vec<EntityTag>,
     pub range: f32,
     pub damage: f32,
     pub attack_interval: f32,
@@ -19,10 +19,16 @@ pub struct Attack {
 }
 
 impl Attack {
-    pub fn new(variant: AttackVariant, range: f32, damage: f32, attack_interval: f32) -> Self {
+    pub fn new(
+        variant: AttackVariant,
+        range: f32,
+        damage: f32,
+        attack_interval: f32,
+        can_target: Vec<EntityTag>,
+    ) -> Self {
         Self {
             variant,
-            can_target: None,
+            can_target,
             range,
             damage,
             attack_interval,
@@ -69,7 +75,7 @@ impl Attack {
                         bullet.seconds_left_to_live = Some(3.0);
                         bullet.attacks.push(Attack {
                             variant: AttackVariant::MeleeAttack,
-                            can_target: None,
+                            can_target: attack.can_target.clone(),
                             range: PROJECTILE_RADIUS,
                             damage: attack.damage,
                             attack_interval: 1.0,

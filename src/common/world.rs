@@ -59,18 +59,13 @@ pub fn find_entity_in_range<'a>(
     entity_pos: Vec2,
     entity_owner: PlayerId,
     range: f32,
-    can_target: &Option<Vec<EntityTag>>,
+    can_target: &Vec<EntityTag>,
     other_entities: &'a mut Vec<Entity>,
 ) -> Option<&'a mut Entity> {
     other_entities
         .iter_mut()
         .filter(|other_entity| other_entity.owner != entity_owner)
-        .filter(|other_entity| {
-            can_target
-                .as_ref()
-                .unwrap_or(&vec![EntityTag::Tower, EntityTag::Unit, EntityTag::Base])
-                .contains(&other_entity.tag)
-        })
+        .filter(|other_entity| can_target.contains(&other_entity.tag))
         .filter(|other_entity| {
             (other_entity.pos - entity_pos).length_squared()
                 < (range + other_entity.hitbox_radius).powi(2)

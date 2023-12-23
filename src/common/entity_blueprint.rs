@@ -14,6 +14,7 @@ pub enum EntityBlueprint {
     BasicRanger,
     BasicTower,
     SpawnPointTest,
+    Base,
 }
 
 const UNIT_RADIUS: f32 = 36.0;
@@ -24,11 +25,12 @@ impl EntityBlueprint {
         let tag = match self {
             EntityBlueprint::BasicSwordsman | EntityBlueprint::BasicRanger => EntityTag::Unit,
             EntityBlueprint::BasicTower | EntityBlueprint::SpawnPointTest => EntityTag::Tower,
+            EntityBlueprint::Base => EntityTag::Base,
         };
         let state = match self {
             EntityBlueprint::BasicSwordsman | EntityBlueprint::BasicRanger => EntityState::Moving,
             EntityBlueprint::BasicTower => EntityState::Attacking,
-            EntityBlueprint::SpawnPointTest => EntityState::Passive,
+            EntityBlueprint::SpawnPointTest | EntityBlueprint::Base => EntityState::Passive,
         };
         let mut entity = Entity::new(tag, owner, state);
         match self {
@@ -39,7 +41,7 @@ impl EntityBlueprint {
                 entity.movement_behavior = MovementBehavior::Path(PathMovementBehavior {
                     path_state: None,
                     speed: 100.0,
-                    detection_radius: 100.0,
+                    detection_radius: 150.0,
                 });
                 entity.sprite_id = SpriteId::UnitSwordsman;
                 entity.attacks.push(Attack::new(
@@ -47,6 +49,7 @@ impl EntityBlueprint {
                     entity.radius,
                     10.0,
                     0.5,
+                    vec![EntityTag::Base, EntityTag::Tower, EntityTag::Unit],
                 ));
             }
             EntityBlueprint::BasicRanger => {
@@ -56,26 +59,40 @@ impl EntityBlueprint {
                 entity.movement_behavior = MovementBehavior::Path(PathMovementBehavior {
                     path_state: None,
                     speed: 100.0,
-                    detection_radius: 100.0,
+                    detection_radius: 150.0,
                 });
                 entity.sprite_id = SpriteId::UnitArcher;
-                entity
-                    .attacks
-                    .push(Attack::new(AttackVariant::RangedAttack, 200.0, 10.0, 0.5));
+                entity.attacks.push(Attack::new(
+                    AttackVariant::RangedAttack,
+                    200.0,
+                    10.0,
+                    0.5,
+                    vec![EntityTag::Base, EntityTag::Tower, EntityTag::Unit],
+                ));
             }
             EntityBlueprint::BasicTower => {
                 let range = 350.0;
                 entity.radius = BUILDING_RADIUS;
                 entity.health = 200.0;
-                entity.hitbox_radius = range / 2.0;
-                let mut attack = Attack::new(AttackVariant::RangedAttack, range, 5.0, 0.5);
-                attack.can_target = Some(vec![EntityTag::Unit]);
-                entity.attacks.push(attack);
+                entity.hitbox_radius = entity.radius;
+                entity.attacks.push(Attack::new(
+                    AttackVariant::RangedAttack,
+                    range,
+                    5.0,
+                    0.5,
+                    vec![EntityTag::Unit],
+                ));
             }
             EntityBlueprint::SpawnPointTest => {
                 entity.radius = BUILDING_RADIUS;
                 entity.health = 200.0;
-                entity.hitbox_radius = 250.0;
+                entity.hitbox_radius = entity.radius;
+                entity.usable_as_spawn_point = true;
+            }
+            EntityBlueprint::Base => {
+                entity.radius = 48.0;
+                entity.health = 1000.0;
+                entity.hitbox_radius = entity.radius;
                 entity.usable_as_spawn_point = true;
             }
         }

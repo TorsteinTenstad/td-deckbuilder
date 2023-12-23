@@ -174,6 +174,15 @@ fn main_draw(state: &ClientGameState) {
         {
             range_circle_preview.push((entity.pos.x, entity.pos.y, *range, BLUE));
         }
+
+        if let MovementBehavior::Path(path_movement_behavior) = &entity.movement_behavior {
+            range_circle_preview.push((
+                entity.pos.x,
+                entity.pos.y,
+                path_movement_behavior.detection_radius,
+                YELLOW,
+            ));
+        }
         range_circle_preview.push((entity.pos.x, entity.pos.y, entity.hitbox_radius, RED));
     }
     for (x, y, range, color) in range_circle_preview {

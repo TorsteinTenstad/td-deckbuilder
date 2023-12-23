@@ -7,7 +7,7 @@ pub fn server_addr() -> SocketAddr {
         .map(|s| s.trim().parse().unwrap())
         .unwrap_or_else(|_| {
             local_ip_address::local_ip()
-                .map(|ip| dbg!(format!("{}:{}", ip, SERVER_PORT)))
+                .map(|ip| format!("{}:{}", ip, SERVER_PORT))
                 .unwrap()
         })
         .parse()
