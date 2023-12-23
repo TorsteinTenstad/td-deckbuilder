@@ -4,6 +4,7 @@ pub mod component_movement_behavior;
 pub mod config;
 pub mod entity;
 pub mod entity_blueprint;
+pub mod find_target;
 pub mod game_state;
 pub mod get_unit_spawnpoints;
 pub mod hand;

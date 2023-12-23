@@ -295,6 +295,7 @@ pub fn sprite_id_to_string(sprite_id: SpriteId) -> &'static str {
         SpriteId::Shield => "shield",
         SpriteId::UnitArcher => "unit_archer",
         SpriteId::UnitSwordsman => "unit_swordsman",
+        SpriteId::UnitPriest => "unit_priest",
         SpriteId::UnitBuilder => "unit_builder",
         SpriteId::UnitDemonPig => "unit_demon_pig",
         SpriteId::Sword => "sword",
@@ -369,6 +370,7 @@ pub async fn load_sprites() -> Sprites {
             SpriteId::BuildingTower,
             SpriteId::BuildingSpawnpoint,
             SpriteId::UnitBuilder,
+            SpriteId::UnitPriest,
             SpriteId::UnitDemonPig,
         ] {
             sprites.insert(

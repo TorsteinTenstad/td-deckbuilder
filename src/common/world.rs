@@ -1,6 +1,6 @@
 use crate::{
     component_movement_behavior::MovementBehavior,
-    entity::{Entity, EntityTag},
+    entity::Entity,
     game_state::{DynamicGameState, StaticGameState},
     get_unit_spawnpoints::get_unit_spawnpoints,
     ids::{EntityId, PathId, PlayerId},
@@ -95,30 +95,6 @@ pub fn path_length_from_spawnpoint(
         spawnpoint.path_idx,
         first_path_idx_within_building_range,
     ))
-}
-
-pub fn find_entity_in_range<'a>(
-    entity_pos: Vec2,
-    entity_owner: PlayerId,
-    range: f32,
-    can_target: &Vec<EntityTag>,
-    other_entities: &'a mut Vec<Entity>,
-) -> Option<&'a mut Entity> {
-    other_entities
-        .iter_mut()
-        .filter(|other_entity| other_entity.owner != entity_owner)
-        .filter(|other_entity| can_target.contains(&other_entity.tag))
-        .filter(|other_entity| {
-            (other_entity.pos - entity_pos).length_squared()
-                < (range + other_entity.hitbox_radius).powi(2)
-        })
-        .min_by(|other_entity_a, other_entity_b| {
-            let signed_distance_a = (other_entity_a.pos - entity_pos).length_squared()
-                - (range + other_entity_a.hitbox_radius).powi(2);
-            let signed_distance_b = (other_entity_b.pos - entity_pos).length_squared()
-                - (range + other_entity_b.hitbox_radius).powi(2);
-            signed_distance_a.partial_cmp(&signed_distance_b).unwrap()
-        })
 }
 
 pub fn find_entity_mut(entities: &mut Vec<Entity>, id: Option<EntityId>) -> Option<&mut Entity> {

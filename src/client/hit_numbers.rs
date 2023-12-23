@@ -2,7 +2,7 @@ use std::{collections::HashMap, f32::consts::PI, time::SystemTime};
 
 use common::{entity::Entity, ids::EntityId};
 use macroquad::{
-    color::{Color, RED},
+    color::{Color, GREEN, RED},
     math::Vec2,
 };
 
@@ -71,13 +71,19 @@ impl HitNumbers {
                     .unwrap()
                     .as_secs_f32()
                     / Self::ALIVE_TIME);
+            let rgb = if physical_hit_number.number < 0 {
+                RED
+            } else {
+                GREEN
+            };
+
             draw_text_with_origin(
                 format!("{}", physical_hit_number.number).as_str(),
                 to_screen_x(physical_hit_number.pos.x),
                 to_screen_y(physical_hit_number.pos.y),
                 28.0,
                 0.0,
-                Color { a: alpha, ..RED },
+                Color { a: alpha, ..rgb },
                 TextOriginX::Center,
                 TextOriginY::Center,
             )

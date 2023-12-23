@@ -1,13 +1,11 @@
 use crate::{
     entity::{Entity, EntityState, EntityTag},
+    find_target::find_enemy_entity_in_range,
     game_state::{DynamicGameState, StaticGameState},
     ids::{EntityId, PathId},
     play_target::UnitSpawnpointTarget,
     serde_defs::Vec2Def,
-    world::{
-        find_entity, find_entity_in_range, get_path_pos, next_path_idx, world_place_building,
-        Direction,
-    },
+    world::{find_entity, get_path_pos, next_path_idx, world_place_building, Direction},
 };
 use macroquad::math::Vec2;
 use serde::{Deserialize, Serialize};
@@ -103,7 +101,8 @@ impl MovementBehavior {
                             }
                         }
                         _ => {
-                            match find_entity_in_range(
+                            // TODO: If healing remains to be a type of attack, this is bad
+                            match find_enemy_entity_in_range(
                                 entity.pos,
                                 entity.owner,
                                 path_movement_behavior.detection_radius,

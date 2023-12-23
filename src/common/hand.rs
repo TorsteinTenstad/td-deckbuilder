@@ -22,7 +22,8 @@ impl Hand {
             (3, Card::SpawnPointTest),
             (3, Card::BasicRanger),
             (3, Card::DirectDamageTest),
-            (6, Card::DemonPig),
+            (3, Card::DemonPig),
+            (3, Card::Priest),
         ] {
             for _ in 0..quantity {
                 deck.push(CardInstance {

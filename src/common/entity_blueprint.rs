@@ -12,6 +12,7 @@ use crate::{
 #[derive(Clone, Serialize, Deserialize)]
 pub enum EntityBlueprint {
     BasicSwordsman,
+    Priest,
     DemonPig,
     BasicRanger,
     BasicTower,
@@ -31,6 +32,7 @@ impl EntityBlueprint {
             | EntityBlueprint::DemonPig
             | EntityBlueprint::BasicRanger
             | EntityBlueprint::BasicTowerBuilder
+            | EntityBlueprint::Priest
             | EntityBlueprint::SpawnPointBuilder => EntityTag::Unit,
             EntityBlueprint::BasicTower | EntityBlueprint::SpawnPoint => EntityTag::Tower,
             EntityBlueprint::Base => EntityTag::Base,
@@ -40,6 +42,7 @@ impl EntityBlueprint {
             | EntityBlueprint::DemonPig
             | EntityBlueprint::BasicRanger
             | EntityBlueprint::BasicTowerBuilder
+            | EntityBlueprint::Priest
             | EntityBlueprint::SpawnPointBuilder => EntityState::Moving,
             EntityBlueprint::BasicTower => EntityState::Attacking,
             EntityBlueprint::SpawnPoint | EntityBlueprint::Base => EntityState::Passive,
@@ -110,6 +113,24 @@ impl EntityBlueprint {
                     10.0,
                     0.5,
                     vec![EntityTag::Base, EntityTag::Tower, EntityTag::Unit],
+                ));
+            }
+            EntityBlueprint::Priest => {
+                entity.radius = UNIT_RADIUS;
+                entity.health = 100.0;
+                entity.hitbox_radius = entity.radius;
+                entity.movement_behavior = MovementBehavior::Path(PathMovementBehavior {
+                    path_state: None,
+                    speed: 100.0,
+                    detection_radius: 150.0,
+                });
+                entity.sprite_id = SpriteId::UnitPriest;
+                entity.attacks.push(Attack::new(
+                    AttackVariant::Heal,
+                    entity.radius,
+                    10.0,
+                    0.75,
+                    vec![EntityTag::Unit],
                 ));
             }
             EntityBlueprint::DemonPig => {

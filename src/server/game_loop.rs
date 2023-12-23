@@ -2,8 +2,8 @@ use common::{
     component_attack::Attack,
     component_movement_behavior::MovementBehavior,
     entity::{Entity, EntityState},
+    find_target::find_target_for_attack,
     game_state::{DynamicGameState, StaticGameState},
-    world::find_entity_in_range,
 };
 
 pub fn update_entity<'a>(
@@ -13,11 +13,11 @@ pub fn update_entity<'a>(
     dt: f32,
 ) {
     let can_attack = entity.attacks.iter().any(|attack| {
-        find_entity_in_range(
+        find_target_for_attack(
             entity.pos,
             entity.owner,
             attack.range,
-            &attack.can_target,
+            attack,
             &mut dynamic_game_state.entities,
         )
         .is_some()

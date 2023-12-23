@@ -2,7 +2,7 @@ use crate::{
     component_movement_behavior::{BulletMovementBehavior, MovementBehavior},
     config::PROJECTILE_RADIUS,
     entity::{Entity, EntityState, EntityTag},
-    world::find_entity_in_range,
+    find_target::find_target_for_attack,
 };
 use macroquad::math::Vec2;
 use serde::{Deserialize, Serialize};
@@ -40,6 +40,7 @@ impl Attack {
 
 #[derive(PartialEq, Eq, Clone, Serialize, Deserialize)]
 pub enum AttackVariant {
+    Heal,
     RangedAttack,
     MeleeAttack,
 }
@@ -47,13 +48,9 @@ pub enum AttackVariant {
 impl Attack {
     pub fn update(entity: &mut Entity, entities: &mut Vec<Entity>, dt: f32) {
         for attack in &mut entity.attacks {
-            let Some(target_entity) = find_entity_in_range(
-                entity.pos,
-                entity.owner,
-                attack.range,
-                &attack.can_target,
-                entities,
-            ) else {
+            let Some(target_entity) =
+                find_target_for_attack(entity.pos, entity.owner, attack.range, &attack, entities)
+            else {
                 continue;
             };
             if attack.cooldown_timer <= 0.0 {
@@ -86,13 +83,16 @@ impl Attack {
                         entities.push(bullet);
                     }
                     AttackVariant::MeleeAttack => {
-                        if attack.self_destruct {
-                            entity.health = 0.0;
-                        };
                         target_entity.health -= attack.damage;
                         target_entity.damage_animation = 0.1;
                     }
+                    AttackVariant::Heal => {
+                        target_entity.health += attack.damage;
+                    }
                 }
+                if attack.self_destruct {
+                    entity.health = 0.0;
+                };
             } else {
                 attack.cooldown_timer -= dt;
             }
