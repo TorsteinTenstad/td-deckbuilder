@@ -11,6 +11,7 @@ pub enum Card {
     BasicTower,
     SpawnPointTest,
     BasicSwordsman,
+    DemonPig,
     BasicRanger,
     DirectDamageTest,
 }
@@ -61,6 +62,15 @@ const CARD_DATA: &[CardData] = &[
         energy_cost: 1,
         play_fn: PlayFn::UnitSpawnPoint(|target, owner, static_game_state, dynamic_game_state| {
             let entity = EntityBlueprint::BasicSwordsman.create(owner);
+            world_place_path_entity(static_game_state, dynamic_game_state, entity, target);
+            return true;
+        }),
+    },
+    CardData {
+        name: "Demon Pig",
+        energy_cost: 1,
+        play_fn: PlayFn::UnitSpawnPoint(|target, owner, static_game_state, dynamic_game_state| {
+            let entity = EntityBlueprint::DemonPig.create(owner);
             world_place_path_entity(static_game_state, dynamic_game_state, entity, target);
             return true;
         }),

@@ -16,4 +16,6 @@ pub enum SpriteId {
     BuildingBase,
     BuildingTower,
     BuildingSpawnpoint,
+    UnitBuilder,
+    UnitDemonPig,
 }
