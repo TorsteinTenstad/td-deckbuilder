@@ -104,7 +104,7 @@ const CARD_DATA: &[CardData] = &[
                 return false;
             };
             target_entity.health -= 100.0;
-            target_entity.damage_animation = 0.1;
+target_entity.damage_animation = 0.1;
             return true;
         }),
     },

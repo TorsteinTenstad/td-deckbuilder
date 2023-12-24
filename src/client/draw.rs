@@ -4,7 +4,7 @@ use macroquad::{
     color::{Color, BLACK, BLUE, GRAY, LIGHTGRAY, WHITE, YELLOW},
     math::Vec2,
     shapes::{draw_circle, draw_rectangle, draw_rectangle_ex, DrawRectangleParams},
-    text::{camera_font_scale, draw_text_ex, measure_text, TextDimensions, TextParams},
+    text::{camera_font_scale, draw_text_ex, measure_text, Font, TextDimensions, TextParams},
     texture::{draw_texture_ex, load_texture, DrawTextureParams, Texture2D},
     window::{screen_height, screen_width},
 };
@@ -95,6 +95,7 @@ pub fn draw_text_with_origin(
     color: Color,
     origin_x: TextOriginX,
     origin_y: TextOriginY,
+    font: Option<&Font>,
 ) {
     let (font_size, font_scale, font_scale_aspect) = camera_font_scale(font_size);
     let TextDimensions {
@@ -126,6 +127,7 @@ pub fn draw_text_with_origin(
             font_scale_aspect,
             rotation,
             color,
+            font,
             ..Default::default()
         },
     )
@@ -142,6 +144,7 @@ pub fn draw_progress_bar(
     fill_color: Color,
     outline_color: Color,
     background_color: Color,
+    font: Option<&Font>,
 ) {
     let inner_w = w - 2.0 * outline_w;
     let inner_h = h - 2.0 * outline_w;
@@ -170,10 +173,17 @@ pub fn draw_progress_bar(
         fill_color,
         TextOriginX::Center,
         TextOriginY::Bottom,
+        font,
     )
 }
 
-pub fn draw_card(card: &Card, transform: &RectTransform, alpha: f32, sprites: &Sprites) {
+pub fn draw_card(
+    card: &Card,
+    transform: &RectTransform,
+    alpha: f32,
+    sprites: &Sprites,
+    font: Option<&Font>,
+) {
     draw_circle(transform.x, transform.y, 3.0, YELLOW);
     draw_rect_transform(transform, Color { a: alpha, ..GRAY });
     let inner_offset = transform.offset
@@ -220,6 +230,7 @@ pub fn draw_card(card: &Card, transform: &RectTransform, alpha: f32, sprites: &S
         Color { a: alpha, ..BLACK },
         TextOriginX::Right,
         TextOriginY::Top,
+        font,
     );
 
     let width_relative_margin = 0.1;
@@ -263,6 +274,7 @@ pub fn draw_card(card: &Card, transform: &RectTransform, alpha: f32, sprites: &S
             Color { a: alpha, ..BLACK },
             TextOriginX::Left,
             TextOriginY::AbsoluteCenter,
+            font,
         );
     }
 
@@ -281,6 +293,7 @@ pub fn draw_card(card: &Card, transform: &RectTransform, alpha: f32, sprites: &S
         WHITE,
         TextOriginX::Center,
         TextOriginY::AbsoluteCenter,
+        font,
     );
 }
 

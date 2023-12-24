@@ -11,6 +11,7 @@ use common::{
     play_target::UnitSpawnpointTarget,
     server_player::ServerPlayer,
 };
+use macroquad::text::Font;
 use std::{net::UdpSocket, time::SystemTime};
 
 pub struct ClientGameState {
@@ -24,6 +25,7 @@ pub struct ClientGameState {
     pub player_id: PlayerId,
     pub dt: f32,
     pub sprites: Sprites,
+    pub font: Font,
     pub unit_spawnpoint_targets: Vec<UnitSpawnpointTarget>,
     pub physical_hand: PhysicalHand,
     pub hit_numbers: HitNumbers,
@@ -49,6 +51,9 @@ impl ClientGameState {
             player_id,
             dt: 0.167,
             sprites: load_sprites().await,
+            font: macroquad::text::load_ttf_font("assets\\fonts\\shaky-hand-some-comic.bold.ttf")
+                .await
+                .unwrap(),
             unit_spawnpoint_targets: Vec::new(),
             physical_hand: PhysicalHand::default(),
             hit_numbers: HitNumbers::new(),

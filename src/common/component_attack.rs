@@ -88,6 +88,8 @@ impl Attack {
                     }
                     AttackVariant::Heal => {
                         target_entity.health += attack.damage;
+                        target_entity.health =
+                            f32::min(target_entity.health, target_entity.max_health);
                     }
                 }
                 if attack.self_destruct {

@@ -43,6 +43,7 @@ pub struct Entity {
     #[serde(with = "Vec2Def")]
     pub pos: Vec2,
     pub radius: f32,
+    pub max_health: f32,
     pub health: f32,
     pub damage_animation: f32,
     pub hitbox_radius: f32,
@@ -65,6 +66,7 @@ impl Entity {
             move_target: MoveTarget::None,
             pos: Vec2::ZERO,
             radius: 0.0,
+            max_health: 0.0,
             health: 0.0,
             damage_animation: 0.0,
             hitbox_radius: 0.0,

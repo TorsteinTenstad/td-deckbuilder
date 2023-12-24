@@ -62,10 +62,16 @@ impl MovementBehavior {
                         .unwrap()
                         .len()
                 {
-                    let can_target: Vec<EntityTag> = entity
+                    let can_target_out_of_path: Vec<EntityTag> = entity
                         .attacks
                         .iter()
-                        .flat_map(|attack| attack.can_target.clone().into_iter())
+                        .flat_map(|attack| {
+                            attack
+                                .can_target
+                                .clone()
+                                .into_iter()
+                                .filter(|tag| tag != &EntityTag::Unit)
+                        })
                         .collect();
 
                     let update_position = |pos: &mut Vec2, target_pos: Vec2| -> bool {
@@ -101,12 +107,12 @@ impl MovementBehavior {
                             }
                         }
                         _ => {
-                            // TODO: If healing remains to be a type of attack, this is bad
+                            // TODO: This is inconsistent with other logic, but works because we never go out of the path to heal
                             match find_enemy_entity_in_range(
                                 entity.pos,
                                 entity.owner,
                                 path_movement_behavior.detection_radius,
-                                &can_target,
+                                &can_target_out_of_path,
                                 &mut dynamic_game_state.entities,
                             ) {
                                 Some(target_entity) => {

@@ -108,6 +108,7 @@ fn main_draw(state: &ClientGameState) {
             &physical_card.transform,
             1.0,
             &state.sprites,
+            Some(&state.font),
         )
     }
 
@@ -211,6 +212,7 @@ fn main_draw(state: &ClientGameState) {
             YELLOW,
             WHITE,
             BLACK,
+            Some(&state.font),
         );
         let energy_progress = player.hand.energy_counter;
         draw_progress_bar(
@@ -230,6 +232,7 @@ fn main_draw(state: &ClientGameState) {
             BLUE,
             WHITE,
             BLACK,
+            Some(&state.font),
         );
     }
 
@@ -281,5 +284,5 @@ fn main_draw(state: &ClientGameState) {
     }
 
     // hit numbers
-    state.hit_numbers.draw();
+    state.hit_numbers.draw(Some(&state.font));
 }
