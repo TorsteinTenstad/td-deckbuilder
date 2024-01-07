@@ -1,6 +1,6 @@
 use crate::{
     ids::{CardInstanceId, PlayerId},
-    play_target::PlayTarget,
+    play_target::PlayTarget, card::Card,
 };
 use serde::{Deserialize, Serialize};
 use std::{
@@ -18,5 +18,5 @@ pub fn hash_client_addr(addr: &SocketAddr) -> PlayerId {
 #[derive(Debug, Serialize, Deserialize)]
 pub enum ClientCommand {
     PlayCard(CardInstanceId, PlayTarget),
-    JoinGame,
+    JoinGame(Vec<Card>),
 }

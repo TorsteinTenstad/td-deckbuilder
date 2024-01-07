@@ -1,3 +1,4 @@
+use crate::card::Card;
 use crate::serde_defs::ColorDef;
 use crate::{hand::Hand, world::Direction};
 use macroquad::color::Color;
@@ -12,11 +13,11 @@ pub struct ServerPlayer {
 }
 
 impl ServerPlayer {
-    pub fn new(direction: Direction, color: Color) -> Self {
+    pub fn new(direction: Direction, color: Color, deck: Vec<Card>) -> Self {
         Self {
             direction,
             color,
-            hand: Hand::new(),
+            hand: Hand::new(deck),
         }
     }
 }

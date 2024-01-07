@@ -1,4 +1,4 @@
-use crate::{config::server_addr, physical_hand::hand_sync, ClientGameState, PhysicalHand};
+use crate::{physical_hand::hand_sync, ClientGameState, PhysicalHand};
 use common::{
     game_state::ServerGameState,
     ids::PlayerId,
@@ -80,10 +80,17 @@ pub fn udp_update_game_state(state: &mut ClientGameState) {
         state
             .udp_socket
             .send_to(
-                &serde_json::to_string(&ClientCommand::JoinGame)
-                    .unwrap()
-                    .as_bytes(),
-                server_addr(),
+                &serde_json::to_string(&ClientCommand::JoinGame(
+                    state
+                        .deck_builder
+                        .deck
+                        .iter()
+                        .map(|physical_card| physical_card.card.clone())
+                        .collect(),
+                ))
+                .unwrap()
+                .as_bytes(),
+                state.server_addr,
             )
             .unwrap();
     }
@@ -96,7 +103,7 @@ pub fn udp_send_commands(state: &mut ClientGameState) {
             .udp_socket
             .send_to(
                 &serde_json::to_string(&command).unwrap().as_bytes(),
-                server_addr(),
+                state.server_addr,
             )
             .unwrap();
     }

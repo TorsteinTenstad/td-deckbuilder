@@ -5,8 +5,10 @@ use crate::{
     world::{find_entity_mut, world_place_builder, world_place_path_entity},
 };
 use serde::{Deserialize, Serialize};
+use strum::IntoEnumIterator;
+use strum_macros::EnumIter;
 
-#[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq)]
+#[derive(Debug, Clone, EnumIter, Serialize, Deserialize, Eq, PartialEq)]
 pub enum Card {
     BasicTower,
     SpawnPointTest,
@@ -15,6 +17,12 @@ pub enum Card {
     DemonPig,
     BasicRanger,
     DirectDamageTest,
+}
+
+impl Card {
+    pub fn iter() -> impl Iterator<Item = Card> {
+        <Card as IntoEnumIterator>::iter()
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq)]
@@ -104,7 +112,7 @@ const CARD_DATA: &[CardData] = &[
                 return false;
             };
             target_entity.health -= 100.0;
-target_entity.damage_animation = 0.1;
+            target_entity.damage_animation = 0.1;
             return true;
         }),
     },

@@ -3,13 +3,15 @@ use common::component_attack::{Attack, AttackVariant};
 use common::component_movement_behavior::{MovementBehavior, PathMovementBehavior};
 use common::entity::EntityTag;
 use common::play_target::{unit_spawnpoint_target_transform, PlayFn};
-use common::rect_transform::point_inside;
+use common::rect_transform::{point_inside, RectTransform};
 use common::textures::SpriteId;
 use common::world::{find_entity, Direction};
 use common::*;
 use itertools::Itertools;
 use macroquad::color::{Color, BLACK, BLUE, GRAY, PINK, RED, WHITE, YELLOW};
+use macroquad::input::is_key_pressed;
 use macroquad::math::Vec2;
+use macroquad::miniquad::KeyCode;
 use macroquad::shapes::{draw_circle, draw_circle_lines, draw_line};
 use macroquad::texture::{draw_texture_ex, DrawTextureParams};
 use macroquad::window::{clear_background, screen_height, screen_width};
@@ -26,20 +28,50 @@ mod client_game_state;
 mod hit_numbers;
 mod physical_card;
 mod physical_hand;
+mod text_box;
+use text_box::*;
 
 #[macroquad::main("Client")]
 async fn main() {
     request_new_screen_size(1280.0, 720.0);
 
     let mut state = ClientGameState::new().await;
+    let mut text_box = TextBox::new(RectTransform {
+        w: 200.0,
+        h: 50.0,
+        ..Default::default()
+    });
+    text_box.text = state.server_addr.to_string();
 
     loop {
-        udp_update_game_state(&mut state);
-        main_step(&mut state);
-        udp_send_commands(&mut state);
-        main_draw(&state);
+        if state.in_deck_builder {
+            state.step();
+            state.deck_builder.step(state.dt);
+            text_box.step();
+            text_box.transform.x = screen_width() - text_box.transform.w - 10.0;
+            text_box.transform.y = screen_height() - text_box.transform.h - 10.0;
+            state.deck_builder.draw(&state.sprites, Some(&state.font));
+            text_box.draw(Some(&state.font));
 
-        next_frame().await;
+            next_frame().await;
+
+            if is_key_pressed(KeyCode::Enter) {
+                state.server_addr = text_box.text.parse().unwrap_or(state.server_addr);
+                state.deck_builder.save();
+                state.in_deck_builder = false;
+            }
+        } else {
+            udp_update_game_state(&mut state);
+            main_step(&mut state);
+            udp_send_commands(&mut state);
+            main_draw(&state);
+
+            next_frame().await;
+
+            if is_key_pressed(KeyCode::Escape) {
+                state.in_deck_builder = true;
+            }
+        }
     }
 }
 

@@ -1,4 +1,7 @@
-use common::{card::CardInstance, rect_transform::RectTransform};
+use common::{
+    card::{Card, CardInstance},
+    rect_transform::RectTransform,
+};
 use macroquad::{
     math::Vec2,
     window::{screen_height, screen_width},
@@ -9,13 +12,30 @@ use crate::draw::GOLDEN_RATIO;
 pub const CARD_BORDER: f32 = 5.0;
 pub const CARD_VISIBLE_HEIGHT: f32 = 0.8;
 
+#[derive(Debug, Clone)]
 pub struct PhysicalCard {
-    pub card_instance: CardInstance,
+    pub card: Card,
     pub transform: RectTransform,
     pub target_transform: RectTransform,
 }
 
 impl PhysicalCard {
+    pub fn new(card: Card) -> Self {
+        Self {
+            card,
+            transform: RectTransform::default(),
+            target_transform: RectTransform::default(),
+        }
+    }
+}
+
+pub struct PhysicalCardInstance {
+    pub card_instance: CardInstance,
+    pub transform: RectTransform,
+    pub target_transform: RectTransform,
+}
+
+impl PhysicalCardInstance {
     pub fn new(card_instance: CardInstance) -> Self {
         Self {
             card_instance,

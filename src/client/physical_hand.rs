@@ -2,7 +2,8 @@ use crate::{
     draw::{to_screen_x, to_screen_y},
     input::{mouse_screen_position, mouse_world_position},
     physical_card::{
-        card_transform_hovered, card_transform_in_hand, card_transform_outside_hand, PhysicalCard,
+        card_transform_hovered, card_transform_in_hand, card_transform_outside_hand,
+        PhysicalCardInstance,
     },
     ClientGameState,
 };
@@ -25,7 +26,7 @@ use macroquad::{
 #[derive(Default)]
 pub struct PhysicalHand {
     pub card_idx_being_held: Option<usize>,
-    pub cards: Vec<PhysicalCard>,
+    pub cards: Vec<PhysicalCardInstance>,
 }
 
 pub fn hand_sync(state: &mut ClientGameState) {
@@ -43,7 +44,7 @@ pub fn hand_sync(state: &mut ClientGameState) {
             state
                 .physical_hand
                 .cards
-                .push(PhysicalCard::new(card_instance.clone()));
+                .push(PhysicalCardInstance::new(card_instance.clone()));
         }
     }
     state.physical_hand.cards.retain(|physical_card| {

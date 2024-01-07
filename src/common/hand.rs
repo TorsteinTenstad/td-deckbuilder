@@ -1,6 +1,7 @@
 use crate::card::{Card, CardInstance};
 use crate::ids::CardInstanceId;
 use crate::vector::{pop_where, shuffle_vec};
+use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -14,24 +15,14 @@ pub struct Hand {
 }
 
 impl Hand {
-    pub fn new() -> Self {
-        let mut deck = Vec::new();
-        for (quantity, card) in vec![
-            (3, Card::BasicTower),
-            (3, Card::BasicSwordsman),
-            (3, Card::SpawnPointTest),
-            (3, Card::BasicRanger),
-            (3, Card::DirectDamageTest),
-            (3, Card::DemonPig),
-            (3, Card::Priest),
-        ] {
-            for _ in 0..quantity {
-                deck.push(CardInstance {
-                    id: CardInstanceId::new(),
-                    card: card.clone(),
-                });
-            }
-        }
+    pub fn new(deck: Vec<Card>) -> Self {
+        let mut deck = deck
+            .into_iter()
+            .map(|card| CardInstance {
+                id: CardInstanceId::new(),
+                card,
+            })
+            .collect_vec();
         shuffle_vec(&mut deck);
         Self {
             card_draw_counter: 0.0,
@@ -52,7 +43,7 @@ impl Hand {
             self.played.clear();
             shuffle_vec(&mut self.deck);
         }
-        let card = self.deck.pop().unwrap();
+        let card = self.deck.pop()?; // TODO: How to handle all cards drawn? Currently, we don't draw.
         self.cards.push(card.clone());
         Some(card)
     }

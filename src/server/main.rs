@@ -94,7 +94,7 @@ fn main() -> std::io::Result<()> {
                                 );
                             }
                         }
-                        ClientCommand::JoinGame => {
+                        ClientCommand::JoinGame(deck) => {
                             if !client_addresses.contains_key(&client_id) {
                                 client_addresses.insert(client_id, client_addr);
                                 if let Some(available_config) = level_config::PLAYER_CONFIGS
@@ -107,6 +107,7 @@ fn main() -> std::io::Result<()> {
                                         ServerPlayer::new(
                                             available_direction.clone(),
                                             *available_color,
+                                            deck,
                                         ),
                                     );
                                     let server_player = game_state
