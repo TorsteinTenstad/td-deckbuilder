@@ -2,6 +2,7 @@ use crate::{
     entity_blueprint::EntityBlueprint,
     ids::CardInstanceId,
     play_target::PlayFn,
+    textures::SpriteId,
     world::{find_entity_mut, world_place_builder, world_place_path_entity},
 };
 use serde::{Deserialize, Serialize};
@@ -34,6 +35,7 @@ pub struct CardInstance {
 pub struct CardData {
     pub name: &'static str,
     pub energy_cost: i32,
+    pub sprite_id: SpriteId,
     pub play_fn: PlayFn,
 }
 
@@ -41,6 +43,7 @@ const CARD_DATA: &[CardData] = &[
     CardData {
         name: "Tower",
         energy_cost: 3,
+        sprite_id: SpriteId::CardTower,
         play_fn: PlayFn::BuildingSpot(|target, owner, static_game_state, dynamic_game_state| {
             let entity = EntityBlueprint::BasicTowerBuilder.create(owner);
             return world_place_builder(
@@ -55,6 +58,7 @@ const CARD_DATA: &[CardData] = &[
     CardData {
         name: "Spawn Point",
         energy_cost: 2,
+        sprite_id: SpriteId::CardSpawnPoint,
         play_fn: PlayFn::BuildingSpot(|target, owner, static_game_state, dynamic_game_state| {
             let entity = EntityBlueprint::SpawnPointBuilder.create(owner);
             return world_place_builder(
@@ -69,6 +73,7 @@ const CARD_DATA: &[CardData] = &[
     CardData {
         name: "Swordsman",
         energy_cost: 1,
+        sprite_id: SpriteId::CardSwordsman,
         play_fn: PlayFn::UnitSpawnPoint(|target, owner, static_game_state, dynamic_game_state| {
             let entity = EntityBlueprint::BasicSwordsman.create(owner);
             world_place_path_entity(static_game_state, dynamic_game_state, entity, target);
@@ -78,6 +83,7 @@ const CARD_DATA: &[CardData] = &[
     CardData {
         name: "Priest",
         energy_cost: 1,
+        sprite_id: SpriteId::CardPriest,
         play_fn: PlayFn::UnitSpawnPoint(|target, owner, static_game_state, dynamic_game_state| {
             let entity = EntityBlueprint::Priest.create(owner);
             world_place_path_entity(static_game_state, dynamic_game_state, entity, target);
@@ -87,6 +93,7 @@ const CARD_DATA: &[CardData] = &[
     CardData {
         name: "Demon Pig",
         energy_cost: 1,
+        sprite_id: SpriteId::CardDemonPig,
         play_fn: PlayFn::UnitSpawnPoint(|target, owner, static_game_state, dynamic_game_state| {
             let entity = EntityBlueprint::DemonPig.create(owner);
             world_place_path_entity(static_game_state, dynamic_game_state, entity, target);
@@ -96,6 +103,7 @@ const CARD_DATA: &[CardData] = &[
     CardData {
         name: "Ranger",
         energy_cost: 1,
+        sprite_id: SpriteId::CardRanger,
         play_fn: PlayFn::UnitSpawnPoint(|target, owner, static_game_state, dynamic_game_state| {
             let entity = EntityBlueprint::BasicRanger.create(owner);
             world_place_path_entity(static_game_state, dynamic_game_state, entity, target);
@@ -105,6 +113,7 @@ const CARD_DATA: &[CardData] = &[
     CardData {
         name: "Direct Damage",
         energy_cost: 1,
+        sprite_id: SpriteId::CardDirectDamage,
         play_fn: PlayFn::Entity(|target, _owner, _static_game_state, dynamic_game_state| {
             let Some(target_entity) =
                 find_entity_mut(&mut dynamic_game_state.entities, Some(target.id))

@@ -184,7 +184,7 @@ pub fn draw_card(
     sprites: &Sprites,
     font: Option<&Font>,
 ) {
-    draw_circle(transform.x, transform.y, 3.0, YELLOW);
+    draw_circle(transform.x, transform.y, 3.0, YELLOW); //TODO: remove this, it's just for debugging
     draw_rect_transform(transform, Color { a: alpha, ..GRAY });
     let inner_offset = transform.offset
         + Vec2 {
@@ -219,16 +219,37 @@ pub fn draw_card(
             } * (Vec2 { x: rel_x, y: rel_y } - transform.offset),
         )
     };
+    let relative_border = CARD_BORDER / transform.w;
+    let image_w = transform.w * (1.0 - 2.0 * relative_border);
+    let image_pos = get_on_card_pos(relative_border, relative_border);
+    draw_texture_ex(
+        sprites
+            .sprites
+            .get(&card.get_card_data().sprite_id)
+            .unwrap(),
+        image_pos.x,
+        image_pos.y,
+        WHITE,
+        DrawTextureParams {
+            rotation: transform.rotation,
+            dest_size: Some(Vec2 {
+                x: image_w,
+                y: image_w * (9.0 / 16.0),
+            }),
+            pivot: Some(image_pos),
+            ..Default::default()
+        },
+    );
 
-    let card_name_pos = get_on_card_pos(0.9, 0.1);
+    let card_name_pos = get_on_card_pos(0.5, 0.4);
     draw_text_with_origin(
         card.name(),
         card_name_pos.x,
         card_name_pos.y,
-        20.0,
+        0.15 * transform.w,
         transform.rotation,
         Color { a: alpha, ..BLACK },
-        TextOriginX::Right,
+        TextOriginX::Center,
         TextOriginY::Top,
         font,
     );
@@ -299,23 +320,30 @@ pub fn draw_card(
 
 pub fn sprite_id_to_string(sprite_id: SpriteId) -> &'static str {
     match sprite_id {
-        SpriteId::Bow => "bow",
-        SpriteId::Concept => "concept",
-        SpriteId::Hourglass => "hourglass",
-        SpriteId::HourglassBow => "hourglass_bow",
-        SpriteId::HourglassSword => "hourglass_sword",
-        SpriteId::Range => "range",
-        SpriteId::Shield => "shield",
-        SpriteId::UnitArcher => "unit_archer",
-        SpriteId::UnitSwordsman => "unit_swordsman",
-        SpriteId::UnitPriest => "unit_priest",
-        SpriteId::UnitBuilder => "unit_builder",
-        SpriteId::UnitDemonPig => "unit_demon_pig",
-        SpriteId::Sword => "sword",
-        SpriteId::Empty => "x",
-        SpriteId::BuildingBase => "building_base",
-        SpriteId::BuildingTower => "building_tower",
-        SpriteId::BuildingSpawnpoint => "building_spawnpoint",
+        SpriteId::Bow => "bow.png",
+        SpriteId::Concept => "concept.png",
+        SpriteId::Hourglass => "hourglass.png",
+        SpriteId::HourglassBow => "hourglass_bow.png",
+        SpriteId::HourglassSword => "hourglass_sword.png",
+        SpriteId::Range => "range.png",
+        SpriteId::Shield => "shield.png",
+        SpriteId::UnitArcher => "unit_archer.png",
+        SpriteId::UnitSwordsman => "unit_swordsman.png",
+        SpriteId::UnitPriest => "unit_priest.png",
+        SpriteId::UnitBuilder => "unit_builder.png",
+        SpriteId::UnitDemonPig => "unit_demon_pig.png",
+        SpriteId::Sword => "sword.png",
+        SpriteId::Empty => "x.png",
+        SpriteId::BuildingBase => "building_base.png",
+        SpriteId::BuildingTower => "building_tower.png",
+        SpriteId::BuildingSpawnpoint => "building_spawnpoint.png",
+        SpriteId::CardPriest => "card_art/priest.jpg",
+        SpriteId::CardRanger => "card_art/archer.jpg",
+        SpriteId::CardSwordsman => "card_art/swordsman.jpg",
+        SpriteId::CardSpawnPoint => "card_art/spawn_point.jpg",
+        SpriteId::CardTower => "card_art/tower.jpg",
+        SpriteId::CardDirectDamage => "card_art/direct_damage.jpg",
+        SpriteId::CardDemonPig => "card_art/demon_pig.jpg",
     }
 }
 
@@ -362,14 +390,19 @@ pub async fn load_sprites() -> Sprites {
         SpriteId::Shield,
         SpriteId::Sword,
         SpriteId::Empty,
+        SpriteId::CardTower,
+        SpriteId::CardSpawnPoint,
+        SpriteId::CardSwordsman,
+        SpriteId::CardRanger,
+        SpriteId::CardPriest,
+        SpriteId::CardDirectDamage,
+        SpriteId::CardDemonPig,
     ] {
         sprites.sprites.insert(
             sprite_id.clone(),
-            load_texture(
-                format!("assets/textures/{}.png", sprite_id_to_string(sprite_id)).as_str(),
-            )
-            .await
-            .unwrap(),
+            load_texture(format!("assets/textures/{}", sprite_id_to_string(sprite_id)).as_str())
+                .await
+                .unwrap(),
         );
     }
     for (color, sprites) in vec![
@@ -390,7 +423,7 @@ pub async fn load_sprites() -> Sprites {
                 sprite_id.clone(),
                 load_texture(
                     format!(
-                        "assets/textures/{}/{}.png",
+                        "assets/textures/{}/{}",
                         color,
                         sprite_id_to_string(sprite_id)
                     )

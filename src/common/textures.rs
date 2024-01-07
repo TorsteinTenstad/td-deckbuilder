@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Copy, Deserialize, Serialize, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq, Hash)]
 pub enum SpriteId {
     Empty,
     Hourglass,
@@ -19,4 +19,11 @@ pub enum SpriteId {
     UnitBuilder,
     UnitPriest,
     UnitDemonPig,
+    CardTower,
+    CardSpawnPoint,
+    CardSwordsman,
+    CardRanger,
+    CardPriest,
+    CardDirectDamage,
+    CardDemonPig,
 }
