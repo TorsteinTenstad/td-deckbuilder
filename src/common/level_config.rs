@@ -73,7 +73,7 @@ pub const PATHS: &[&[(i32, i32)]] = &[
     ],
 ];
 
-pub const SPAWN_POINT_RADIUS: f32 = 192.0;
+pub const SPAWN_POINT_RADIUS: f32 = 256.0;
 
 pub const PLAYER_CONFIGS: &[(Vec2, Direction, Color)] = &[
     (Vec2 { x: 152.0, y: 236.0 }, Direction::Positive, ORANGE),
