@@ -185,13 +185,19 @@ fn main_draw(state: &ClientGameState) {
                     _ => false,
                 };
 
+                let height = 2.0 * radius;
+                let width = height * texture.width() / texture.height();
+
                 draw_texture_ex(
                     texture,
                     pos_x - radius,
                     pos_y - radius,
                     damage_animation_color.unwrap_or(WHITE),
                     DrawTextureParams {
-                        dest_size: Some(Vec2::splat(radius * 2.0)),
+                        dest_size: Some(Vec2 {
+                            x: width,
+                            y: height,
+                        }),
                         flip_x,
                         ..Default::default()
                     },
