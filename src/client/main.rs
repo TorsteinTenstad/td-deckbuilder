@@ -218,7 +218,12 @@ fn main_draw(state: &ClientGameState) {
             .iter()
             .find(|attack| attack.variant == AttackVariant::RangedAttack)
         {
-            range_circle_preview.push((entity.pos.x, entity.pos.y, *range, BLUE));
+            range_circle_preview.push((
+                entity.pos.x,
+                entity.pos.y,
+                range.to_f32(entity.radius),
+                BLUE,
+            ));
         }
 
         if let MovementBehavior::Path(path_movement_behavior) = &entity.movement_behavior {

@@ -18,16 +18,37 @@ pub enum MovementBehavior {
 }
 
 #[derive(Clone, Serialize, Deserialize)]
+pub enum MovementSpeed {
+    Slow,
+    Default,
+    Fast,
+    Projectile,
+    Custom(f32),
+}
+
+impl MovementSpeed {
+    pub fn to_f32(&self) -> f32 {
+        match self {
+            MovementSpeed::Slow => 50.0,
+            MovementSpeed::Default => 100.0,
+            MovementSpeed::Fast => 150.0,
+            MovementSpeed::Projectile => 500.0,
+            MovementSpeed::Custom(speed) => *speed,
+        }
+    }
+}
+
+#[derive(Clone, Serialize, Deserialize)]
 pub struct BulletMovementBehavior {
     #[serde(with = "Vec2Def")]
     pub velocity: Vec2,
     pub target_entity_id: Option<EntityId>,
-    pub speed: f32,
+    pub speed: MovementSpeed,
 }
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct PathMovementBehavior {
-    pub speed: f32,
+    pub speed: MovementSpeed,
     pub detection_radius: f32,
     pub path_state: Option<PathState>,
 }
@@ -76,7 +97,8 @@ impl MovementBehavior {
 
                     let update_position = |pos: &mut Vec2, target_pos: Vec2| -> bool {
                         let delta = target_pos - *pos;
-                        *pos += delta.normalize_or_zero() * path_movement_behavior.speed * dt;
+                        *pos +=
+                            delta.normalize_or_zero() * path_movement_behavior.speed.to_f32() * dt;
                         let updated_delta = target_pos - *pos;
                         delta.length_squared() < updated_delta.length_squared()
                     };
@@ -141,7 +163,7 @@ impl MovementBehavior {
             }) => {
                 *velocity = find_entity(&mut dynamic_game_state.entities, *target_entity_id)
                     .map(|target_entity| {
-                        (target_entity.pos - entity.pos).normalize_or_zero() * *speed
+                        (target_entity.pos - entity.pos).normalize_or_zero() * speed.to_f32()
                     })
                     .unwrap_or(*velocity);
 

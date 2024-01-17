@@ -1,8 +1,8 @@
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    component_attack::{Attack, AttackVariant},
-    component_movement_behavior::{MovementBehavior, PathMovementBehavior},
+    component_attack::{Attack, AttackRange, AttackVariant, AttackSpeed},
+    component_movement_behavior::{MovementBehavior, MovementSpeed, PathMovementBehavior},
     entity::{Entity, EntityState, EntityTag},
     ids::{BuildingLocationId, PlayerId},
     play_target::BuildingSpotTarget,
@@ -55,15 +55,15 @@ impl EntityBlueprint {
                 entity.max_health = 100.0;
                 entity.movement_behavior = MovementBehavior::Path(PathMovementBehavior {
                     path_state: None,
-                    speed: 100.0,
+                    speed: MovementSpeed::Default,
                     detection_radius: DEFAULT_UNIT_DETECTION_RADIUS,
                 });
                 entity.sprite_id = SpriteId::UnitBuilder;
                 entity.attacks.push(Attack::new(
                     AttackVariant::MeleeAttack,
-                    entity.radius,
+                    AttackRange::Melee,
                     10.0,
-                    0.5,
+                    AttackSpeed::Default,
                     vec![EntityTag::Base, EntityTag::Tower, EntityTag::Unit],
                 ));
                 entity.building_to_construct = Some((
@@ -78,15 +78,15 @@ impl EntityBlueprint {
                 entity.max_health = 100.0;
                 entity.movement_behavior = MovementBehavior::Path(PathMovementBehavior {
                     path_state: None,
-                    speed: 100.0,
+                    speed: MovementSpeed::Default,
                     detection_radius: DEFAULT_UNIT_DETECTION_RADIUS,
                 });
                 entity.sprite_id = SpriteId::UnitBuilder;
                 entity.attacks.push(Attack::new(
                     AttackVariant::MeleeAttack,
-                    entity.radius,
+                    AttackRange::Melee,
                     10.0,
-                    0.5,
+                    AttackSpeed::Default,
                     vec![EntityTag::Base, EntityTag::Tower, EntityTag::Unit],
                 ));
                 entity.building_to_construct = Some((
@@ -101,15 +101,15 @@ impl EntityBlueprint {
                 entity.max_health = 100.0;
                 entity.movement_behavior = MovementBehavior::Path(PathMovementBehavior {
                     path_state: None,
-                    speed: 100.0,
+                    speed: MovementSpeed::Default,
                     detection_radius: DEFAULT_UNIT_DETECTION_RADIUS,
                 });
                 entity.sprite_id = SpriteId::UnitSwordsman;
                 entity.attacks.push(Attack::new(
                     AttackVariant::MeleeAttack,
-                    entity.radius,
+                    AttackRange::Melee,
                     10.0,
-                    0.5,
+                    AttackSpeed::Default,
                     vec![EntityTag::Base, EntityTag::Tower, EntityTag::Unit],
                 ));
             }
@@ -118,15 +118,15 @@ impl EntityBlueprint {
                 entity.max_health = 100.0;
                 entity.movement_behavior = MovementBehavior::Path(PathMovementBehavior {
                     path_state: None,
-                    speed: 100.0,
+                    speed: MovementSpeed::Default,
                     detection_radius: DEFAULT_UNIT_DETECTION_RADIUS,
                 });
                 entity.sprite_id = SpriteId::UnitPriest;
                 entity.attacks.push(Attack::new(
                     AttackVariant::Heal,
-                    150.0,
+                    AttackRange::Default,
                     10.0,
-                    0.75,
+                    AttackSpeed::Default,
                     vec![EntityTag::Unit],
                 ));
             }
@@ -135,15 +135,15 @@ impl EntityBlueprint {
                 entity.max_health = 50.0;
                 entity.movement_behavior = MovementBehavior::Path(PathMovementBehavior {
                     path_state: None,
-                    speed: 300.0,
+                    speed: MovementSpeed::Fast,
                     detection_radius: DEFAULT_UNIT_DETECTION_RADIUS,
                 });
                 entity.sprite_id = SpriteId::UnitDemonPig;
                 entity.attacks.push(Attack::new(
                     AttackVariant::MeleeAttack,
-                    entity.radius,
+                    AttackRange::Melee,
                     3.0,
-                    0.25,
+                    AttackSpeed::Fast,
                     vec![EntityTag::Base, EntityTag::Tower, EntityTag::Unit],
                 ));
             }
@@ -152,27 +152,26 @@ impl EntityBlueprint {
                 entity.max_health = 50.0;
                 entity.movement_behavior = MovementBehavior::Path(PathMovementBehavior {
                     path_state: None,
-                    speed: 100.0,
+                    speed: MovementSpeed::Default,
                     detection_radius: DEFAULT_UNIT_DETECTION_RADIUS,
                 });
                 entity.sprite_id = SpriteId::UnitArcher;
                 entity.attacks.push(Attack::new(
                     AttackVariant::RangedAttack,
-                    200.0,
+                    AttackRange::Default,
                     10.0,
-                    0.5,
+                    AttackSpeed::Default,
                     vec![EntityTag::Base, EntityTag::Tower, EntityTag::Unit],
                 ));
             }
             EntityBlueprint::BasicTower => {
-                let range = 350.0;
                 entity.radius = BUILDING_RADIUS;
                 entity.max_health = 200.0;
                 entity.attacks.push(Attack::new(
                     AttackVariant::RangedAttack,
-                    range,
+                    AttackRange::Default,
                     5.0,
-                    0.5,
+                    AttackSpeed::Default,
                     vec![EntityTag::Unit],
                 ));
                 entity.sprite_id = SpriteId::BuildingTower
