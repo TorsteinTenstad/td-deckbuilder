@@ -1,0 +1,61 @@
+## Label description
+?   Functionality is suggested but design is under consideration
+_   Functionality planned but not implemented
+/   Functionality exists on a card, but is not scalable to many cards 
+X   Functionality is implemented as a robust system
+
+## Card abilities
+X   Cost
+X   Spawning a unit
+X   Building a tower through a builder
+/   Direct damage
+_   Destroy a tower
+_   Immediate card draw
+
+## Entity abilities
+X   Health
+X   Melee attack
+X   Ranged attack
+X   Healing
+X   Spawnpoint
+_   Multi-attack/multi-heal
+_   Friendly fire attacks
+/   Fast movement
+/   Slow movement
+/   Fast attacking
+/   Slow attacking
+/   Long range
+/   Short range
+_   Flying: Can only be attacked by ranged attacks. Will only attack towers, bases and others with Flying
+_   Protector: Always moves towards your furthest tower in it's lane
+_   Immune against spells
+?   Brothel
+_   Allies can not go past this unit
+_   Aura effect in radius (radius can be infinite):
+    _   Attack speed multiplier
+    _   Attack damage multiplier
+    _   Range multiplier
+    _   Health regeneration
+    _   Continuos damage
+    _   Additional health
+_   Damage multipliers based on target tags
+_   Absorbs damage dealt to nearby friendlies
+_   Increase card draw (additively and multiplicatively)
+_   Increase gold production (additively and multiplicatively)
+_   Unit spawning on an interval
+_   Build times for towers: Regular and slow
+_   Undetected by the first X enemy targets
+
+## Card ideas that need clarification
+Spy: Shaded appearance until reviled? Towers?
+Castle (takes longer to build): Is the builder damageable?
+Heavy lifter (damage all surrounding enemies): Continuously or as multi-attack
+
+## Card ideas not covered by these abilities
+Sword apprentice
+Damsel in distress
+Sleeping bear
+Destroyed land
+Tunnel digger
+Harsh weather
+    
