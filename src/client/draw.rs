@@ -322,6 +322,7 @@ pub fn sprite_id_to_string(sprite_id: SpriteId) -> &'static str {
     match sprite_id {
         SpriteId::Bow => "bow.png",
         SpriteId::Concept => "concept.png",
+        SpriteId::Map => "map.png",
         SpriteId::Hourglass => "hourglass.png",
         SpriteId::HourglassBow => "hourglass_bow.png",
         SpriteId::HourglassSword => "hourglass_sword.png",
@@ -383,6 +384,7 @@ pub async fn load_sprites() -> Sprites {
     for sprite_id in vec![
         SpriteId::Bow,
         SpriteId::Concept,
+        SpriteId::Map,
         SpriteId::Hourglass,
         SpriteId::HourglassBow,
         SpriteId::HourglassSword,

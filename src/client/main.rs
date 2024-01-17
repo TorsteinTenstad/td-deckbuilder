@@ -2,6 +2,7 @@ use client_game_state::ClientGameState;
 use common::component_attack::{Attack, AttackVariant};
 use common::component_movement_behavior::{MovementBehavior, PathMovementBehavior};
 use common::entity::EntityTag;
+use common::entity_blueprint::DEFAULT_UNIT_DETECTION_RADIUS;
 use common::play_target::{unit_spawnpoint_target_transform, PlayFn};
 use common::rect_transform::{point_inside, RectTransform};
 use common::textures::SpriteId;
@@ -92,7 +93,7 @@ fn main_draw(state: &ClientGameState) {
     // board
     clear_background(BLACK);
     draw_texture_ex(
-        &sprite_get_texture(&state.sprites, SpriteId::Concept),
+        &sprite_get_texture(&state.sprites, SpriteId::Map),
         0.0,
         0.0,
         WHITE,
@@ -106,8 +107,15 @@ fn main_draw(state: &ClientGameState) {
     );
 
     //paths
-    let draw_debug_paths = false;
-    if draw_debug_paths {
+    if state.show_debug_info {
+        for building_location in state.dynamic_game_state.building_locations.values() {
+            draw_circle(
+                to_screen_x(building_location.pos.x),
+                to_screen_y(building_location.pos.y),
+                to_screen_size(DEFAULT_UNIT_DETECTION_RADIUS),
+                Color { a: 0.2, ..PINK },
+            );
+        }
         for (_, path) in state.static_game_state.paths.iter() {
             for ((x1, y1), (x2, y2)) in path.iter().tuple_windows() {
                 let x1 = to_screen_x(*x1 as f32);

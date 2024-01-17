@@ -3,7 +3,7 @@ use crate::{
     ClientGameState,
 };
 use macroquad::{
-    input::{is_key_down, is_mouse_button_released, mouse_position},
+    input::{is_key_down, is_key_pressed, is_mouse_button_released, mouse_position},
     math::Vec2,
     miniquad::MouseButton,
 };
@@ -29,6 +29,10 @@ pub fn main_input(state: &mut ClientGameState) {
         state.selected_entity_id = state.dynamic_game_state.entities.iter().find_map(|entity| {
             ((entity.pos - mouse_world_position()).length() < entity.radius).then(|| entity.id)
         });
+    }
+
+    if is_key_pressed(macroquad::miniquad::KeyCode::F3) {
+        state.show_debug_info = !state.show_debug_info;
     }
 
     // TODO, Magne: this is temp

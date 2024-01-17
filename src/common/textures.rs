@@ -11,6 +11,7 @@ pub enum SpriteId {
     Sword,
     Bow,
     Concept,
+    Map,
     UnitArcher,
     UnitSwordsman,
     BuildingBase,

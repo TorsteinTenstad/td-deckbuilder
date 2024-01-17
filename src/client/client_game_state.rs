@@ -195,6 +195,7 @@ pub struct ClientGameState {
     pub deck_builder: DeckBuilder,
     pub physical_hand: PhysicalHand,
     pub hit_numbers: HitNumbers,
+    pub show_debug_info: bool,
     // TODO: temp
     pub card_delta_angle: f32,
     pub relative_splay_radius: f32,
@@ -210,6 +211,7 @@ impl ClientGameState {
             server_addr: default_server_addr(),
             static_game_state: StaticGameState::new(),
             dynamic_game_state: DynamicGameState::new(),
+            show_debug_info: false,
             card_delta_angle: 0.1,
             relative_splay_radius: 4.5,
             commands: Vec::new(),

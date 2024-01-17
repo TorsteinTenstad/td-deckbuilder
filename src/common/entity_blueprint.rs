@@ -23,6 +23,7 @@ pub enum EntityBlueprint {
 }
 
 const UNIT_RADIUS: f32 = 36.0;
+pub const DEFAULT_UNIT_DETECTION_RADIUS: f32 = 200.0;
 const BUILDING_RADIUS: f32 = 64.0;
 
 impl EntityBlueprint {
@@ -55,7 +56,7 @@ impl EntityBlueprint {
                 entity.movement_behavior = MovementBehavior::Path(PathMovementBehavior {
                     path_state: None,
                     speed: 100.0,
-                    detection_radius: 150.0,
+                    detection_radius: DEFAULT_UNIT_DETECTION_RADIUS,
                 });
                 entity.sprite_id = SpriteId::UnitBuilder;
                 entity.attacks.push(Attack::new(
@@ -78,7 +79,7 @@ impl EntityBlueprint {
                 entity.movement_behavior = MovementBehavior::Path(PathMovementBehavior {
                     path_state: None,
                     speed: 100.0,
-                    detection_radius: 150.0,
+                    detection_radius: DEFAULT_UNIT_DETECTION_RADIUS,
                 });
                 entity.sprite_id = SpriteId::UnitBuilder;
                 entity.attacks.push(Attack::new(
@@ -101,7 +102,7 @@ impl EntityBlueprint {
                 entity.movement_behavior = MovementBehavior::Path(PathMovementBehavior {
                     path_state: None,
                     speed: 100.0,
-                    detection_radius: 150.0,
+                    detection_radius: DEFAULT_UNIT_DETECTION_RADIUS,
                 });
                 entity.sprite_id = SpriteId::UnitSwordsman;
                 entity.attacks.push(Attack::new(
@@ -118,7 +119,7 @@ impl EntityBlueprint {
                 entity.movement_behavior = MovementBehavior::Path(PathMovementBehavior {
                     path_state: None,
                     speed: 100.0,
-                    detection_radius: 150.0,
+                    detection_radius: DEFAULT_UNIT_DETECTION_RADIUS,
                 });
                 entity.sprite_id = SpriteId::UnitPriest;
                 entity.attacks.push(Attack::new(
@@ -135,7 +136,7 @@ impl EntityBlueprint {
                 entity.movement_behavior = MovementBehavior::Path(PathMovementBehavior {
                     path_state: None,
                     speed: 300.0,
-                    detection_radius: 150.0,
+                    detection_radius: DEFAULT_UNIT_DETECTION_RADIUS,
                 });
                 entity.sprite_id = SpriteId::UnitDemonPig;
                 entity.attacks.push(Attack::new(
@@ -152,7 +153,7 @@ impl EntityBlueprint {
                 entity.movement_behavior = MovementBehavior::Path(PathMovementBehavior {
                     path_state: None,
                     speed: 100.0,
-                    detection_radius: 150.0,
+                    detection_radius: DEFAULT_UNIT_DETECTION_RADIUS,
                 });
                 entity.sprite_id = SpriteId::UnitArcher;
                 entity.attacks.push(Attack::new(

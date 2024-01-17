@@ -158,9 +158,10 @@ pub fn world_place_builder(
             .map(|len| (spawnpoint, len))
         })
         .min_by(|(_, len_a), (_, len_b)| len_a.partial_cmp(&&len_b).unwrap())
-        .unwrap()
-        .0
-        .clone();
+        .map(|(spawnpoint, _len)| spawnpoint.clone());
+    let Some(spawnpoint_target) = spawnpoint_target else {
+        return false;
+    };
 
     world_place_path_entity(
         static_game_state,
