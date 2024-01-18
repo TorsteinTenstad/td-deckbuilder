@@ -164,7 +164,7 @@ fn main_draw(state: &ClientGameState) {
         let Some(player) = state.dynamic_game_state.players.get(&entity.owner) else {
             continue;
         };
-        let damage_animation_color = (entity.damage_animation > 0.0).then_some(RED);
+        let damage_animation_color = (entity.health.damage_animation > 0.0).then_some(RED);
         let pos_x = to_screen_x(entity.pos.x);
         let pos_y = to_screen_y(entity.pos.y);
         let radius = to_screen_size(entity.radius);

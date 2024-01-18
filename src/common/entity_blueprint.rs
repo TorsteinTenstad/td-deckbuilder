@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use crate::{
     component_attack::{Attack, AttackRange, AttackSpeed, AttackVariant},
     component_movement_behavior::{MovementBehavior, MovementSpeed, PathMovementBehavior},
-    entity::{Entity, EntityState, EntityTag},
+    entity::{Entity, EntityState, EntityTag, Health},
     ids::{BuildingLocationId, PlayerId},
     play_target::BuildingSpotTarget,
     textures::SpriteId,
@@ -52,7 +52,7 @@ impl EntityBlueprint {
         match self {
             EntityBlueprint::BasicTowerBuilder => {
                 entity.radius = UNIT_RADIUS;
-                entity.max_health = 100.0;
+                entity.health = Health::new(100.0);
                 entity.movement_behavior = MovementBehavior::Path(PathMovementBehavior::new(
                     MovementSpeed::Default,
                     DEFAULT_UNIT_DETECTION_RADIUS,
@@ -74,7 +74,7 @@ impl EntityBlueprint {
             }
             EntityBlueprint::SpawnPointBuilder => {
                 entity.radius = UNIT_RADIUS;
-                entity.max_health = 100.0;
+                entity.health = Health::new(100.0);
                 entity.movement_behavior = MovementBehavior::Path(PathMovementBehavior::new(
                     MovementSpeed::Default,
                     DEFAULT_UNIT_DETECTION_RADIUS,
@@ -96,7 +96,7 @@ impl EntityBlueprint {
             }
             EntityBlueprint::BasicSwordsman => {
                 entity.radius = UNIT_RADIUS;
-                entity.max_health = 100.0;
+                entity.health = Health::new(100.0);
                 entity.movement_behavior = MovementBehavior::Path(PathMovementBehavior::new(
                     MovementSpeed::Default,
                     DEFAULT_UNIT_DETECTION_RADIUS,
@@ -112,7 +112,7 @@ impl EntityBlueprint {
             }
             EntityBlueprint::Priest => {
                 entity.radius = UNIT_RADIUS;
-                entity.max_health = 100.0;
+                entity.health = Health::new(100.0);
                 entity.movement_behavior = MovementBehavior::Path(PathMovementBehavior::new(
                     MovementSpeed::Default,
                     DEFAULT_UNIT_DETECTION_RADIUS,
@@ -128,7 +128,7 @@ impl EntityBlueprint {
             }
             EntityBlueprint::DemonPig => {
                 entity.radius = UNIT_RADIUS;
-                entity.max_health = 50.0;
+                entity.health = Health::new(50.0);
                 entity.movement_behavior = MovementBehavior::Path(PathMovementBehavior::new(
                     MovementSpeed::Default,
                     DEFAULT_UNIT_DETECTION_RADIUS,
@@ -144,7 +144,7 @@ impl EntityBlueprint {
             }
             EntityBlueprint::BasicRanger => {
                 entity.radius = UNIT_RADIUS;
-                entity.max_health = 50.0;
+                entity.health = Health::new(50.0);
                 entity.movement_behavior = MovementBehavior::Path(PathMovementBehavior::new(
                     MovementSpeed::Default,
                     DEFAULT_UNIT_DETECTION_RADIUS,
@@ -160,7 +160,7 @@ impl EntityBlueprint {
             }
             EntityBlueprint::BasicTower => {
                 entity.radius = BUILDING_RADIUS;
-                entity.max_health = 200.0;
+                entity.health = Health::new(200.0);
                 entity.attacks.push(Attack::new(
                     AttackVariant::RangedAttack,
                     AttackRange::Default,
@@ -172,19 +172,18 @@ impl EntityBlueprint {
             }
             EntityBlueprint::SpawnPoint => {
                 entity.radius = BUILDING_RADIUS;
-                entity.max_health = 200.0;
+                entity.health = Health::new(200.0);
                 entity.usable_as_spawn_point = true;
                 entity.sprite_id = SpriteId::BuildingSpawnpoint
             }
             EntityBlueprint::Base => {
                 entity.radius = 48.0;
-                entity.max_health = 1000.0;
+                entity.health = Health::new(1000.0);
                 entity.usable_as_spawn_point = true;
                 entity.sprite_id = SpriteId::BuildingBase
             }
         }
         entity.hitbox_radius = entity.radius;
-        entity.health = entity.max_health;
         entity
     }
 }

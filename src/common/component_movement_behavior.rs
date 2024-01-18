@@ -1,5 +1,5 @@
 use crate::{
-    buff::{apply_buffs, Buff},
+    buff::{apply_arithmetic_buffs, ArithmeticBuff},
     entity::{Entity, EntityState, EntityTag},
     find_target::find_enemy_entity_in_range,
     game_state::{DynamicGameState, StaticGameState},
@@ -45,12 +45,12 @@ pub struct BulletMovementBehavior {
     pub velocity: Vec2,
     pub target_entity_id: Option<EntityId>,
     pub speed: MovementSpeed,
-    pub speed_buffs: Vec<Buff>,
+    pub speed_buffs: Vec<ArithmeticBuff>,
 }
 
 impl BulletMovementBehavior {
     pub fn get_speed(&self) -> f32 {
-        apply_buffs(self.speed.to_f32(), &self.speed_buffs)
+        apply_arithmetic_buffs(self.speed.to_f32(), &self.speed_buffs)
     }
 }
 
@@ -59,7 +59,7 @@ pub struct PathMovementBehavior {
     pub speed: MovementSpeed,
     pub detection_radius: f32,
     pub path_state: Option<PathState>,
-    pub speed_buffs: Vec<Buff>,
+    pub speed_buffs: Vec<ArithmeticBuff>,
 }
 
 impl PathMovementBehavior {
@@ -72,7 +72,7 @@ impl PathMovementBehavior {
         }
     }
     pub fn get_speed(&self) -> f32 {
-        apply_buffs(self.speed.to_f32(), &self.speed_buffs)
+        apply_arithmetic_buffs(self.speed.to_f32(), &self.speed_buffs)
     }
 }
 

@@ -54,14 +54,14 @@ pub fn update_entity<'a>(
         EntityState::Passive | EntityState::Dead => {}
     }
 
-    entity.damage_animation -= dt;
+    entity.health.damage_animation -= dt;
     if let Some(seconds_left_to_live) = &mut entity.seconds_left_to_live {
         *seconds_left_to_live -= dt;
         if seconds_left_to_live < &mut 0.0 {
-            entity.health = 0.0;
+            entity.state = EntityState::Dead;
         }
     }
-    if entity.health <= 0.0 && entity.damage_animation < 0.0 {
+    if entity.health.health <= 0.0 && entity.health.damage_animation < 0.0 {
         entity.state = EntityState::Dead;
     }
 }

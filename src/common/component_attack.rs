@@ -1,8 +1,8 @@
 use crate::{
-    buff::{apply_buffs, Buff},
+    buff::{apply_arithmetic_buffs, ArithmeticBuff},
     component_movement_behavior::{BulletMovementBehavior, MovementBehavior, MovementSpeed},
     config::PROJECTILE_RADIUS,
-    entity::{Entity, EntityState, EntityTag},
+    entity::{Entity, EntityState, EntityTag, Health},
     find_target::find_target_for_attack,
 };
 use macroquad::math::Vec2;
@@ -57,9 +57,9 @@ pub struct Attack {
     pub attack_speed: AttackSpeed,
     pub cooldown_timer: f32,
     pub self_destruct: bool,
-    pub damage_buffs: Vec<Buff>,
-    pub attack_speed_buffs: Vec<Buff>,
-    pub range_buffs: Vec<Buff>,
+    pub damage_buffs: Vec<ArithmeticBuff>,
+    pub attack_speed_buffs: Vec<ArithmeticBuff>,
+    pub range_buffs: Vec<ArithmeticBuff>,
 }
 
 impl Attack {
@@ -84,13 +84,13 @@ impl Attack {
         }
     }
     pub fn get_damage(&self) -> f32 {
-        apply_buffs(self.damage, &self.damage_buffs)
+        apply_arithmetic_buffs(self.damage, &self.damage_buffs)
     }
     pub fn get_attack_speed(&self) -> f32 {
-        apply_buffs(self.attack_speed.as_f32(), &self.attack_speed_buffs)
+        apply_arithmetic_buffs(self.attack_speed.as_f32(), &self.attack_speed_buffs)
     }
     pub fn get_range(&self, radius: f32) -> f32 {
-        apply_buffs(self.range.to_f32(radius), &self.range_buffs)
+        apply_arithmetic_buffs(self.range.to_f32(radius), &self.range_buffs)
     }
 }
 
@@ -128,7 +128,7 @@ impl Attack {
                                 speed_buffs: Vec::new(),
                             });
                         bullet.radius = PROJECTILE_RADIUS;
-                        bullet.health = 1.0;
+                        bullet.health = Health::new(1.0);
                         bullet.hitbox_radius = PROJECTILE_RADIUS;
                         bullet.seconds_left_to_live = Some(3.0);
                         let mut attack = Attack::new(
@@ -145,17 +145,14 @@ impl Attack {
                         entities.push(bullet);
                     }
                     AttackVariant::MeleeAttack => {
-                        target_entity.health -= attack.get_damage();
-                        target_entity.damage_animation = 0.1;
+                        target_entity.health.deal_damage(attack.get_damage());
                     }
                     AttackVariant::Heal => {
-                        target_entity.health += attack.get_damage();
-                        target_entity.health =
-                            f32::min(target_entity.health, target_entity.max_health);
+                        target_entity.health.heal(attack.get_damage());
                     }
                 }
                 if attack.self_destruct {
-                    entity.health = 0.0;
+                    entity.state = EntityState::Dead;
                 };
             } else {
                 attack.cooldown_timer -= dt;
