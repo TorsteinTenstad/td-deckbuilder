@@ -1,3 +1,4 @@
+pub mod buff;
 pub mod card;
 pub mod component_attack;
 pub mod component_movement_behavior;

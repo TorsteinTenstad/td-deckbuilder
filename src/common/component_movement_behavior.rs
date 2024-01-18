@@ -1,4 +1,5 @@
 use crate::{
+    buff::{apply_buffs, Buff},
     entity::{Entity, EntityState, EntityTag},
     find_target::find_enemy_entity_in_range,
     game_state::{DynamicGameState, StaticGameState},
@@ -44,6 +45,13 @@ pub struct BulletMovementBehavior {
     pub velocity: Vec2,
     pub target_entity_id: Option<EntityId>,
     pub speed: MovementSpeed,
+    pub speed_buffs: Vec<Buff>,
+}
+
+impl BulletMovementBehavior {
+    pub fn get_speed(&self) -> f32 {
+        apply_buffs(self.speed.to_f32(), &self.speed_buffs)
+    }
 }
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -51,6 +59,21 @@ pub struct PathMovementBehavior {
     pub speed: MovementSpeed,
     pub detection_radius: f32,
     pub path_state: Option<PathState>,
+    pub speed_buffs: Vec<Buff>,
+}
+
+impl PathMovementBehavior {
+    pub fn new(speed: MovementSpeed, detection_radius: f32) -> Self {
+        Self {
+            speed,
+            detection_radius,
+            path_state: None,
+            speed_buffs: Vec::new(),
+        }
+    }
+    pub fn get_speed(&self) -> f32 {
+        apply_buffs(self.speed.to_f32(), &self.speed_buffs)
+    }
 }
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -156,18 +179,18 @@ impl MovementBehavior {
                     };
                 }
             }
-            MovementBehavior::Bullet(BulletMovementBehavior {
-                speed,
-                velocity,
-                target_entity_id,
-            }) => {
-                *velocity = find_entity(&mut dynamic_game_state.entities, *target_entity_id)
-                    .map(|target_entity| {
-                        (target_entity.pos - entity.pos).normalize_or_zero() * speed.to_f32()
-                    })
-                    .unwrap_or(*velocity);
+            MovementBehavior::Bullet(bullet_movement_behavior) => {
+                bullet_movement_behavior.velocity = find_entity(
+                    &mut dynamic_game_state.entities,
+                    bullet_movement_behavior.target_entity_id,
+                )
+                .map(|target_entity| {
+                    (target_entity.pos - entity.pos).normalize_or_zero()
+                        * bullet_movement_behavior.get_speed()
+                })
+                .unwrap_or(bullet_movement_behavior.velocity);
 
-                entity.pos += *velocity * dt;
+                entity.pos += bullet_movement_behavior.velocity * dt;
             }
             MovementBehavior::None => {}
         }
