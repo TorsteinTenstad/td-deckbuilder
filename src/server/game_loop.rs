@@ -16,7 +16,7 @@ pub fn update_entity<'a>(
         find_target_for_attack(
             entity.pos,
             entity.owner,
-            attack.range.to_f32(entity.radius),
+            attack.get_range(entity.radius, entity.get_buffs()),
             attack,
             &mut dynamic_game_state.entities,
         )

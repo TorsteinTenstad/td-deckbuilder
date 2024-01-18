@@ -3,6 +3,7 @@ use crate::{
     config::PROJECTILE_RADIUS,
     entity::{Entity, EntityState, EntityTag},
     find_target::find_target_for_attack,
+    outgoing_buff::{apply_buffs, OutgoingBuff, OutgoingBuffType},
 };
 use macroquad::math::Vec2;
 use serde::{Deserialize, Serialize};
@@ -51,9 +52,9 @@ impl AttackSpeed {
 pub struct Attack {
     pub variant: AttackVariant,
     pub can_target: Vec<EntityTag>,
-    pub range: AttackRange,
-    pub damage: f32,
-    pub attack_speed: AttackSpeed,
+    range: AttackRange,
+    damage: f32,
+    attack_speed: AttackSpeed,
     pub cooldown_timer: f32,
     pub self_destruct: bool,
 }
@@ -76,6 +77,35 @@ impl Attack {
             self_destruct: false,
         }
     }
+
+    pub fn get_damage<'a, Iter>(&self, buffs: Iter) -> f32
+    where
+        Iter: Iterator<Item = &'a OutgoingBuff>,
+    {
+        apply_buffs(self.damage, buffs, OutgoingBuffType::AttackDamage)
+    }
+
+    pub fn get_range<'a, Iter>(&self, entity_radius: f32, buffs: Iter) -> f32
+    where
+        Iter: Iterator<Item = &'a OutgoingBuff>,
+    {
+        apply_buffs(
+            self.range.to_f32(entity_radius),
+            buffs,
+            OutgoingBuffType::AttackRange,
+        )
+    }
+
+    pub fn get_attack_speed<'a, Iter>(&self, buffs: Iter) -> f32
+    where
+        Iter: Iterator<Item = &'a OutgoingBuff>,
+    {
+        apply_buffs(
+            self.attack_speed.as_f32(),
+            buffs,
+            OutgoingBuffType::AttackSpeed,
+        )
+    }
 }
 
 #[derive(PartialEq, Eq, Clone, Serialize, Deserialize)]
@@ -87,29 +117,34 @@ pub enum AttackVariant {
 
 impl Attack {
     pub fn update(entity: &mut Entity, entities: &mut Vec<Entity>, dt: f32) {
+        // Clone to get around borrow checker:
+        let entity_buffs = entity
+            .buffs
+            .iter()
+            .map(|buff_instance| buff_instance.buff.clone())
+            .collect::<Vec<_>>();
         for attack in &mut entity.attacks {
             let Some(target_entity) = find_target_for_attack(
                 entity.pos,
                 entity.owner,
-                attack.range.to_f32(entity.radius),
+                attack.get_range(entity.radius, entity_buffs.iter()),
                 &attack,
                 entities,
             ) else {
                 continue;
             };
             if attack.cooldown_timer <= 0.0 {
-                attack.cooldown_timer = attack.attack_speed.as_f32();
+                attack.cooldown_timer = attack.get_attack_speed(entity_buffs.iter());
                 match attack.variant {
                     AttackVariant::RangedAttack => {
                         let mut bullet =
                             Entity::new(EntityTag::Bullet, entity.owner, EntityState::Moving);
                         bullet.pos = entity.pos;
                         bullet.movement_behavior =
-                            MovementBehavior::Bullet(BulletMovementBehavior {
-                                speed: MovementSpeed::Projectile,
-                                velocity: Vec2::ZERO,
-                                target_entity_id: Some(target_entity.id),
-                            });
+                            MovementBehavior::Bullet(BulletMovementBehavior::new(
+                                target_entity.id,
+                                MovementSpeed::Projectile,
+                            ));
                         bullet.radius = PROJECTILE_RADIUS;
                         bullet.health = 1.0;
                         bullet.hitbox_radius = PROJECTILE_RADIUS;
@@ -127,11 +162,11 @@ impl Attack {
                         entities.push(bullet);
                     }
                     AttackVariant::MeleeAttack => {
-                        target_entity.health -= attack.damage;
+                        target_entity.health -= attack.get_damage(entity_buffs.iter());
                         target_entity.damage_animation = 0.1;
                     }
                     AttackVariant::Heal => {
-                        target_entity.health += attack.damage;
+                        target_entity.health += attack.get_damage(entity_buffs.iter());
                         target_entity.health =
                             f32::min(target_entity.health, target_entity.max_health);
                     }

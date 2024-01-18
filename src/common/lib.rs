@@ -11,6 +11,7 @@ pub mod hand;
 pub mod ids;
 pub mod level_config;
 pub mod network;
+pub mod outgoing_buff;
 pub mod play_target;
 pub mod rect_transform;
 pub mod serde_defs;

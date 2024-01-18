@@ -1,5 +1,5 @@
 use client_game_state::ClientGameState;
-use common::component_attack::{Attack, AttackVariant};
+use common::component_attack::AttackVariant;
 use common::component_movement_behavior::{MovementBehavior, PathMovementBehavior};
 use common::entity::EntityTag;
 use common::entity_blueprint::DEFAULT_UNIT_DETECTION_RADIUS;
@@ -213,7 +213,7 @@ fn main_draw(state: &ClientGameState) {
     let mut range_circle_preview: Vec<(f32, f32, f32, Color)> = Vec::new();
     if let Some(entity) = find_entity(&state.dynamic_game_state.entities, state.selected_entity_id)
     {
-        if let Some(Attack { range, .. }) = entity
+        if let Some(attack) = entity
             .attacks
             .iter()
             .find(|attack| attack.variant == AttackVariant::RangedAttack)
@@ -221,7 +221,7 @@ fn main_draw(state: &ClientGameState) {
             range_circle_preview.push((
                 entity.pos.x,
                 entity.pos.y,
-                range.to_f32(entity.radius),
+                attack.get_range(entity.radius, entity.get_buffs()),
                 BLUE,
             ));
         }

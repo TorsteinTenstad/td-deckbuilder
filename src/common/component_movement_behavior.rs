@@ -3,6 +3,7 @@ use crate::{
     find_target::find_enemy_entity_in_range,
     game_state::{DynamicGameState, StaticGameState},
     ids::{EntityId, PathId},
+    outgoing_buff::{apply_buffs, OutgoingBuff, OutgoingBuffType},
     play_target::UnitSpawnpointTarget,
     serde_defs::Vec2Def,
     world::{find_entity, get_path_pos, next_path_idx, world_place_building, Direction},
@@ -43,14 +44,46 @@ pub struct BulletMovementBehavior {
     #[serde(with = "Vec2Def")]
     pub velocity: Vec2,
     pub target_entity_id: Option<EntityId>,
-    pub speed: MovementSpeed,
+    speed: MovementSpeed,
 }
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct PathMovementBehavior {
-    pub speed: MovementSpeed,
+    speed: MovementSpeed,
     pub detection_radius: f32,
     pub path_state: Option<PathState>,
+}
+
+impl BulletMovementBehavior {
+    pub fn new(target_entity_id: EntityId, speed: MovementSpeed) -> Self {
+        Self {
+            velocity: Vec2::ZERO,
+            target_entity_id: Some(target_entity_id),
+            speed,
+        }
+    }
+    pub fn get_speed<'a, Iter>(&self, buffs: Iter) -> f32
+    where
+        Iter: Iterator<Item = &'a OutgoingBuff>,
+    {
+        apply_buffs(self.speed.to_f32(), buffs, OutgoingBuffType::MovementSpeed)
+    }
+}
+
+impl PathMovementBehavior {
+    pub fn new(speed: MovementSpeed, detection_radius: f32) -> Self {
+        Self {
+            speed,
+            detection_radius,
+            path_state: None,
+        }
+    }
+    pub fn get_speed<'a, Iter>(&self, buffs: Iter) -> f32
+    where
+        Iter: Iterator<Item = &'a OutgoingBuff>,
+    {
+        apply_buffs(self.speed.to_f32(), buffs, OutgoingBuffType::MovementSpeed)
+    }
 }
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -73,8 +106,15 @@ impl MovementBehavior {
         dt: f32,
         static_game_state: &StaticGameState,
     ) {
+        // Clone to get around borrow checker:
+        let entity_buffs = entity
+            .buffs
+            .iter()
+            .map(|buff_instance| buff_instance.buff.clone())
+            .collect::<Vec<_>>();
         match &mut entity.movement_behavior {
             MovementBehavior::Path(path_movement_behavior) => {
+                let speed = path_movement_behavior.get_speed(entity_buffs.iter());
                 let path_state = path_movement_behavior.path_state.as_mut().unwrap();
                 if path_state.target_path_idx
                     < static_game_state
@@ -97,8 +137,7 @@ impl MovementBehavior {
 
                     let update_position = |pos: &mut Vec2, target_pos: Vec2| -> bool {
                         let delta = target_pos - *pos;
-                        *pos +=
-                            delta.normalize_or_zero() * path_movement_behavior.speed.to_f32() * dt;
+                        *pos += delta.normalize_or_zero() * speed * dt;
                         let updated_delta = target_pos - *pos;
                         delta.length_squared() < updated_delta.length_squared()
                     };
@@ -156,18 +195,18 @@ impl MovementBehavior {
                     };
                 }
             }
-            MovementBehavior::Bullet(BulletMovementBehavior {
-                speed,
-                velocity,
-                target_entity_id,
-            }) => {
-                *velocity = find_entity(&mut dynamic_game_state.entities, *target_entity_id)
-                    .map(|target_entity| {
-                        (target_entity.pos - entity.pos).normalize_or_zero() * speed.to_f32()
-                    })
-                    .unwrap_or(*velocity);
+            MovementBehavior::Bullet(bullet_movement_behavior) => {
+                bullet_movement_behavior.velocity = find_entity(
+                    &mut dynamic_game_state.entities,
+                    bullet_movement_behavior.target_entity_id,
+                )
+                .map(|target_entity| {
+                    (target_entity.pos - entity.pos).normalize_or_zero()
+                        * bullet_movement_behavior.get_speed(entity_buffs.iter())
+                })
+                .unwrap_or(bullet_movement_behavior.velocity);
 
-                entity.pos += *velocity * dt;
+                entity.pos += bullet_movement_behavior.velocity * dt;
             }
             MovementBehavior::None => {}
         }

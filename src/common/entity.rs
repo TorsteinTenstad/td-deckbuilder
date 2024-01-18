@@ -1,6 +1,7 @@
 use crate::component_movement_behavior::MovementBehavior;
 use crate::entity_blueprint::EntityBlueprint;
 use crate::ids::EntityId;
+use crate::outgoing_buff::{OutgoingBuff, OutgoingBuffInstance};
 use crate::play_target::{BuildingSpotTarget, EntityTarget, WorldPosTarget};
 use crate::serde_defs::Vec2Def;
 use crate::{component_attack::Attack, ids::PlayerId, textures::SpriteId};
@@ -48,6 +49,7 @@ pub struct Entity {
     pub damage_animation: f32,
     pub hitbox_radius: f32,
     pub usable_as_spawn_point: bool,
+    pub buffs: Vec<OutgoingBuffInstance>,
     pub attacks: Vec<Attack>,
     pub seconds_left_to_live: Option<f32>,
     pub building_to_construct: Option<(BuildingSpotTarget, EntityBlueprint)>,
@@ -72,8 +74,13 @@ impl Entity {
             hitbox_radius: 0.0,
             usable_as_spawn_point: false,
             attacks: Vec::new(),
+            buffs: Vec::new(),
             seconds_left_to_live: None,
             building_to_construct: None,
         }
+    }
+
+    pub fn get_buffs(&self) -> impl Iterator<Item = &OutgoingBuff> {
+        self.buffs.iter().map(|buff_instance| &buff_instance.buff)
     }
 }
