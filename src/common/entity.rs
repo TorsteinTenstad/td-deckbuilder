@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use crate::buff::ExtraHealthBuff;
 use crate::component_movement::Movement;
 use crate::entity_blueprint::EntityBlueprint;
@@ -67,6 +69,27 @@ pub enum AbilityFlag {
 }
 
 #[derive(Serialize, Deserialize)]
+pub struct Spy {
+    pub hide_capacity: u32,
+    pub is_hidden_from: HashSet<EntityId>,
+}
+impl Spy {
+    pub fn new(hide_capacity: u32) -> Self {
+        Self {
+            hide_capacity,
+            is_hidden_from: HashSet::new(),
+        }
+    }
+    pub fn is_hidden(&self) -> bool {
+        self.is_hidden_from.len() <= self.hide_capacity as usize
+    }
+    pub fn can_hide_from(&mut self, entity_id: &EntityId) -> bool {
+        self.is_hidden_from.insert(entity_id.clone());
+        self.is_hidden()
+    }
+}
+
+#[derive(Serialize, Deserialize)]
 pub struct Entity {
     pub id: EntityId,
     pub tag: EntityTag,
@@ -80,6 +103,7 @@ pub struct Entity {
     pub ability_flags: Vec<AbilityFlag>,
     pub usable_as_spawn_point: bool,
     pub health: Health,
+    pub spy: Option<Spy>,
     pub attacks: Vec<Attack>,
     pub seconds_left_to_live: Option<f32>,
     pub building_to_construct: Option<(BuildingSpotTarget, EntityBlueprint)>,
@@ -98,6 +122,7 @@ impl Entity {
             pos: Vec2::ZERO,
             radius: 0.0,
             health: Health::default(),
+            spy: None,
             hitbox_radius: 0.0,
             ability_flags: Vec::new(),
             usable_as_spawn_point: false,

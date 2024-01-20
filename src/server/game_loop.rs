@@ -2,8 +2,7 @@ use common::{
     component_attack::Attack,
     component_movement::Movement,
     config::CLOSE_ENOUGH_TO_TARGET,
-    entity::{Entity, EntityState},
-    entity_blueprint,
+    entity::{Entity, EntityState, Spy},
     find_target::find_target_for_attack,
     game_state::{DynamicGameState, StaticGameState},
     world::world_place_building,
@@ -15,8 +14,10 @@ pub fn update_entity<'a>(
     dynamic_game_state: &mut DynamicGameState,
     dt: f32,
 ) {
+    let is_hidden_spy = entity.spy.as_ref().is_some_and(|spy| spy.is_hidden());
     let can_attack = entity.attacks.iter().any(|attack| {
         find_target_for_attack(
+            entity.id,
             entity.pos,
             entity.owner,
             attack.range.to_f32(entity.radius),
@@ -24,7 +25,7 @@ pub fn update_entity<'a>(
             &mut dynamic_game_state.entities,
         )
         .is_some()
-    });
+    }) && !is_hidden_spy;
 
     let can_build =
         entity

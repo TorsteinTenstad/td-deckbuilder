@@ -3,10 +3,11 @@ use macroquad::math::Vec2;
 use crate::{
     component_attack::{Attack, TargetPool},
     entity::{Entity, EntityTag},
-    ids::PlayerId,
+    ids::{EntityId, PlayerId},
 };
 
 pub fn find_target_for_attack<'a>(
+    entity_id: EntityId,
     entity_pos: Vec2,
     entity_owner: PlayerId,
     range: f32,
@@ -19,7 +20,9 @@ pub fn find_target_for_attack<'a>(
             range,
             &attack.can_target,
             other_entities,
-            |other_entity| other_entity.owner != entity_owner,
+            |other_entity| {
+                other_entity.owner != entity_owner && can_find_target(entity_id, other_entity)
+            },
         ),
         TargetPool::Allies => find_entity_in_range(
             entity_pos,
@@ -33,9 +36,16 @@ pub fn find_target_for_attack<'a>(
             range,
             &attack.can_target,
             other_entities,
-            |_| true,
+            |other_entity| can_find_target(entity_id, other_entity),
         ),
     }
+}
+
+pub fn can_find_target(entity_id: EntityId, other_entity: &mut Entity) -> bool {
+    let Some(spy) = other_entity.spy.as_mut() else {
+        return true;
+    };
+    !spy.can_hide_from(&entity_id)
 }
 
 pub fn find_entity_in_range<'a>(
@@ -43,11 +53,11 @@ pub fn find_entity_in_range<'a>(
     range: f32,
     can_target: &Vec<EntityTag>,
     other_entities: &'a mut Vec<Entity>,
-    filter_predicate: impl Fn(&&mut Entity) -> bool,
+    filter_predicate: impl Fn(&mut Entity) -> bool,
 ) -> Option<&'a mut Entity> {
     other_entities
         .iter_mut()
-        .filter(filter_predicate)
+        .filter_map(|x| filter_predicate(x).then(|| x))
         .filter(|other_entity| can_target.contains(&other_entity.tag))
         .filter(|other_entity| {
             (other_entity.pos - entity_pos).length_squared()

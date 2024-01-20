@@ -119,6 +119,7 @@ impl Attack {
     pub fn update(entity: &mut Entity, entities: &mut Vec<Entity>, dt: f32) {
         for attack in &mut entity.attacks {
             let Some(target_entity) = find_target_for_attack(
+                entity.id,
                 entity.pos,
                 entity.owner,
                 attack.get_range(entity.radius),

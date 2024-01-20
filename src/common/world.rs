@@ -114,7 +114,7 @@ pub fn world_get_building_locations_on_path(
             dynamic_game_state
                 .building_locations
                 .iter()
-                .filter(move |(building_location_id, building_location)| {
+                .filter(move |(_building_location_id, building_location)| {
                     (building_location.pos - pos).length_squared() < search_range.powi(2)
                 })
                 .map(move |(building_location_id, building_location)| {

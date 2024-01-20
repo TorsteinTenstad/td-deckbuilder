@@ -110,8 +110,12 @@ pub fn get_path_id(entity: &Entity) -> Option<PathId> {
 }
 
 impl PathState {
-    pub fn incr(&mut self) {
+    pub fn incr(&mut self, static_game_state: &StaticGameState) {
         self.target_path_idx = next_path_idx(self.target_path_idx, self.direction);
+        self.target_path_idx = usize::min(
+            self.target_path_idx,
+            static_game_state.paths.get(&self.path_id).unwrap().len() - 1,
+        );
     }
 
     pub fn set_direction(&mut self, direction: Direction) {
@@ -239,12 +243,14 @@ impl PathTargetSetter {
                     movement.movement_towards_target.target_pos = None;
                     return;
                 }
-                path_state.set_direction(
-                    match building_location_closest_path_idx >= path_state.target_path_idx {
-                        true => Direction::Positive,
-                        false => Direction::Negative,
-                    },
-                );
+                if building_location_closest_path_idx != path_state.target_path_idx {
+                    path_state.set_direction(
+                        match building_location_closest_path_idx > path_state.target_path_idx {
+                            true => Direction::Positive,
+                            false => Direction::Negative,
+                        },
+                    );
+                }
             } else {
                 path_state.set_direction(
                     dynamic_game_state
@@ -265,7 +271,7 @@ impl PathTargetSetter {
         let pos_diff = target_pos - entity.pos;
 
         if pos_diff.length() < CLOSE_ENOUGH_TO_TARGET {
-            path_state.incr();
+            path_state.incr(static_game_state);
             target_pos = get_path_pos(
                 &static_game_state,
                 path_state.path_id,
@@ -306,16 +312,17 @@ impl DetectionBasedTargetSetter {
                 return;
             }
         }
-
+        let is_hidden_spy = entity.spy.as_ref().is_some_and(|spy| spy.is_hidden());
         for attack in &entity.attacks {
             if let Some(target_entity_to_attack) = find_target_for_attack(
+                entity.id,
                 entity.pos,
                 entity.owner,
                 detection_range,
                 attack,
                 &mut dynamic_game_state.entities,
             ) {
-                if entity_path_id != get_path_id(&target_entity_to_attack) {
+                if entity_path_id != get_path_id(&target_entity_to_attack) || is_hidden_spy {
                     continue;
                 }
                 movement.movement_towards_target.target_pos = Some(target_entity_to_attack.pos);

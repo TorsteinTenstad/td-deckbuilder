@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use crate::{
     component_attack::{Attack, AttackSpeed, TargetPool},
     component_movement::{Movement, MovementSpeed},
-    entity::{AbilityFlag, Entity, EntityState, EntityTag, Health},
+    entity::{AbilityFlag, Entity, EntityState, EntityTag, Health, Spy},
     ids::{BuildingLocationId, PlayerId},
     play_target::BuildingSpotTarget,
     textures::SpriteId,
@@ -117,6 +117,7 @@ impl EntityBlueprint {
                     attack_speed: AttackSpeed::Fast,
                     ..Attack::default()
                 });
+                entity.spy = Some(Spy::new(2));
             }
             EntityBlueprint::BasicRanger => {
                 entity.radius = UNIT_RADIUS;
