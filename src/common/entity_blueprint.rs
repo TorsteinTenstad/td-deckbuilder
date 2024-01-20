@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use crate::{
     component_attack::{Attack, AttackSpeed, TargetPool},
     component_movement::{Movement, MovementSpeed},
-    entity::{Entity, EntityState, EntityTag, Health},
+    entity::{AbilityFlag, Entity, EntityState, EntityTag, Health},
     ids::{BuildingLocationId, PlayerId},
     play_target::BuildingSpotTarget,
     textures::SpriteId,
@@ -87,6 +87,7 @@ impl EntityBlueprint {
                 entity.health = Health::new(100.0);
                 entity.movement = Some(Movement::new(MovementSpeed::Default));
                 entity.sprite_id = SpriteId::UnitSwordsman;
+                entity.ability_flags.push(AbilityFlag::Protector);
                 entity.attacks.push(Attack {
                     damage: 10.0,
                     ..Attack::default()

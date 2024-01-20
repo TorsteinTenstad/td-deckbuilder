@@ -1,17 +1,22 @@
 use crate::{
     buff::{apply_arithmetic_buffs, ArithmeticBuff},
     config::CLOSE_ENOUGH_TO_TARGET,
-    entity::Entity,
+    entity::{AbilityFlag, Entity},
     entity_blueprint::DEFAULT_UNIT_DETECTION_RADIUS,
     find_target::find_target_for_attack,
     game_state::{DynamicGameState, StaticGameState},
     ids::{EntityId, PathId},
     play_target::UnitSpawnpointTarget,
-    world::{find_entity, get_path_pos, next_path_idx, Direction},
+    serde_defs::Vec2Def,
+    world::{
+        find_entity, get_path_pos, next_path_idx, world_get_furthest_planned_or_existing_building,
+        Direction,
+    },
 };
 use macroquad::math::Vec2;
 use serde::{Deserialize, Serialize};
 
+#[derive(Serialize, Deserialize)]
 pub struct Movement {
     pub movement_towards_target: MovementTowardsTarget,
     pub path_target_setter: Option<PathTargetSetter>,
@@ -53,18 +58,24 @@ impl Movement {
         }
     }
 }
+
+#[derive(Serialize, Deserialize)]
 pub struct MovementTowardsTarget {
+    #[serde(skip)]
     pub target_pos: Option<Vec2>,
     pub speed: MovementSpeed,
     pub speed_buffs: Vec<ArithmeticBuff>,
+    #[serde(with = "Vec2Def")]
     pub velocity: Vec2,
     pub keep_moving_on_loss_of_target: bool,
 }
 
+#[derive(Serialize, Deserialize)]
 pub struct EntityTargetSetter {
     pub target_entity_id: Option<EntityId>,
 }
 
+#[derive(Serialize, Deserialize)]
 pub struct DetectionBasedTargetSetter {
     pub detection_range: f32,
 }
@@ -77,6 +88,7 @@ pub fn get_detection_range(entity: &Entity) -> Option<f32> {
         .map(|detection_based_target_setter| detection_based_target_setter.detection_range)
 }
 
+#[derive(Serialize, Deserialize)]
 pub struct PathTargetSetter {
     pub path_state: Option<PathState>,
 }
@@ -88,8 +100,25 @@ pub struct PathState {
     pub direction: Direction,
 }
 
+pub fn get_path_id(entity: &Entity) -> Option<PathId> {
+    entity
+        .movement
+        .as_ref()
+        .and_then(|movement| movement.path_target_setter.as_ref())
+        .and_then(|path_target_setter| path_target_setter.path_state.as_ref())
+        .map(|path_state| path_state.path_id)
+}
+
 impl PathState {
     pub fn incr(&mut self) {
+        self.target_path_idx = next_path_idx(self.target_path_idx, self.direction);
+    }
+
+    pub fn set_direction(&mut self, direction: Direction) {
+        if direction == self.direction {
+            return;
+        }
+        self.direction = direction;
         self.target_path_idx = next_path_idx(self.target_path_idx, self.direction);
     }
 }
@@ -175,7 +204,7 @@ impl MovementTowardsTarget {
 impl PathTargetSetter {
     pub fn update(
         entity: &mut Entity,
-        _dynamic_game_state: &mut DynamicGameState,
+        dynamic_game_state: &mut DynamicGameState,
         _dt: f32,
         static_game_state: &StaticGameState,
     ) {
@@ -188,6 +217,45 @@ impl PathTargetSetter {
         let Some(path_state) = &mut path_target_setter.path_state else {
             return;
         };
+
+        if entity.ability_flags.contains(&AbilityFlag::Protector) {
+            if let Some((_, _, building_location_closest_path_idx)) =
+                world_get_furthest_planned_or_existing_building(
+                    path_state.path_id,
+                    entity.owner,
+                    DEFAULT_UNIT_DETECTION_RADIUS, //TODO: Maybe not hardcode?
+                    static_game_state,
+                    dynamic_game_state,
+                )
+            {
+                if (get_path_pos(
+                    static_game_state,
+                    path_state.path_id,
+                    building_location_closest_path_idx,
+                ) - entity.pos)
+                    .length()
+                    < CLOSE_ENOUGH_TO_TARGET
+                {
+                    movement.movement_towards_target.target_pos = None;
+                    return;
+                }
+                path_state.set_direction(
+                    match building_location_closest_path_idx >= path_state.target_path_idx {
+                        true => Direction::Positive,
+                        false => Direction::Negative,
+                    },
+                );
+            } else {
+                path_state.set_direction(
+                    dynamic_game_state
+                        .players
+                        .get(&entity.owner)
+                        .unwrap()
+                        .direction
+                        .flipped(),
+                );
+            }
+        }
 
         let mut target_pos = get_path_pos(
             &static_game_state,
@@ -216,6 +284,7 @@ impl DetectionBasedTargetSetter {
         _dt: f32,
         _static_game_state: &StaticGameState,
     ) {
+        let entity_path_id = get_path_id(&entity);
         let Some(movement) = entity.movement.as_mut() else {
             return;
         };
@@ -246,6 +315,9 @@ impl DetectionBasedTargetSetter {
                 attack,
                 &mut dynamic_game_state.entities,
             ) {
+                if entity_path_id != get_path_id(&target_entity_to_attack) {
+                    continue;
+                }
                 movement.movement_towards_target.target_pos = Some(target_entity_to_attack.pos);
                 return;
             }

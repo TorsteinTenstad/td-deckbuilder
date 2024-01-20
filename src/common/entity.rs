@@ -61,18 +61,23 @@ impl Health {
     }
 }
 
+#[derive(Serialize, Deserialize, PartialEq)]
+pub enum AbilityFlag {
+    Protector,
+}
+
 #[derive(Serialize, Deserialize)]
 pub struct Entity {
     pub id: EntityId,
     pub tag: EntityTag,
     pub owner: PlayerId,
     pub state: EntityState,
-    #[serde(skip)]
     pub movement: Option<Movement>,
     #[serde(with = "Vec2Def")]
     pub pos: Vec2,
     pub radius: f32,
     pub hitbox_radius: f32,
+    pub ability_flags: Vec<AbilityFlag>,
     pub usable_as_spawn_point: bool,
     pub health: Health,
     pub attacks: Vec<Attack>,
@@ -94,6 +99,7 @@ impl Entity {
             radius: 0.0,
             health: Health::default(),
             hitbox_radius: 0.0,
+            ability_flags: Vec::new(),
             usable_as_spawn_point: false,
             attacks: Vec::new(),
             seconds_left_to_live: None,

@@ -3,14 +3,15 @@ use crate::{
     entity::Entity,
     game_state::{DynamicGameState, StaticGameState},
     get_unit_spawnpoints::get_unit_spawnpoints,
-    ids::{EntityId, PathId, PlayerId},
+    ids::{BuildingLocationId, EntityId, PathId, PlayerId},
     play_target::{BuildingSpotTarget, UnitSpawnpointTarget},
     serde_defs::Vec2Def,
 };
+use itertools::Itertools;
 use macroquad::math::Vec2;
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct BuildingLocation {
     #[serde(with = "Vec2Def")]
     pub pos: Vec2,
@@ -34,6 +35,12 @@ impl Direction {
         match self {
             Direction::Positive => 1,
             Direction::Negative => -1,
+        }
+    }
+    pub fn flipped(&self) -> Self {
+        match self {
+            Direction::Positive => Direction::Negative,
+            Direction::Negative => Direction::Positive,
         }
     }
 }
@@ -91,6 +98,72 @@ pub fn path_length_from_spawnpoint(
         spawnpoint.path_idx,
         first_path_idx_within_building_range,
     ))
+}
+
+pub fn world_get_building_locations_on_path(
+    path_id: PathId,
+    search_range: f32,
+    static_game_state: &StaticGameState,
+    dynamic_game_state: &DynamicGameState,
+) -> Vec<(BuildingLocationId, BuildingLocation, usize)> {
+    let path = static_game_state.paths.get(&path_id).unwrap();
+    path.iter()
+        .enumerate()
+        .flat_map(|(path_idx, (x, y))| {
+            let pos = Vec2 { x: *x, y: *y };
+            dynamic_game_state
+                .building_locations
+                .iter()
+                .filter(move |(building_location_id, building_location)| {
+                    (building_location.pos - pos).length_squared() < search_range.powi(2)
+                })
+                .map(move |(building_location_id, building_location)| {
+                    (
+                        building_location_id.clone(),
+                        building_location.clone(),
+                        path_idx,
+                    )
+                })
+        })
+        .collect_vec()
+}
+
+pub fn world_get_furthest_planned_or_existing_building(
+    path_id: PathId,
+    player_id: PlayerId,
+    search_range: f32,
+    static_game_state: &StaticGameState,
+    dynamic_game_state: &DynamicGameState,
+) -> Option<(BuildingLocationId, BuildingLocation, usize)> {
+    let player_direction = dynamic_game_state
+        .players
+        .get(&player_id)
+        .unwrap()
+        .direction;
+    let building_locations_along_path = world_get_building_locations_on_path(
+        path_id,
+        search_range,
+        static_game_state,
+        &dynamic_game_state,
+    );
+    let mut owned_building_locations_along_path = building_locations_along_path.iter().filter(
+        |(building_location_id, building_location, _)| {
+            find_entity(&dynamic_game_state.entities, building_location.entity_id)
+                .is_some_and(|entity| entity.owner == player_id)
+                || dynamic_game_state.entities.iter().any(|entity| {
+                    entity.owner == player_id
+                        && entity.building_to_construct.as_ref().is_some_and(
+                            |(building_spot_target, _)| {
+                                building_spot_target.id == *building_location_id
+                            },
+                        )
+                })
+        },
+    );
+    match player_direction {
+        Direction::Positive => owned_building_locations_along_path.last().cloned(),
+        Direction::Negative => owned_building_locations_along_path.next().cloned(),
+    }
 }
 
 pub fn find_entity_mut(entities: &mut Vec<Entity>, id: Option<EntityId>) -> Option<&mut Entity> {

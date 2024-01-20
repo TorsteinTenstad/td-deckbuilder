@@ -20,9 +20,9 @@ impl AttackRange {
     pub fn to_f32(&self, radius: f32) -> f32 {
         match self {
             AttackRange::Melee => radius,
-            AttackRange::Short => 200.0,
-            AttackRange::Default => 400.0,
-            AttackRange::Long => 600.0,
+            AttackRange::Short => 75.0,
+            AttackRange::Default => 150.0,
+            AttackRange::Long => 225.0,
             AttackRange::Custom(range) => *range,
         }
     }

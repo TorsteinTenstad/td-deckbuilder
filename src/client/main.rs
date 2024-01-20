@@ -223,7 +223,7 @@ fn main_draw(state: &ClientGameState) {
             ));
         }
 
-        if let Some(detection_range) = dbg!(get_detection_range(entity)) {
+        if let Some(detection_range) = get_detection_range(entity) {
             range_circle_preview.push((entity.pos.x, entity.pos.y, detection_range, YELLOW));
         }
 
