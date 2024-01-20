@@ -81,23 +81,20 @@ pub fn path_length_from_spawnpoint(
     spawnpoint: &UnitSpawnpointTarget,
     to_pos: Vec2,
     detection_range: f32,
-    direction: Direction,
-) -> Option<f32> {
+) -> Option<(usize, f32)> {
     let path = static_game_state.paths.get(&spawnpoint.path_id).unwrap();
-    let predicate = |(_, (x, y)): &(usize, &(f32, f32))| {
+    let path_nodes_in_range_predicate = |(_, (x, y)): &(usize, &(f32, f32))| {
         ((*x - to_pos.x).powi(2) + (*y - to_pos.y).powi(2)) < detection_range.powi(2)
     };
-    let first_path_idx_within_building_range = match direction {
-        Direction::Positive => path.iter().enumerate().find(predicate),
-        Direction::Negative => path.iter().rev().enumerate().find(predicate),
-    }
-    .map(|(idx, _)| idx)?;
+    let path_nodes_in_range = path
+        .iter()
+        .enumerate()
+        .filter(path_nodes_in_range_predicate);
 
-    Some(path_length(
-        path,
-        spawnpoint.path_idx,
-        first_path_idx_within_building_range,
-    ))
+    let path_lengths =
+        path_nodes_in_range.map(|(idx, _)| (idx, path_length(path, spawnpoint.path_idx, idx)));
+
+    path_lengths.min_by(|(_, len_a), (_, len_b)| len_a.partial_cmp(&&len_b).unwrap())
 }
 
 pub fn world_get_building_locations_on_path(
@@ -215,24 +212,29 @@ pub fn world_place_builder(
     };
     *building_spot_target = target;
 
-    let spawnpoint_target = get_unit_spawnpoints(owner, static_game_state, dynamic_game_state)
-        .iter()
-        .filter_map(|spawnpoint| {
-            path_length_from_spawnpoint(
-                static_game_state,
-                spawnpoint,
-                building_pos,
-                detection_range,
-                dynamic_game_state.players.get(&owner).unwrap().direction,
-            )
-            .map(|len| (spawnpoint, len))
-        })
-        .min_by(|(_, len_a), (_, len_b)| len_a.partial_cmp(&&len_b).unwrap())
-        .map(|(spawnpoint, _len)| spawnpoint.clone());
-    let Some(spawnpoint_target) = spawnpoint_target else {
+    let Some((target_path_idx, mut spawnpoint_target)) =
+        get_unit_spawnpoints(owner, static_game_state, dynamic_game_state)
+            .iter()
+            .filter_map(|spawnpoint| {
+                path_length_from_spawnpoint(
+                    static_game_state,
+                    spawnpoint,
+                    building_pos,
+                    detection_range,
+                )
+                .map(|(target_path_idx, len)| (spawnpoint, target_path_idx, len))
+            })
+            .min_by(|(_, _, len_a), (_, _, len_b)| len_a.partial_cmp(&&len_b).unwrap())
+            .map(|(spawnpoint, target_path_idx, _len)| (target_path_idx, spawnpoint.clone()))
+    else {
         return false;
     };
 
+    spawnpoint_target.direction = if target_path_idx < spawnpoint_target.path_idx {
+        Direction::Negative
+    } else {
+        Direction::Positive
+    };
     world_place_path_entity(
         static_game_state,
         dynamic_game_state,
