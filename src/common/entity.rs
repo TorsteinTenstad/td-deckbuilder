@@ -1,8 +1,8 @@
 use crate::buff::ExtraHealthBuff;
-use crate::component_movement_behavior::MovementBehavior;
+use crate::component_movement::Movement;
 use crate::entity_blueprint::EntityBlueprint;
 use crate::ids::EntityId;
-use crate::play_target::{BuildingSpotTarget, EntityTarget, WorldPosTarget};
+use crate::play_target::BuildingSpotTarget;
 use crate::serde_defs::Vec2Def;
 use crate::{component_attack::Attack, ids::PlayerId, textures::SpriteId};
 use macroquad::math::Vec2;
@@ -23,14 +23,6 @@ pub enum EntityState {
     Passive,
     Building,
     Dead,
-}
-
-#[derive(Clone, Serialize, Deserialize)]
-pub enum MoveTarget {
-    WorldPos(WorldPosTarget),
-    BuildingSpot(BuildingSpotTarget),
-    Entity(EntityTarget),
-    None,
 }
 
 #[derive(Default, Serialize, Deserialize)]
@@ -75,8 +67,8 @@ pub struct Entity {
     pub tag: EntityTag,
     pub owner: PlayerId,
     pub state: EntityState,
-    pub movement_behavior: MovementBehavior,
-    pub move_target: MoveTarget,
+    #[serde(skip)]
+    pub movement: Option<Movement>,
     #[serde(with = "Vec2Def")]
     pub pos: Vec2,
     pub radius: f32,
@@ -97,8 +89,7 @@ impl Entity {
             owner,
             state,
             sprite_id: SpriteId::Empty,
-            movement_behavior: MovementBehavior::None,
-            move_target: MoveTarget::None,
+            movement: None,
             pos: Vec2::ZERO,
             radius: 0.0,
             health: Health::default(),

@@ -1,12 +1,12 @@
 use client_game_state::ClientGameState;
 use common::component_attack::{Attack, AttackVariant};
-use common::component_movement_behavior::{MovementBehavior, PathMovementBehavior};
+use common::component_movement::get_detection_range;
 use common::entity::EntityTag;
 use common::entity_blueprint::DEFAULT_UNIT_DETECTION_RADIUS;
 use common::play_target::{unit_spawnpoint_target_transform, PlayFn};
 use common::rect_transform::{point_inside, RectTransform};
 use common::textures::SpriteId;
-use common::world::{find_entity, Direction};
+use common::world::find_entity;
 use common::*;
 use itertools::Itertools;
 use macroquad::color::{Color, BLACK, BLUE, GRAY, PINK, RED, WHITE, YELLOW};
@@ -177,13 +177,10 @@ fn main_draw(state: &ClientGameState) {
                     Some(player.direction),
                 );
 
-                let flip_x = match &entity.movement_behavior {
-                    MovementBehavior::Path(PathMovementBehavior {
-                        path_state: Some(path_state),
-                        ..
-                    }) => path_state.direction == Direction::Negative,
-                    _ => false,
-                };
+                let flip_x = entity
+                    .movement
+                    .as_ref()
+                    .is_some_and(|movement| movement.movement_towards_target.velocity.x < 0.0);
 
                 let height = 2.0 * radius;
                 let width = height * texture.width() / texture.height();
@@ -226,14 +223,10 @@ fn main_draw(state: &ClientGameState) {
             ));
         }
 
-        if let MovementBehavior::Path(path_movement_behavior) = &entity.movement_behavior {
-            range_circle_preview.push((
-                entity.pos.x,
-                entity.pos.y,
-                path_movement_behavior.detection_radius,
-                YELLOW,
-            ));
+        if let Some(detection_range) = dbg!(get_detection_range(entity)) {
+            range_circle_preview.push((entity.pos.x, entity.pos.y, detection_range, YELLOW));
         }
+
         range_circle_preview.push((entity.pos.x, entity.pos.y, entity.hitbox_radius, RED));
     }
     for (x, y, range, color) in range_circle_preview {

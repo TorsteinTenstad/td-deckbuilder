@@ -1,11 +1,10 @@
 use crate::{
     buff::{apply_arithmetic_buffs, ArithmeticBuff},
-    component_movement_behavior::{BulletMovementBehavior, MovementBehavior, MovementSpeed},
+    component_movement::Movement,
     config::PROJECTILE_RADIUS,
     entity::{Entity, EntityState, EntityTag, Health},
     find_target::find_target_for_attack,
 };
-use macroquad::math::Vec2;
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -49,12 +48,20 @@ impl AttackSpeed {
 }
 
 #[derive(Clone, Serialize, Deserialize)]
+pub enum TargetPool {
+    Enemies,
+    Allies,
+    All,
+}
+
+#[derive(Clone, Serialize, Deserialize)]
 pub struct Attack {
-    pub variant: AttackVariant,
-    pub can_target: Vec<EntityTag>,
-    pub range: AttackRange,
     pub damage: f32,
     pub attack_speed: AttackSpeed,
+    pub range: AttackRange,
+    pub variant: AttackVariant,
+    pub target_pool: TargetPool,
+    pub can_target: Vec<EntityTag>,
     pub cooldown_timer: f32,
     pub self_destruct: bool,
     pub damage_buffs: Vec<ArithmeticBuff>,
@@ -62,20 +69,15 @@ pub struct Attack {
     pub range_buffs: Vec<ArithmeticBuff>,
 }
 
-impl Attack {
-    pub fn new(
-        variant: AttackVariant,
-        range: AttackRange,
-        damage: f32,
-        attack_speed: AttackSpeed,
-        can_target: Vec<EntityTag>,
-    ) -> Self {
+impl Default for Attack {
+    fn default() -> Self {
         Self {
-            variant,
-            can_target,
-            range,
-            damage,
-            attack_speed,
+            damage: 0.0,
+            attack_speed: AttackSpeed::Default,
+            range: AttackRange::Melee,
+            variant: AttackVariant::MeleeAttack,
+            target_pool: TargetPool::Enemies,
+            can_target: vec![EntityTag::Base, EntityTag::Tower, EntityTag::Unit],
             cooldown_timer: 0.0,
             self_destruct: false,
             damage_buffs: Vec::new(),
@@ -83,6 +85,19 @@ impl Attack {
             range_buffs: Vec::new(),
         }
     }
+}
+
+impl Attack {
+    pub fn default_ranged() -> Self {
+        Self {
+            variant: AttackVariant::RangedAttack,
+            range: AttackRange::Default,
+            ..Default::default()
+        }
+    }
+}
+
+impl Attack {
     pub fn get_damage(&self) -> f32 {
         apply_arithmetic_buffs(self.damage, &self.damage_buffs)
     }
@@ -96,7 +111,6 @@ impl Attack {
 
 #[derive(PartialEq, Eq, Clone, Serialize, Deserialize)]
 pub enum AttackVariant {
-    Heal,
     RangedAttack,
     MeleeAttack,
 }
@@ -120,35 +134,23 @@ impl Attack {
                         let mut bullet =
                             Entity::new(EntityTag::Bullet, entity.owner, EntityState::Moving);
                         bullet.pos = entity.pos;
-                        bullet.movement_behavior =
-                            MovementBehavior::Bullet(BulletMovementBehavior {
-                                speed: MovementSpeed::Projectile,
-                                velocity: Vec2::ZERO,
-                                target_entity_id: Some(target_entity.id),
-                                speed_buffs: Vec::new(),
-                            });
+                        bullet.movement = Some(Movement::new_projectile(target_entity.id));
                         bullet.radius = PROJECTILE_RADIUS;
                         bullet.health = Health::new(1.0);
                         bullet.hitbox_radius = PROJECTILE_RADIUS;
                         bullet.seconds_left_to_live = Some(3.0);
-                        let mut attack = Attack::new(
-                            AttackVariant::MeleeAttack,
-                            AttackRange::Melee,
-                            attack.get_damage(),
-                            AttackSpeed::Default,
-                            attack.can_target.clone(),
-                        );
-                        attack.self_destruct = true;
 
-                        bullet.attacks.push(attack);
+                        bullet.attacks.push(Attack {
+                            damage: attack.get_damage(),
+                            can_target: attack.can_target.clone(),
+                            self_destruct: true,
+                            ..Attack::default()
+                        });
 
                         entities.push(bullet);
                     }
                     AttackVariant::MeleeAttack => {
                         target_entity.health.deal_damage(attack.get_damage());
-                    }
-                    AttackVariant::Heal => {
-                        target_entity.health.heal(attack.get_damage());
                     }
                 }
                 if attack.self_destruct {

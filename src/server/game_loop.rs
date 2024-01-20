@@ -1,9 +1,12 @@
 use common::{
     component_attack::Attack,
-    component_movement_behavior::MovementBehavior,
+    component_movement::Movement,
+    config::CLOSE_ENOUGH_TO_TARGET,
     entity::{Entity, EntityState},
+    entity_blueprint,
     find_target::find_target_for_attack,
     game_state::{DynamicGameState, StaticGameState},
+    world::world_place_building,
 };
 
 pub fn update_entity<'a>(
@@ -23,31 +26,57 @@ pub fn update_entity<'a>(
         .is_some()
     });
 
+    let can_build =
+        entity
+            .building_to_construct
+            .clone()
+            .is_some_and(|(building_spot_target, _)| {
+                (dynamic_game_state
+                    .building_locations
+                    .get(&building_spot_target.id)
+                    .unwrap()
+                    .pos
+                    - entity.pos)
+                    .length()
+                    < CLOSE_ENOUGH_TO_TARGET
+            });
+
+    if can_attack {
+        entity.state = EntityState::Attacking;
+    } else if can_build {
+        entity.state = EntityState::Building;
+    } else {
+        entity.state = EntityState::Moving;
+    }
+
     match entity.state {
         EntityState::Moving => {
-            MovementBehavior::update(entity, dynamic_game_state, dt, static_state);
-            if can_attack {
-                entity.state = EntityState::Attacking;
-            }
+            Movement::update(entity, dynamic_game_state, dt, static_state);
         }
 
         EntityState::Attacking => {
             Attack::update(entity, &mut dynamic_game_state.entities, dt);
-            if !can_attack {
-                entity.state = EntityState::Moving
-            }
         }
 
         EntityState::Building => {
-            if let Some((building_location_id, entity_blueprint)) = &entity.building_to_construct {
-                let mut building = entity_blueprint.create(entity.owner);
-                let building_location = dynamic_game_state
+            if let Some((building_spot_target, entity_blueprint)) =
+                entity.building_to_construct.clone()
+            {
+                let building_to_construct_pos = dynamic_game_state
                     .building_locations
-                    .get_mut(&building_location_id.id)
-                    .unwrap();
-                building.pos = building_location.pos;
-                building_location.entity_id = Some(building.id);
-                dynamic_game_state.entities.push(building);
+                    .get(&building_spot_target.id)
+                    .unwrap()
+                    .pos;
+                if (building_to_construct_pos - entity.pos).length() < CLOSE_ENOUGH_TO_TARGET {
+                    world_place_building(
+                        dynamic_game_state,
+                        entity_blueprint.create(entity.owner),
+                        building_spot_target,
+                    );
+                    entity.state = EntityState::Dead;
+                }
+            } else {
+                assert!(false);
             }
         }
 

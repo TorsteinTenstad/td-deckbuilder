@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::{component_movement_behavior::MovementBehavior, entity::Entity};
+use crate::entity::Entity;
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct ArithmeticBuff {
@@ -51,14 +51,11 @@ pub fn buff_add_to_entity(entity: &mut Entity, buff: Buff) {
                 attack.range_buffs.push(buff.clone());
             }
         }
-        Buff::MovementSpeed(buff) => match entity.movement_behavior {
-            MovementBehavior::Path(ref mut path_movement_behavior) => {
-                path_movement_behavior.speed_buffs.push(buff);
+        Buff::MovementSpeed(buff) => match entity.movement {
+            Some(ref mut movement) => {
+                movement.movement_towards_target.speed_buffs.push(buff);
             }
-            MovementBehavior::Bullet(ref mut bullet_movement_behavior) => {
-                bullet_movement_behavior.speed_buffs.push(buff);
-            }
-            MovementBehavior::None => (),
+            None => (),
         },
         Buff::ExtraHealth(buff) => {
             entity.health.extra_health_buffs.push(buff);
@@ -81,20 +78,17 @@ pub fn buff_update_timers(entity: &mut Entity, dt: f32) {
             buff.seconds_left > 0.0
         });
     }
-    match entity.movement_behavior {
-        MovementBehavior::Path(ref mut path_movement_behavior) => {
-            path_movement_behavior.speed_buffs.retain_mut(|buff| {
-                buff.seconds_left -= dt;
-                buff.seconds_left > 0.0
-            });
+    match entity.movement {
+        Some(ref mut movement) => {
+            movement
+                .movement_towards_target
+                .speed_buffs
+                .retain_mut(|buff| {
+                    buff.seconds_left -= dt;
+                    buff.seconds_left > 0.0
+                });
         }
-        MovementBehavior::Bullet(ref mut bullet_movement_behavior) => {
-            bullet_movement_behavior.speed_buffs.retain_mut(|buff| {
-                buff.seconds_left -= dt;
-                buff.seconds_left > 0.0
-            });
-        }
-        MovementBehavior::None => (),
+        None => (),
     }
     entity.health.extra_health_buffs.retain_mut(|buff| {
         buff.seconds_left -= dt;

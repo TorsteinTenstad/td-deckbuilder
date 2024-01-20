@@ -1,5 +1,5 @@
 use crate::{
-    component_movement_behavior::MovementBehavior,
+    component_movement::{get_detection_range, PathTargetSetter},
     entity::Entity,
     game_state::{DynamicGameState, StaticGameState},
     get_unit_spawnpoints::get_unit_spawnpoints,
@@ -47,13 +47,9 @@ pub fn next_path_idx(path_idx: usize, direction: Direction) -> usize {
     }
 }
 pub fn get_path_pos(static_game_state: &StaticGameState, path_id: PathId, path_idx: usize) -> Vec2 {
-    static_game_state
-        .paths
-        .get(&path_id)
-        .unwrap()
-        .get(path_idx)
-        .map(|(x, y)| Vec2 { x: *x, y: *y })
-        .unwrap()
+    let path = static_game_state.paths.get(&path_id).unwrap();
+    let (x, y) = path.get(path_idx).unwrap_or(path.last().unwrap());
+    Vec2 { x: *x, y: *y }
 }
 
 pub fn path_length(path: &Vec<(f32, f32)>, start_idx: usize, stop_idx: usize) -> f32 {
@@ -111,12 +107,14 @@ pub fn world_place_path_entity(
     mut entity: Entity,
     target: UnitSpawnpointTarget,
 ) {
-    let MovementBehavior::Path(path_movement_behavior) = &mut entity.movement_behavior else {
+    let Some(movement) = &mut entity.movement else {
         assert!(false);
         return;
     };
     entity.pos = get_path_pos(static_game_state, target.path_id, target.path_idx);
-    path_movement_behavior.path_state = Some(target.into());
+    movement.path_target_setter = Some(PathTargetSetter {
+        path_state: Some(target.into()),
+    });
     dynamic_game_state.entities.push(entity);
 }
 
@@ -133,11 +131,10 @@ pub fn world_place_builder(
         .unwrap()
         .pos;
 
-    let MovementBehavior::Path(path_movement_behavior) = &entity.movement_behavior else {
+    let Some(detection_range) = get_detection_range(&entity) else {
         assert!(false);
         return false;
     };
-    let detection_range = path_movement_behavior.detection_radius;
 
     let Some((building_spot_target, _)) = entity.building_to_construct.as_mut() else {
         assert!(false);
