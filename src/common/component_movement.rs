@@ -316,6 +316,7 @@ impl DetectionBasedTargetSetter {
         for attack in &entity.attacks {
             if let Some(target_entity_to_attack) = find_target_for_attack(
                 entity.id,
+                &entity.tag,
                 entity.pos,
                 entity.owner,
                 detection_range,

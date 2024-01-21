@@ -83,8 +83,10 @@ impl Spy {
     pub fn is_hidden(&self) -> bool {
         self.is_hidden_from.len() <= self.hide_capacity as usize
     }
-    pub fn can_hide_from(&mut self, entity_id: &EntityId) -> bool {
-        self.is_hidden_from.insert(entity_id.clone());
+    pub fn can_hide_from(&mut self, entity_id: &EntityId, tag: &EntityTag) -> bool {
+        if tag == &EntityTag::Unit {
+            self.is_hidden_from.insert(entity_id.clone());
+        }
         self.is_hidden()
     }
 }

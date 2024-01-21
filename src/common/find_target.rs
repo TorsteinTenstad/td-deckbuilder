@@ -6,8 +6,26 @@ use crate::{
     ids::{EntityId, PlayerId},
 };
 
+pub fn find_attack_targets<'a>(
+    entity: &'a mut Entity,
+    other_entities: &'a mut Vec<Entity>,
+    range_override: Option<f32>,
+) -> Option<&'a mut Entity> {
+    let attack = entity.attacks.first()?;
+    find_target_for_attack(
+        entity.id,
+        &entity.tag,
+        entity.pos,
+        entity.owner,
+        range_override.unwrap_or(attack.get_range(entity.radius)),
+        attack,
+        other_entities,
+    )
+}
+
 pub fn find_target_for_attack<'a>(
     entity_id: EntityId,
+    entity_tag: &EntityTag,
     entity_pos: Vec2,
     entity_owner: PlayerId,
     range: f32,
@@ -21,7 +39,8 @@ pub fn find_target_for_attack<'a>(
             &attack.can_target,
             other_entities,
             |other_entity| {
-                other_entity.owner != entity_owner && can_find_target(entity_id, other_entity)
+                other_entity.owner != entity_owner
+                    && can_find_target(entity_id, entity_tag, other_entity)
             },
         ),
         TargetPool::Allies => find_entity_in_range(
@@ -36,16 +55,16 @@ pub fn find_target_for_attack<'a>(
             range,
             &attack.can_target,
             other_entities,
-            |other_entity| can_find_target(entity_id, other_entity),
+            |other_entity| can_find_target(entity_id, entity_tag, other_entity),
         ),
     }
 }
 
-pub fn can_find_target(entity_id: EntityId, other_entity: &mut Entity) -> bool {
+pub fn can_find_target(entity_id: EntityId, tag: &EntityTag, other_entity: &mut Entity) -> bool {
     let Some(spy) = other_entity.spy.as_mut() else {
         return true;
     };
-    !spy.can_hide_from(&entity_id)
+    !spy.can_hide_from(&entity_id, tag)
 }
 
 pub fn find_entity_in_range<'a>(

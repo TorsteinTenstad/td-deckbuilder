@@ -2,7 +2,7 @@ use common::{
     component_attack::Attack,
     component_movement::Movement,
     config::CLOSE_ENOUGH_TO_TARGET,
-    entity::{Entity, EntityState, Spy},
+    entity::{Entity, EntityState},
     find_target::find_target_for_attack,
     game_state::{DynamicGameState, StaticGameState},
     world::world_place_building,
@@ -18,6 +18,7 @@ pub fn update_entity<'a>(
     let can_attack = entity.attacks.iter().any(|attack| {
         find_target_for_attack(
             entity.id,
+            &entity.tag,
             entity.pos,
             entity.owner,
             attack.range.to_f32(entity.radius),
