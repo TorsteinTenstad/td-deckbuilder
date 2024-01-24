@@ -1,24 +1,27 @@
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    component_attack::{Attack, AttackSpeed, TargetPool},
+    component_attack::{Attack, AttackSpeed},
     component_movement::{Movement, MovementSpeed},
+    config::PROJECTILE_RADIUS,
     entity::{AbilityFlag, Entity, EntityState, EntityTag, Health, Spy},
-    ids::{BuildingLocationId, PlayerId},
-    play_target::BuildingSpotTarget,
+    ids::PlayerId,
     textures::SpriteId,
 };
 
 #[derive(Clone, Serialize, Deserialize)]
 pub enum EntityBlueprint {
-    BasicSwordsman,
-    Priest,
-    DemonPig,
-    BasicRanger,
-    BasicTower,
-    BasicTowerBuilder,
+    BasicBuilder,
+    HomesickWarrior,
+    ElfWarrior,
+    OldSwordMaster,
+    DemonWolf,
+    SmallCriminal,
+    StreetCriminal,
+    Spy,
+    RecklessKnight,
+    Tower,
     SpawnPoint,
-    SpawnPointBuilder,
     Base,
 }
 
@@ -29,128 +32,135 @@ const BUILDING_RADIUS: f32 = 64.0;
 impl EntityBlueprint {
     pub fn create(&self, owner: PlayerId) -> Entity {
         let tag = match self {
-            EntityBlueprint::BasicSwordsman
-            | EntityBlueprint::DemonPig
-            | EntityBlueprint::BasicRanger
-            | EntityBlueprint::BasicTowerBuilder
-            | EntityBlueprint::Priest
-            | EntityBlueprint::SpawnPointBuilder => EntityTag::Unit,
-            EntityBlueprint::BasicTower | EntityBlueprint::SpawnPoint => EntityTag::Tower,
+            EntityBlueprint::HomesickWarrior
+            | EntityBlueprint::SmallCriminal
+            | EntityBlueprint::StreetCriminal
+            | EntityBlueprint::Spy
+            | EntityBlueprint::RecklessKnight
+            | EntityBlueprint::DemonWolf
+            | EntityBlueprint::ElfWarrior
+            | EntityBlueprint::OldSwordMaster
+            | EntityBlueprint::BasicBuilder => EntityTag::Unit,
+            EntityBlueprint::Tower | EntityBlueprint::SpawnPoint => EntityTag::Tower,
             EntityBlueprint::Base => EntityTag::Base,
         };
-        let state = match self {
-            EntityBlueprint::BasicSwordsman
-            | EntityBlueprint::DemonPig
-            | EntityBlueprint::BasicRanger
-            | EntityBlueprint::BasicTowerBuilder
-            | EntityBlueprint::Priest
-            | EntityBlueprint::SpawnPointBuilder => EntityState::Moving,
-            EntityBlueprint::BasicTower => EntityState::Attacking,
-            EntityBlueprint::SpawnPoint | EntityBlueprint::Base => EntityState::Passive,
+        let state = match tag {
+            EntityTag::Unit => EntityState::Moving,
+            EntityTag::Tower => EntityState::Attacking,
+            EntityTag::Base => EntityState::Passive,
+            EntityTag::Bullet => EntityState::Moving,
+        };
+        let radius = match tag {
+            EntityTag::Unit => UNIT_RADIUS,
+            EntityTag::Tower => BUILDING_RADIUS,
+            EntityTag::Base => BUILDING_RADIUS,
+            EntityTag::Bullet => PROJECTILE_RADIUS,
         };
         let mut entity = Entity::new(tag, owner, state);
+        entity.radius = radius;
         match self {
-            EntityBlueprint::BasicTowerBuilder => {
-                entity.radius = UNIT_RADIUS;
+            EntityBlueprint::BasicBuilder => {
                 entity.health = Health::new(100.0);
                 entity.movement = Some(Movement::new(MovementSpeed::Default));
                 entity.sprite_id = SpriteId::UnitBuilder;
                 entity.attacks.push(Attack {
+                    damage: 5.0,
+                    ..Attack::default()
+                });
+            }
+            EntityBlueprint::HomesickWarrior => {
+                entity.health = Health::new(200.0);
+                entity.movement = Some(Movement::new(MovementSpeed::Default));
+                entity.sprite_id = SpriteId::UnitHomesickWarrior;
+                entity.ability_flags = vec![AbilityFlag::Protector];
+                entity.attacks.push(Attack {
+                    damage: 20.0,
+                    ..Attack::default()
+                });
+            }
+            EntityBlueprint::ElfWarrior => {
+                entity.health = Health::new(100.0);
+                entity.movement = Some(Movement::new(MovementSpeed::Default));
+                entity.sprite_id = SpriteId::UnitElfWarrior;
+                entity.attacks.push(Attack {
+                    damage: 10.0,
+                    attack_speed: AttackSpeed::Fast,
+                    ..Attack::default_ranged()
+                });
+            }
+            EntityBlueprint::OldSwordMaster => {
+                entity.health = Health::new(200.0);
+                entity.movement = Some(Movement::new(MovementSpeed::VerySlow));
+                entity.sprite_id = SpriteId::UnitOldSwordMaster;
+                entity.attacks.push(Attack {
+                    damage: 50.0,
+                    ..Attack::default()
+                });
+            }
+            EntityBlueprint::DemonWolf => {
+                entity.health = Health::new(200.0);
+                entity.movement = Some(Movement::new(MovementSpeed::Fast));
+                entity.sprite_id = SpriteId::UnitDemonWolf;
+                entity.attacks.push(Attack {
+                    damage: 20.0,
+                    ..Attack::default()
+                });
+            }
+            EntityBlueprint::SmallCriminal => {
+                entity.health = Health::new(200.0);
+                entity.movement = Some(Movement::new(MovementSpeed::Fast));
+                entity.sprite_id = SpriteId::UnitSmallCriminal;
+                entity.attacks.push(Attack {
                     damage: 10.0,
                     ..Attack::default()
                 });
-                entity.building_to_construct = Some((
-                    BuildingSpotTarget {
-                        id: BuildingLocationId(0),
-                    },
-                    EntityBlueprint::BasicTower,
-                ));
             }
-            EntityBlueprint::SpawnPointBuilder => {
-                entity.radius = UNIT_RADIUS;
-                entity.health = Health::new(100.0);
+            EntityBlueprint::StreetCriminal => {
+                entity.health = Health::new(200.0);
                 entity.movement = Some(Movement::new(MovementSpeed::Default));
-                entity.sprite_id = SpriteId::UnitBuilder;
+                entity.sprite_id = SpriteId::UnitStreetCriminal;
                 entity.attacks.push(Attack {
                     damage: 10.0,
-                    ..Attack::default()
-                });
-                entity.building_to_construct = Some((
-                    BuildingSpotTarget {
-                        id: BuildingLocationId(0),
-                    },
-                    EntityBlueprint::SpawnPoint,
-                ));
-            }
-            EntityBlueprint::BasicSwordsman => {
-                entity.radius = UNIT_RADIUS;
-                entity.health = Health::new(100.0);
-                entity.movement = Some(Movement::new(MovementSpeed::Default));
-                entity.sprite_id = SpriteId::UnitSwordsman;
-                entity.attacks.push(Attack {
-                    damage: 10.0,
-                    ..Attack::default()
-                });
-            }
-            EntityBlueprint::Priest => {
-                entity.radius = UNIT_RADIUS;
-                entity.health = Health::new(100.0);
-                entity.movement = Some(Movement::new(MovementSpeed::Default));
-                entity.sprite_id = SpriteId::UnitPriest;
-
-                entity.attacks.push(Attack {
-                    damage: -10.0,
-                    target_pool: TargetPool::Allies,
-                    can_target: vec![EntityTag::Unit],
-                    ..Attack::default()
-                });
-            }
-            EntityBlueprint::DemonPig => {
-                entity.radius = UNIT_RADIUS;
-                entity.health = Health::new(50.0);
-                entity.movement = Some(Movement::new(MovementSpeed::Default));
-                entity.sprite_id = SpriteId::UnitDemonPig;
-
-                entity.attacks.push(Attack {
-                    damage: 3.0,
                     attack_speed: AttackSpeed::Fast,
                     ..Attack::default()
                 });
-                entity.spy = Some(Spy::new(1));
             }
-            EntityBlueprint::BasicRanger => {
-                entity.radius = UNIT_RADIUS;
-                entity.health = Health::new(50.0);
+            EntityBlueprint::Spy => {
+                entity.health = Health::new(200.0);
                 entity.movement = Some(Movement::new(MovementSpeed::Default));
-                entity.sprite_id = SpriteId::UnitArcher;
-
+                entity.sprite_id = SpriteId::UnitSpy;
+                entity.attacks.push(Attack {
+                    damage: 20.0,
+                    ..Attack::default()
+                });
+                entity.spy = Some(Spy::new(3));
+            }
+            EntityBlueprint::RecklessKnight => {
+                entity.health = Health::new(100.0);
+                entity.movement = Some(Movement::new(MovementSpeed::Fast));
+                entity.sprite_id = SpriteId::UnitRecklessKnight;
+                entity.attacks.push(Attack {
+                    damage: 30.0,
+                    ..Attack::default()
+                });
+            }
+            EntityBlueprint::Tower => {
+                entity.health = Health::new(500.0);
+                entity.sprite_id = SpriteId::BuildingTower;
                 entity.attacks.push(Attack {
                     damage: 10.0,
-                    ..Attack::default_ranged()
+                    ..Attack::default_ranged_tower()
                 });
-            }
-            EntityBlueprint::BasicTower => {
-                entity.radius = BUILDING_RADIUS;
-                entity.health = Health::new(200.0);
-
-                entity.attacks.push(Attack {
-                    damage: 5.0,
-                    can_target: vec![EntityTag::Unit],
-                    ..Attack::default_ranged()
-                });
-                entity.sprite_id = SpriteId::BuildingTower
             }
             EntityBlueprint::SpawnPoint => {
-                entity.radius = BUILDING_RADIUS;
-                entity.health = Health::new(200.0);
+                entity.health = Health::new(400.0);
+                entity.sprite_id = SpriteId::BuildingSpawnpoint;
                 entity.usable_as_spawn_point = true;
-                entity.sprite_id = SpriteId::BuildingSpawnpoint
             }
             EntityBlueprint::Base => {
-                entity.radius = 48.0;
-                entity.health = Health::new(1000.0);
+                entity.health = Health::new(2000.0);
+                entity.sprite_id = SpriteId::BuildingBase;
                 entity.usable_as_spawn_point = true;
-                entity.sprite_id = SpriteId::BuildingBase
             }
         }
         entity.hitbox_radius = entity.radius;

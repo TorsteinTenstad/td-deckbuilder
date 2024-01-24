@@ -3,7 +3,7 @@ use crate::{
     ids::CardInstanceId,
     play_target::PlayFn,
     textures::SpriteId,
-    world::{find_entity_mut, world_place_builder, world_place_path_entity},
+    world::{find_entity_mut, world_place_tower, world_place_unit},
 };
 use serde::{Deserialize, Serialize};
 use strum::IntoEnumIterator;
@@ -11,13 +11,17 @@ use strum_macros::EnumIter;
 
 #[derive(Debug, Clone, EnumIter, Serialize, Deserialize, Eq, PartialEq)]
 pub enum Card {
-    BasicTower,
-    SpawnPointTest,
-    BasicSwordsman,
-    Priest,
-    DemonPig,
-    BasicRanger,
-    DirectDamageTest,
+    Tower,
+    SpawnPoint,
+    HomesickWarrior,
+    ElfWarrior,
+    OldSwordMaster,
+    DemonWolf,
+    SmallCriminal,
+    StreetCriminal,
+    Spy,
+    RecklessKnight,
+    DirectDamage,
 }
 
 impl Card {
@@ -39,76 +43,94 @@ pub struct CardData {
     pub play_fn: PlayFn,
 }
 
+macro_rules! play_building {
+    ($builder_blueprint:ident, $building_blueprint:ident) => {
+        PlayFn::BuildingSpot(|target, owner, static_game_state, dynamic_game_state| {
+            world_place_tower(
+                static_game_state,
+                dynamic_game_state,
+                target,
+                owner,
+                EntityBlueprint::$builder_blueprint,
+                EntityBlueprint::$building_blueprint,
+            )
+        })
+    };
+}
+
+macro_rules! play_unit {
+    ($unit_blueprint:ident) => {
+        PlayFn::UnitSpawnPoint(|target, owner, static_game_state, dynamic_game_state| {
+            world_place_unit(
+                static_game_state,
+                dynamic_game_state,
+                target,
+                owner,
+                EntityBlueprint::$unit_blueprint,
+            )
+        })
+    };
+}
 const CARD_DATA: &[CardData] = &[
     CardData {
         name: "Tower",
         energy_cost: 3,
         sprite_id: SpriteId::CardTower,
-        play_fn: PlayFn::BuildingSpot(|target, owner, static_game_state, dynamic_game_state| {
-            let entity = EntityBlueprint::BasicTowerBuilder.create(owner);
-            return world_place_builder(
-                dynamic_game_state,
-                static_game_state,
-                owner,
-                entity,
-                target,
-            );
-        }),
+        play_fn: play_building!(BasicBuilder, Tower),
     },
     CardData {
         name: "Spawn Point",
-        energy_cost: 2,
+        energy_cost: 3,
         sprite_id: SpriteId::CardSpawnPoint,
-        play_fn: PlayFn::BuildingSpot(|target, owner, static_game_state, dynamic_game_state| {
-            let entity = EntityBlueprint::SpawnPointBuilder.create(owner);
-            return world_place_builder(
-                dynamic_game_state,
-                static_game_state,
-                owner,
-                entity,
-                target,
-            );
-        }),
+        play_fn: play_building!(BasicBuilder, SpawnPoint),
     },
     CardData {
-        name: "Swordsman",
-        energy_cost: 1,
-        sprite_id: SpriteId::CardSwordsman,
-        play_fn: PlayFn::UnitSpawnPoint(|target, owner, static_game_state, dynamic_game_state| {
-            let entity = EntityBlueprint::BasicSwordsman.create(owner);
-            world_place_path_entity(static_game_state, dynamic_game_state, entity, target);
-            return true;
-        }),
+        name: "Homesick Warrior",
+        energy_cost: 3,
+        sprite_id: SpriteId::CardHomesickWarrior,
+        play_fn: play_unit!(HomesickWarrior),
     },
     CardData {
-        name: "Priest",
-        energy_cost: 1,
-        sprite_id: SpriteId::CardPriest,
-        play_fn: PlayFn::UnitSpawnPoint(|target, owner, static_game_state, dynamic_game_state| {
-            let entity = EntityBlueprint::Priest.create(owner);
-            world_place_path_entity(static_game_state, dynamic_game_state, entity, target);
-            return true;
-        }),
+        name: "Elf Warrior",
+        energy_cost: 2,
+        sprite_id: SpriteId::CardElfWarrior,
+        play_fn: play_unit!(ElfWarrior),
     },
     CardData {
-        name: "Demon Pig",
-        energy_cost: 1,
-        sprite_id: SpriteId::CardDemonPig,
-        play_fn: PlayFn::UnitSpawnPoint(|target, owner, static_game_state, dynamic_game_state| {
-            let entity = EntityBlueprint::DemonPig.create(owner);
-            world_place_path_entity(static_game_state, dynamic_game_state, entity, target);
-            return true;
-        }),
+        name: "Old Sword Master",
+        energy_cost: 3,
+        sprite_id: SpriteId::CardOldSwordMaster,
+        play_fn: play_unit!(OldSwordMaster),
     },
     CardData {
-        name: "Ranger",
+        name: "Demon Wolf",
+        energy_cost: 3,
+        sprite_id: SpriteId::CardDemonWolf,
+        play_fn: play_unit!(DemonWolf),
+    },
+    CardData {
+        name: "Small Criminal",
         energy_cost: 1,
-        sprite_id: SpriteId::CardRanger,
-        play_fn: PlayFn::UnitSpawnPoint(|target, owner, static_game_state, dynamic_game_state| {
-            let entity = EntityBlueprint::BasicRanger.create(owner);
-            world_place_path_entity(static_game_state, dynamic_game_state, entity, target);
-            return true;
-        }),
+        sprite_id: SpriteId::CardSmallCriminal,
+        play_fn: play_unit!(SmallCriminal),
+    },
+    CardData {
+        name: "Street Criminal",
+        energy_cost: 2,
+        sprite_id: SpriteId::CardStreetCriminal,
+        play_fn: play_unit!(StreetCriminal),
+    },
+    CardData {
+        name: "Spy",
+        energy_cost: 3,
+        sprite_id: SpriteId::CardSpy,
+        play_fn: play_unit!(Spy),
+    },
+    CardData {
+        name: "Reckless Knight",
+        energy_cost: 2,
+        sprite_id: SpriteId::CardRecklessKnight,
+        play_fn: play_unit!(RecklessKnight),
     },
     CardData {
         name: "Direct Damage",
@@ -120,7 +142,7 @@ const CARD_DATA: &[CardData] = &[
             else {
                 return false;
             };
-            target_entity.health.deal_damage(100.0);
+            target_entity.health.deal_damage(150.0);
             return true;
         }),
     },

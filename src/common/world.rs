@@ -1,6 +1,7 @@
 use crate::{
     component_movement::{get_detection_range, PathTargetSetter},
     entity::Entity,
+    entity_blueprint::EntityBlueprint,
     game_state::{DynamicGameState, StaticGameState},
     get_unit_spawnpoints::get_unit_spawnpoints,
     ids::{BuildingLocationId, EntityId, PathId, PlayerId},
@@ -171,46 +172,59 @@ pub fn find_entity(entities: &Vec<Entity>, id: Option<EntityId>) -> Option<&Enti
     return id.and_then(|id| entities.iter().find(|entity| entity.id == id));
 }
 
+pub fn world_place_unit(
+    static_game_state: &StaticGameState,
+    dynamic_game_state: &mut DynamicGameState,
+    target: UnitSpawnpointTarget,
+    owner: PlayerId,
+    entity_blueprint: EntityBlueprint,
+) -> bool {
+    world_place_path_entity(
+        static_game_state,
+        dynamic_game_state,
+        target,
+        entity_blueprint.create(owner),
+    )
+}
+
 pub fn world_place_path_entity(
     static_game_state: &StaticGameState,
     dynamic_game_state: &mut DynamicGameState,
-    mut entity: Entity,
     target: UnitSpawnpointTarget,
-) {
+    mut entity: Entity,
+) -> bool {
     let Some(movement) = &mut entity.movement else {
         assert!(false);
-        return;
+        return false;
     };
     entity.pos = get_path_pos(static_game_state, target.path_id, target.path_idx);
     movement.path_target_setter = Some(PathTargetSetter {
         path_state: Some(target.into()),
     });
     dynamic_game_state.entities.push(entity);
+    return true;
 }
 
-pub fn world_place_builder(
-    dynamic_game_state: &mut DynamicGameState,
+pub fn world_place_tower(
     static_game_state: &StaticGameState,
-    owner: PlayerId,
-    mut entity: Entity,
+    dynamic_game_state: &mut DynamicGameState,
     target: BuildingSpotTarget,
+    owner: PlayerId,
+    builder_blueprint: EntityBlueprint,
+    building_blueprint: EntityBlueprint,
 ) -> bool {
     let building_pos = dynamic_game_state
         .building_locations
         .get(&target.id)
         .unwrap()
         .pos;
-
+    let mut entity = builder_blueprint.create(owner);
     let Some(detection_range) = get_detection_range(&entity) else {
         assert!(false);
         return false;
     };
 
-    let Some((building_spot_target, _)) = entity.building_to_construct.as_mut() else {
-        assert!(false);
-        return false;
-    };
-    *building_spot_target = target;
+    entity.building_to_construct = Some((target, building_blueprint.clone()));
 
     let Some((target_path_idx, mut spawnpoint_target)) =
         get_unit_spawnpoints(owner, static_game_state, dynamic_game_state)
@@ -238,8 +252,8 @@ pub fn world_place_builder(
     world_place_path_entity(
         static_game_state,
         dynamic_game_state,
-        entity,
         spawnpoint_target,
+        entity,
     );
     true
 }

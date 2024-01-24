@@ -95,6 +95,12 @@ impl Attack {
             ..Default::default()
         }
     }
+    pub fn default_ranged_tower() -> Self {
+        Self {
+            can_target: vec![EntityTag::Unit],
+            ..Attack::default_ranged()
+        }
+    }
 }
 
 impl Attack {

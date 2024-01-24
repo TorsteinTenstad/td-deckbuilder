@@ -139,20 +139,25 @@ impl From<UnitSpawnpointTarget> for PathState {
 
 #[derive(Clone, Serialize, Deserialize)]
 pub enum MovementSpeed {
+    VerySlow,
     Slow,
     Default,
     Fast,
+    VeryFast,
     Projectile,
     Custom(f32),
 }
 
 impl MovementSpeed {
     pub fn to_f32(&self) -> f32 {
+        let default_speed = 100.0;
         match self {
-            MovementSpeed::Slow => 50.0,
-            MovementSpeed::Default => 100.0,
-            MovementSpeed::Fast => 150.0,
-            MovementSpeed::Projectile => 500.0,
+            MovementSpeed::VerySlow => default_speed / 2.0,
+            MovementSpeed::Slow => default_speed / 1.5,
+            MovementSpeed::Default => default_speed,
+            MovementSpeed::Fast => default_speed * 1.5,
+            MovementSpeed::VeryFast => default_speed * 2.0,
+            MovementSpeed::Projectile => default_speed * 2.0,
             MovementSpeed::Custom(speed) => *speed,
         }
     }

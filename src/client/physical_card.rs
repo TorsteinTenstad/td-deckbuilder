@@ -19,16 +19,6 @@ pub struct PhysicalCard {
     pub target_transform: RectTransform,
 }
 
-impl PhysicalCard {
-    pub fn new(card: Card) -> Self {
-        Self {
-            card,
-            transform: RectTransform::default(),
-            target_transform: RectTransform::default(),
-        }
-    }
-}
-
 pub struct PhysicalCardInstance {
     pub card_instance: CardInstance,
     pub transform: RectTransform,

@@ -9,6 +9,7 @@ use macroquad::{
     window::{screen_height, screen_width},
 };
 use std::collections::HashMap;
+use strum::IntoEnumIterator;
 
 #[allow(dead_code)]
 pub enum TextOriginX {
@@ -222,11 +223,17 @@ pub fn draw_card(
     let relative_border = CARD_BORDER / transform.w;
     let image_w = transform.w * (1.0 - 2.0 * relative_border);
     let image_pos = get_on_card_pos(relative_border, relative_border);
+    let sprite_id = card.get_card_data().sprite_id;
     draw_texture_ex(
-        sprites
-            .sprites
-            .get(&card.get_card_data().sprite_id)
-            .unwrap(),
+        sprites.sprites.get(&sprite_id).expect(
+            format!(
+                "Missing sprite {:?} (should be at {:?}) for card {:?}",
+                sprite_id,
+                sprite_id.to_path(),
+                card
+            )
+            .as_str(),
+        ),
         image_pos.x,
         image_pos.y,
         WHITE,
@@ -318,36 +325,6 @@ pub fn draw_card(
     );
 }
 
-pub fn sprite_id_to_string(sprite_id: SpriteId) -> &'static str {
-    match sprite_id {
-        SpriteId::Bow => "bow.png",
-        SpriteId::Concept => "concept.png",
-        SpriteId::Map => "map.png",
-        SpriteId::Hourglass => "hourglass.png",
-        SpriteId::HourglassBow => "hourglass_bow.png",
-        SpriteId::HourglassSword => "hourglass_sword.png",
-        SpriteId::Range => "range.png",
-        SpriteId::Shield => "shield.png",
-        SpriteId::UnitArcher => "unit_archer.png",
-        SpriteId::UnitSwordsman => "unit_swordsman.png",
-        SpriteId::UnitPriest => "unit_priest.png",
-        SpriteId::UnitBuilder => "unit_builder.png",
-        SpriteId::UnitDemonPig => "unit_demon_pig.png",
-        SpriteId::Sword => "sword.png",
-        SpriteId::Empty => "x.png",
-        SpriteId::BuildingBase => "building_base.png",
-        SpriteId::BuildingTower => "building_tower.png",
-        SpriteId::BuildingSpawnpoint => "building_spawnpoint.png",
-        SpriteId::CardPriest => "card_art/priest.jpg",
-        SpriteId::CardRanger => "card_art/archer.jpg",
-        SpriteId::CardSwordsman => "card_art/swordsman.jpg",
-        SpriteId::CardSpawnPoint => "card_art/spawn_point.jpg",
-        SpriteId::CardTower => "card_art/tower.jpg",
-        SpriteId::CardDirectDamage => "card_art/direct_damage.jpg",
-        SpriteId::CardDemonPig => "card_art/demon_pig.jpg",
-    }
-}
-
 pub fn sprite_get_texture(sprites: &Sprites, sprite_id: SpriteId) -> &Texture2D {
     sprite_get_team_texture(sprites, sprite_id, None)
 }
@@ -365,7 +342,7 @@ pub fn sprite_get_team_texture(
         Some(Direction::Negative) => sprites.sprites_blue.get(&sprite_id),
         _ => None,
     }
-    .unwrap_or(&sprites.sprites[&SpriteId::Empty])
+    .unwrap_or(&sprites.sprites.get(&SpriteId::Empty).unwrap())
 }
 
 pub struct Sprites {
@@ -381,59 +358,24 @@ pub async fn load_sprites() -> Sprites {
         sprites_blue: HashMap::new(),
     };
 
-    for sprite_id in vec![
-        SpriteId::Bow,
-        SpriteId::Concept,
-        SpriteId::Map,
-        SpriteId::Hourglass,
-        SpriteId::HourglassBow,
-        SpriteId::HourglassSword,
-        SpriteId::Range,
-        SpriteId::Shield,
-        SpriteId::Sword,
-        SpriteId::Empty,
-        SpriteId::CardTower,
-        SpriteId::CardSpawnPoint,
-        SpriteId::CardSwordsman,
-        SpriteId::CardRanger,
-        SpriteId::CardPriest,
-        SpriteId::CardDirectDamage,
-        SpriteId::CardDemonPig,
-    ] {
-        sprites.sprites.insert(
-            sprite_id.clone(),
-            load_texture(format!("assets/textures/{}", sprite_id_to_string(sprite_id)).as_str())
-                .await
-                .unwrap(),
-        );
+    for sprite_id in SpriteId::iter() {
+        if let Ok(texture) =
+            load_texture(format!("assets/textures/{}", sprite_id.to_path()).as_str()).await
+        {
+            sprites.sprites.insert(sprite_id.clone(), texture);
+        }
     }
     for (color, sprites) in vec![
         ("red", &mut sprites.sprites_red),
         ("blue", &mut sprites.sprites_blue),
     ] {
-        for sprite_id in vec![
-            SpriteId::UnitArcher,
-            SpriteId::UnitSwordsman,
-            SpriteId::BuildingBase,
-            SpriteId::BuildingTower,
-            SpriteId::BuildingSpawnpoint,
-            SpriteId::UnitBuilder,
-            SpriteId::UnitPriest,
-            SpriteId::UnitDemonPig,
-        ] {
-            sprites.insert(
-                sprite_id.clone(),
-                load_texture(
-                    format!(
-                        "assets/textures/{}/{}",
-                        color,
-                        sprite_id_to_string(sprite_id)
-                    )
-                    .as_str(),
-                )
-                .await
-                .unwrap(),
-            );
+        for sprite_id in SpriteId::iter() {
+            if let Ok(texture) =
+                load_texture(format!("assets/textures/{}/{}", color, sprite_id.to_path()).as_str())
+                    .await
+            {
+                sprites.insert(sprite_id.clone(), texture);
+            }
         }
     }
 

@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
+use strum_macros::EnumIter;
 
-#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq, Hash, EnumIter)]
 pub enum SpriteId {
     Empty,
     Hourglass,
@@ -27,4 +28,68 @@ pub enum SpriteId {
     CardPriest,
     CardDirectDamage,
     CardDemonPig,
+    UnitRecklessKnight,
+    UnitSpy,
+    UnitStreetCriminal,
+    UnitSmallCriminal,
+    UnitDemonWolf,
+    UnitOldSwordMaster,
+    UnitElfWarrior,
+    UnitHomesickWarrior,
+    CardHomesickWarrior,
+    CardElfWarrior,
+    CardOldSwordMaster,
+    CardDemonWolf,
+    CardSmallCriminal,
+    CardStreetCriminal,
+    CardSpy,
+    CardRecklessKnight,
+}
+
+impl SpriteId {
+    pub fn to_path(&self) -> &'static str {
+        match self {
+            SpriteId::Bow => "bow.png",
+            SpriteId::Concept => "concept.png",
+            SpriteId::Map => "map.png",
+            SpriteId::Hourglass => "hourglass.png",
+            SpriteId::HourglassBow => "hourglass_bow.png",
+            SpriteId::HourglassSword => "hourglass_sword.png",
+            SpriteId::Range => "range.png",
+            SpriteId::Shield => "shield.png",
+            SpriteId::UnitArcher => "unit_archer.png",
+            SpriteId::UnitSwordsman => "unit_swordsman.png",
+            SpriteId::UnitPriest => "unit_priest.png",
+            SpriteId::UnitBuilder => "unit_builder.png",
+            SpriteId::UnitDemonPig => "unit_demon_pig.png",
+            SpriteId::UnitRecklessKnight => "reckless_knight.png",
+            SpriteId::UnitSpy => "spy.png",
+            SpriteId::UnitStreetCriminal => "street_criminal.png",
+            SpriteId::UnitSmallCriminal => "small_criminal.png",
+            SpriteId::UnitDemonWolf => "demon_wolf.png",
+            SpriteId::UnitOldSwordMaster => "old_sword_master.png",
+            SpriteId::UnitElfWarrior => "elf_warrior.png",
+            SpriteId::UnitHomesickWarrior => "homesick_warrior.png",
+            SpriteId::Sword => "sword.png",
+            SpriteId::Empty => "x.png",
+            SpriteId::BuildingBase => "building_base.png",
+            SpriteId::BuildingTower => "building_tower.png",
+            SpriteId::BuildingSpawnpoint => "building_spawnpoint.png",
+            SpriteId::CardPriest => "card_art/priest.jpg",
+            SpriteId::CardRanger => "card_art/archer.jpg",
+            SpriteId::CardSwordsman => "card_art/swordsman.jpg",
+            SpriteId::CardSpawnPoint => "card_art/spawn_point.jpg",
+            SpriteId::CardTower => "card_art/tower.jpg",
+            SpriteId::CardDirectDamage => "card_art/direct_damage.jpg",
+            SpriteId::CardDemonPig => "card_art/demon_pig.jpg",
+            SpriteId::CardHomesickWarrior => "card_art/homesick_warrior.jpg",
+            SpriteId::CardElfWarrior => "card_art/elf_warrior.jpg",
+            SpriteId::CardOldSwordMaster => "card_art/old_sword_master.jpg",
+            SpriteId::CardDemonWolf => "card_art/demon_wolf.jpg",
+            SpriteId::CardSmallCriminal => "card_art/small_criminal.jpg",
+            SpriteId::CardStreetCriminal => "card_art/street_criminal.jpg",
+            SpriteId::CardSpy => "card_art/spy.jpg",
+            SpriteId::CardRecklessKnight => "card_art/reckless_knight.jpg",
+        }
+    }
 }
