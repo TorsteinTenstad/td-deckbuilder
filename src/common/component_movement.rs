@@ -312,17 +312,20 @@ impl DetectionBasedTargetSetter {
                 return;
             }
         }
-        let is_hidden_spy = entity.spy.as_ref().is_some_and(|spy| spy.is_hidden());
         for attack in &entity.attacks {
             if let Some(target_entity_to_attack) = find_target_for_attack(
                 entity.id,
+                entity.tag.clone(),
                 entity.pos,
                 entity.owner,
+                entity.spy.as_ref(),
                 detection_range,
                 attack,
                 &mut dynamic_game_state.entities,
             ) {
-                if entity_path_id != get_path_id(&target_entity_to_attack) || is_hidden_spy {
+                if entity_path_id.is_some_and(|id| {
+                    get_path_id(&target_entity_to_attack).is_some_and(|other_id| id != other_id)
+                }) {
                     continue;
                 }
                 movement.movement_towards_target.target_pos = Some(target_entity_to_attack.pos);

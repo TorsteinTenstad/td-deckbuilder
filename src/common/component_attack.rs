@@ -120,8 +120,10 @@ impl Attack {
         for attack in &mut entity.attacks {
             let Some(target_entity) = find_target_for_attack(
                 entity.id,
+                entity.tag.clone(),
                 entity.pos,
                 entity.owner,
+                entity.spy.as_ref(),
                 attack.get_range(entity.radius),
                 &attack,
                 entities,

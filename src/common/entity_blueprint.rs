@@ -87,7 +87,6 @@ impl EntityBlueprint {
                 entity.health = Health::new(100.0);
                 entity.movement = Some(Movement::new(MovementSpeed::Default));
                 entity.sprite_id = SpriteId::UnitSwordsman;
-                entity.ability_flags.push(AbilityFlag::Protector);
                 entity.attacks.push(Attack {
                     damage: 10.0,
                     ..Attack::default()
@@ -117,7 +116,7 @@ impl EntityBlueprint {
                     attack_speed: AttackSpeed::Fast,
                     ..Attack::default()
                 });
-                entity.spy = Some(Spy::new(2));
+                entity.spy = Some(Spy::new(1));
             }
             EntityBlueprint::BasicRanger => {
                 entity.radius = UNIT_RADIUS;
