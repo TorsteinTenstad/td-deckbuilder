@@ -130,9 +130,9 @@ fn main() -> std::io::Result<()> {
             }
         }
 
-        let msg = serde_json::to_string(&game_state).unwrap();
+        let msg = rmp_serde::to_vec(&game_state).unwrap();
         for (_client_id, client_addr) in &client_addresses {
-            udp_socket.send_to(msg.as_bytes(), client_addr).unwrap();
+            udp_socket.send_to(msg.as_slice(), client_addr).unwrap();
         }
 
         game_state.dynamic_state.server_tick += 1;
