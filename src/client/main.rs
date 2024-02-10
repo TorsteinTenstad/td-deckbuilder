@@ -31,11 +31,10 @@ mod physical_card;
 mod physical_hand;
 mod text_box;
 use text_box::*;
+mod card_textures;
 
 #[macroquad::main("Client")]
 async fn main() {
-    request_new_screen_size(1280.0, 720.0);
-
     let mut state = ClientGameState::new().await;
     let mut text_box = TextBox::new(RectTransform {
         w: 200.0,
@@ -44,6 +43,7 @@ async fn main() {
     });
     text_box.text = state.server_addr.to_string();
 
+    request_new_screen_size(1280.0, 720.0);
     loop {
         if state.in_deck_builder {
             state.step();
@@ -93,7 +93,7 @@ fn main_draw(state: &ClientGameState) {
     // board
     clear_background(BLACK);
     draw_texture_ex(
-        &sprite_get_texture(&state.sprites, SpriteId::Map),
+        &state.sprites.get_texture(&SpriteId::Map),
         0.0,
         0.0,
         WHITE,
@@ -171,11 +171,9 @@ fn main_draw(state: &ClientGameState) {
 
         match entity.tag {
             EntityTag::Tower | EntityTag::Base | EntityTag::Unit => {
-                let texture = sprite_get_team_texture(
-                    &state.sprites,
-                    entity.sprite_id,
-                    Some(player.direction),
-                );
+                let texture = state
+                    .sprites
+                    .get_team_texture(&entity.sprite_id, Some(player.direction));
 
                 let flip_x = entity
                     .movement

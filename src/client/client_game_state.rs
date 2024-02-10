@@ -1,6 +1,7 @@
 use crate::{
+    card_textures::CardTextures,
     config::default_server_addr,
-    draw::{draw_card, load_sprites, Sprites, GOLDEN_RATIO},
+    draw::{draw_card, Sprites, GOLDEN_RATIO},
     hit_numbers::HitNumbers,
     input::mouse_screen_position,
     network::udp_init_socket,
@@ -190,6 +191,7 @@ pub struct ClientGameState {
     pub player_id: PlayerId,
     pub dt: f32,
     pub sprites: Sprites,
+    pub card_textures: CardTextures,
     pub font: Font,
     pub unit_spawnpoint_targets: Vec<UnitSpawnpointTarget>,
     pub deck_builder: DeckBuilder,
@@ -204,7 +206,7 @@ pub struct ClientGameState {
 impl ClientGameState {
     pub async fn new() -> Self {
         let (udp_socket, player_id) = udp_init_socket();
-
+        let sprites = Sprites::load().await;
         Self {
             time: SystemTime::now(),
             in_deck_builder: true,
@@ -220,7 +222,8 @@ impl ClientGameState {
             udp_socket,
             player_id,
             dt: 0.167,
-            sprites: load_sprites().await,
+            card_textures: CardTextures::load(&sprites).await,
+            sprites,
             font: macroquad::text::load_ttf_font("assets\\fonts\\shaky-hand-some-comic.bold.ttf")
                 .await
                 .unwrap(),
