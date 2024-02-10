@@ -1,0 +1,7 @@
+{
+    "cmake.configureSettings": {
+        "CMAKE_CXX_STANDARD": "11"
+    },
+    "cmake.buildDirectory": "${workspaceFolder}/td-mapbuilder/build",
+    "cmake.sourceDirectory": "${workspaceFolder}/td-mapbuilder/"
+}
