@@ -49,8 +49,8 @@ impl Hand {
     }
 
     pub fn step(&mut self, dt: f32) {
-        self.card_draw_counter += dt / 12.0;
-        self.energy_counter += dt / 8.0;
+        self.card_draw_counter += dt / 30.0;
+        self.energy_counter += dt / 10.0;
 
         if self.card_draw_counter >= 1.0 {
             self.draw();

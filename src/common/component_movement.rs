@@ -150,7 +150,7 @@ pub enum MovementSpeed {
 
 impl MovementSpeed {
     pub fn to_f32(&self) -> f32 {
-        let default_speed = 100.0;
+        let default_speed = 50.0;
         match self {
             MovementSpeed::VerySlow => default_speed / 2.0,
             MovementSpeed::Slow => default_speed / 1.5,

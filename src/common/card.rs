@@ -98,7 +98,7 @@ const CARD_DATA: &[CardData] = &[
     },
     CardData {
         name: "Old Sword Master",
-        energy_cost: 3,
+        energy_cost: 4,
         sprite_id: SpriteId::CardOldSwordMaster,
         play_fn: play_unit!(OldSwordMaster),
     },

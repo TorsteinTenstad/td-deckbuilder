@@ -133,7 +133,7 @@ impl EntityBlueprint {
                     damage: 20.0,
                     ..Attack::default()
                 });
-                entity.spy = Some(Spy::new(3));
+                entity.spy = Some(Spy::new(2));
             }
             EntityBlueprint::RecklessKnight => {
                 entity.health = Health::new(100.0);
@@ -148,7 +148,7 @@ impl EntityBlueprint {
                 entity.health = Health::new(500.0);
                 entity.sprite_id = SpriteId::BuildingTower;
                 entity.attacks.push(Attack {
-                    damage: 10.0,
+                    damage: 20.0,
                     ..Attack::default_ranged_tower()
                 });
             }
