@@ -38,13 +38,13 @@ pub fn udp_update_game_state(state: &mut ClientGameState) {
                         .duration_since(SystemTime::UNIX_EPOCH)
                         .unwrap()
                         .as_secs();
-                    std::fs::write(format!("{}client_recv_{}.json", prefix, timestamp), &buf)
+                    std::fs::write(format!("{}client_recv_{}.txt", prefix, timestamp), &buf)
                         .unwrap();
                 };
                 if is_key_down(macroquad::prelude::KeyCode::F11) {
                     log("");
                 }
-                let deserialization_result = serde_json::from_slice::<ServerGameState>(buf); //TODO: handle error
+                let deserialization_result = rmp_serde::from_slice::<ServerGameState>(buf);
                 if let Err(e) = deserialization_result {
                     log("error_");
                     dbg!(e);
