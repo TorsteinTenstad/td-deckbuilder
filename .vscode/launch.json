@@ -1,0 +1,16 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Run",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/td-mapbuilder/build/Debug/mapbuilder.exe",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}/td-mapbuilder", // Set the working directory to the project folder
+            "environment": [],
+            "externalConsole": false
+        }
+    ]
+}
