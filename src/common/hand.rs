@@ -4,7 +4,7 @@ use crate::vector::{pop_where, shuffle_vec};
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Hand {
     pub card_draw_counter: f32,
     pub energy_counter: f32,

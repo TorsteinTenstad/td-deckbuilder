@@ -10,7 +10,7 @@ use crate::{
 use common::{
     card::CardInstance,
     get_unit_spawnpoints::get_unit_spawnpoints,
-    network::ClientCommand,
+    network::ClientMessage,
     play_target::{
         unit_spawnpoint_target_transform, BuildingSpotTarget, EntityTarget, PlayFn, PlayTarget,
         WorldPosTarget,
@@ -98,8 +98,8 @@ pub fn hand_step(state: &mut ClientGameState) {
             PlayFn::UnitSpawnPoint(_) => {
                 state.unit_spawnpoint_targets = get_unit_spawnpoints(
                     state.player_id,
-                    &state.static_game_state,
-                    &state.dynamic_game_state,
+                    &state.server_controled_game_state.static_game_state,
+                    &state.server_controled_game_state.dynamic_game_state,
                 )
             }
             PlayFn::BuildingSpot(_) => {}
@@ -111,7 +111,7 @@ pub fn hand_step(state: &mut ClientGameState) {
                 PlayFn::WorldPos(_) => {
                     if let Some(card_instance) = hand_try_play(state) {
                         let Vec2 { x, y } = mouse_world_position();
-                        state.commands.push(ClientCommand::PlayCard(
+                        state.commands.push(ClientMessage::PlayCard(
                             card_instance.id,
                             PlayTarget::WorldPos(WorldPosTarget { x, y }),
                         ));
@@ -121,11 +121,11 @@ pub fn hand_step(state: &mut ClientGameState) {
                     if let Some(target) = state.unit_spawnpoint_targets.iter().find(|target| {
                         point_inside(
                             mouse_world_position(),
-                            &unit_spawnpoint_target_transform(target, &state.static_game_state),
+                            &unit_spawnpoint_target_transform(target, &state.server_controled_game_state.static_game_state),
                         )
                     }) {
                         if let Some(card_instance) = hand_try_play(state) {
-                            state.commands.push(ClientCommand::PlayCard(
+                            state.commands.push(ClientMessage::PlayCard(
                                 card_instance.id,
                                 PlayTarget::UnitSpawnPoint(target.clone()),
                             ));
@@ -134,7 +134,7 @@ pub fn hand_step(state: &mut ClientGameState) {
                 }
                 PlayFn::BuildingSpot(_) => {
                     if let Some((id, _pos)) = state
-                        .dynamic_game_state
+                        .server_controled_game_state.dynamic_game_state
                         .building_locations
                         .iter()
                         .find(|(_, loc)| {
@@ -145,7 +145,7 @@ pub fn hand_step(state: &mut ClientGameState) {
                         })
                     {
                         if let Some(card_instance) = hand_try_play(state) {
-                            state.commands.push(ClientCommand::PlayCard(
+                            state.commands.push(ClientMessage::PlayCard(
                                 card_instance.id,
                                 PlayTarget::BuildingSpot(BuildingSpotTarget { id: *id }),
                             ));
@@ -153,11 +153,11 @@ pub fn hand_step(state: &mut ClientGameState) {
                     }
                 }
                 PlayFn::Entity(_) => {
-                    if let Some(entity) = state.dynamic_game_state.entities.iter().find(|entity| {
+                    if let Some(entity) = state.server_controled_game_state.dynamic_game_state.entities.iter().find(|entity| {
                         (entity.pos - mouse_world_position()).length() < entity.radius
                     }) {
                         if let Some(card_instance) = hand_try_play(state) {
-                            state.commands.push(ClientCommand::PlayCard(
+                            state.commands.push(ClientMessage::PlayCard(
                                 card_instance.id,
                                 PlayTarget::Entity(EntityTarget { id: entity.id }),
                             ));

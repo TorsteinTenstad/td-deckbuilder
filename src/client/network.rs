@@ -1,8 +1,7 @@
-use crate::{physical_hand::hand_sync, ClientGameState, PhysicalHand};
+use crate::ClientGameState;
 use common::{
-    game_state::ServerGameState,
     ids::PlayerId,
-    network::{hash_client_addr, ClientCommand},
+    network::{hash_client_addr, ClientMessage, ServerMessage},
 };
 use local_ip_address::local_ip;
 use macroquad::input::is_key_down;
@@ -31,6 +30,7 @@ pub fn udp_update_game_state(state: &mut ClientGameState) {
         let received_message = state.udp_socket.recv_from(&mut buf);
         match received_message {
             Ok((number_of_bytes, _src)) => {
+                dbg!(number_of_bytes);
                 state.frames_since_last_received = 0;
                 let buf = &mut buf[..number_of_bytes];
                 let log = |prefix: &str| {
@@ -44,24 +44,14 @@ pub fn udp_update_game_state(state: &mut ClientGameState) {
                 if is_key_down(macroquad::prelude::KeyCode::F11) {
                     log("");
                 }
-                let deserialization_result = rmp_serde::from_slice::<ServerGameState>(buf);
-                if let Err(e) = deserialization_result {
-                    log("error_");
-                    dbg!(e);
-                    panic!()
-                }
-                let received_game_state = deserialization_result.unwrap();
-                if received_game_state.dynamic_state.server_tick
-                    > state.dynamic_game_state.server_tick
-                    || received_game_state.static_state.game_id != state.static_game_state.game_id
-                {
-                    if received_game_state.static_state.game_id != state.static_game_state.game_id {
-                        state.physical_hand = PhysicalHand::default();
+                let deserialization_result = rmp_serde::from_slice::<ServerMessage>(buf);
+                match deserialization_result {
+                    Err(e) => {
+                        log("error_");
+                        dbg!(e);
+                        panic!()
                     }
-                    state.dynamic_game_state = received_game_state.dynamic_state;
-                    state.static_game_state = received_game_state.static_state;
-
-                    hand_sync(state);
+                    Ok(server_message) => state.update_with_server_message(server_message),
                 }
             }
             Err(e) => match e.kind() {
@@ -76,11 +66,12 @@ pub fn udp_update_game_state(state: &mut ClientGameState) {
         }
     }
 
+    state.frames_since_last_received += 1;
     if state.frames_since_last_received > 60 {
         state
             .udp_socket
             .send_to(
-                &serde_json::to_string(&ClientCommand::JoinGame(
+                &rmp_serde::to_vec(&ClientMessage::JoinGame(
                     state
                         .deck_builder
                         .deck
@@ -88,13 +79,20 @@ pub fn udp_update_game_state(state: &mut ClientGameState) {
                         .map(|physical_card| physical_card.card.clone())
                         .collect(),
                 ))
-                .unwrap()
-                .as_bytes(),
+                .unwrap(),
                 state.server_addr,
             )
             .unwrap();
     }
-    state.frames_since_last_received += 1;
+    if !state.static_game_state_received {
+        state
+            .udp_socket
+            .send_to(
+                &rmp_serde::to_vec(&ClientMessage::RequestStaticGameState).unwrap(),
+                state.server_addr,
+            )
+            .unwrap();
+    }
 }
 
 pub fn udp_send_commands(state: &mut ClientGameState) {
@@ -102,7 +100,7 @@ pub fn udp_send_commands(state: &mut ClientGameState) {
         state
             .udp_socket
             .send_to(
-                &serde_json::to_string(&command).unwrap().as_bytes(),
+                &rmp_serde::to_vec(&command).unwrap().as_slice(),
                 state.server_addr,
             )
             .unwrap();

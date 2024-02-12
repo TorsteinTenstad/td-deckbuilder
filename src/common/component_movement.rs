@@ -16,7 +16,7 @@ use crate::{
 use macroquad::math::Vec2;
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct Movement {
     pub movement_towards_target: MovementTowardsTarget,
     pub path_target_setter: Option<PathTargetSetter>,
@@ -59,7 +59,7 @@ impl Movement {
     }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct MovementTowardsTarget {
     #[serde(skip)]
     pub target_pos: Option<Vec2>,
@@ -70,12 +70,12 @@ pub struct MovementTowardsTarget {
     pub keep_moving_on_loss_of_target: bool,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct EntityTargetSetter {
     pub target_entity_id: Option<EntityId>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct DetectionBasedTargetSetter {
     pub detection_range: f32,
 }
@@ -88,7 +88,7 @@ pub fn get_detection_range(entity: &Entity) -> Option<f32> {
         .map(|detection_based_target_setter| detection_based_target_setter.detection_range)
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct PathTargetSetter {
     pub path_state: Option<PathState>,
 }

@@ -27,7 +27,7 @@ pub enum EntityState {
     Dead,
 }
 
-#[derive(Default, Serialize, Deserialize)]
+#[derive(Clone, Default, Serialize, Deserialize)]
 pub struct Health {
     pub max_health: f32,
     pub health: f32,
@@ -63,12 +63,12 @@ impl Health {
     }
 }
 
-#[derive(Serialize, Deserialize, PartialEq)]
+#[derive(Clone, Serialize, Deserialize, PartialEq)]
 pub enum AbilityFlag {
     Protector,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct Spy {
     pub hide_capacity: u32,
     pub is_hidden_from: HashSet<EntityId>,
@@ -91,7 +91,7 @@ impl Spy {
     }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct Entity {
     pub id: EntityId,
     pub tag: EntityTag,
