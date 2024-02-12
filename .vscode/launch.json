@@ -5,7 +5,7 @@
             "name": "Run",
             "type": "cppvsdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/td-mapbuilder/build/Debug/mapbuilder.exe",
+            "program": "${workspaceFolder}/td-mapbuilder/build/mapbuilder.exe",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}/td-mapbuilder", // Set the working directory to the project folder
