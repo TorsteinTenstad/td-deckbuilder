@@ -4,7 +4,7 @@ use crate::{
     entity::{AbilityFlag, Entity},
     entity_blueprint::DEFAULT_UNIT_DETECTION_RADIUS,
     find_target::find_target_for_attack,
-    game_state::{DynamicGameState, StaticGameState},
+    game_state::{DynamicGameState, SemiStaticGameState, StaticGameState},
     ids::{EntityId, PathId},
     play_target::UnitSpawnpointTarget,
     serde_defs::Vec2Def,
@@ -61,7 +61,7 @@ impl Movement {
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct MovementTowardsTarget {
-    #[serde(skip)]
+    #[serde(skip)] // Not used by client, skipped to avoid hassle of serializing Option<Vec2>
     pub target_pos: Option<Vec2>,
     pub speed: MovementSpeed,
     pub speed_buffs: Vec<ArithmeticBuff>,
@@ -171,24 +171,50 @@ impl MovementTowardsTarget {
 
 impl Movement {
     pub fn update(
-        entity: &mut Entity,
-        dynamic_game_state: &mut DynamicGameState,
-        dt: f32,
         static_game_state: &StaticGameState,
+        semi_static_game_state: &SemiStaticGameState,
+        dynamic_game_state: &mut DynamicGameState,
+        entity: &mut Entity,
+        dt: f32,
     ) {
-        PathTargetSetter::update(entity, dynamic_game_state, dt, static_game_state);
-        DetectionBasedTargetSetter::update(entity, dynamic_game_state, dt, static_game_state);
-        EntityTargetSetter::update(entity, dynamic_game_state, dt, static_game_state);
-        MovementTowardsTarget::update(entity, dynamic_game_state, dt, static_game_state);
+        PathTargetSetter::update(
+            static_game_state,
+            semi_static_game_state,
+            dynamic_game_state,
+            entity,
+            dt,
+        );
+        DetectionBasedTargetSetter::update(
+            static_game_state,
+            semi_static_game_state,
+            dynamic_game_state,
+            entity,
+            dt,
+        );
+        EntityTargetSetter::update(
+            static_game_state,
+            semi_static_game_state,
+            dynamic_game_state,
+            entity,
+            dt,
+        );
+        MovementTowardsTarget::update(
+            static_game_state,
+            semi_static_game_state,
+            dynamic_game_state,
+            entity,
+            dt,
+        );
     }
 }
 
 impl MovementTowardsTarget {
     pub fn update(
-        entity: &mut Entity,
-        _dynamic_game_state: &mut DynamicGameState,
-        dt: f32,
         _static_game_state: &StaticGameState,
+        _semi_static_game_state: &SemiStaticGameState,
+        _dynamic_game_state: &mut DynamicGameState,
+        entity: &mut Entity,
+        dt: f32,
     ) {
         let Some(movement) = &mut entity.movement else {
             return;
@@ -212,10 +238,11 @@ impl MovementTowardsTarget {
 
 impl PathTargetSetter {
     pub fn update(
-        entity: &mut Entity,
-        dynamic_game_state: &mut DynamicGameState,
-        _dt: f32,
         static_game_state: &StaticGameState,
+        semi_static_game_state: &SemiStaticGameState,
+        dynamic_game_state: &mut DynamicGameState,
+        entity: &mut Entity,
+        _dt: f32,
     ) {
         let Some(movement) = entity.movement.as_mut() else {
             return;
@@ -234,6 +261,7 @@ impl PathTargetSetter {
                     entity.owner,
                     DEFAULT_UNIT_DETECTION_RADIUS, //TODO: Maybe not hardcode?
                     static_game_state,
+                    semi_static_game_state,
                     dynamic_game_state,
                 )
             {
@@ -290,10 +318,11 @@ impl PathTargetSetter {
 
 impl DetectionBasedTargetSetter {
     pub fn update(
-        entity: &mut Entity,
-        dynamic_game_state: &mut DynamicGameState,
-        _dt: f32,
         _static_game_state: &StaticGameState,
+        semi_static_game_state: &SemiStaticGameState,
+        dynamic_game_state: &mut DynamicGameState,
+        entity: &mut Entity,
+        _dt: f32,
     ) {
         let entity_path_id = get_path_id(&entity);
         let Some(movement) = entity.movement.as_mut() else {
@@ -307,7 +336,7 @@ impl DetectionBasedTargetSetter {
         let detection_range = detection_based_target_setter.detection_range;
 
         if let Some((building_spot_target, _)) = entity.building_to_construct.clone() {
-            let building_to_construct_pos = dynamic_game_state
+            let building_to_construct_pos = semi_static_game_state
                 .building_locations
                 .get(&building_spot_target.id)
                 .unwrap()
@@ -342,10 +371,11 @@ impl DetectionBasedTargetSetter {
 
 impl EntityTargetSetter {
     pub fn update(
-        entity: &mut Entity,
-        dynamic_game_state: &mut DynamicGameState,
-        _dt: f32,
         _static_game_state: &StaticGameState,
+        _semi_static_game_state: &SemiStaticGameState,
+        dynamic_game_state: &mut DynamicGameState,
+        entity: &mut Entity,
+        _dt: f32,
     ) {
         let Some(movement) = entity.movement.as_mut() else {
             return;

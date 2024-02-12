@@ -45,30 +45,35 @@ pub struct CardData {
 
 macro_rules! play_building {
     ($builder_blueprint:ident, $building_blueprint:ident) => {
-        PlayFn::BuildingSpot(|target, owner, static_game_state, dynamic_game_state| {
-            world_place_tower(
-                static_game_state,
-                dynamic_game_state,
-                target,
-                owner,
-                EntityBlueprint::$builder_blueprint,
-                EntityBlueprint::$building_blueprint,
-            )
-        })
+        PlayFn::BuildingSpot(
+            |target, owner, static_game_state, semi_static_game_state, dynamic_game_state| {
+                world_place_tower(
+                    static_game_state,
+                    semi_static_game_state,
+                    dynamic_game_state,
+                    target,
+                    owner,
+                    EntityBlueprint::$builder_blueprint,
+                    EntityBlueprint::$building_blueprint,
+                )
+            },
+        )
     };
 }
 
 macro_rules! play_unit {
     ($unit_blueprint:ident) => {
-        PlayFn::UnitSpawnPoint(|target, owner, static_game_state, dynamic_game_state| {
-            world_place_unit(
-                static_game_state,
-                dynamic_game_state,
-                target,
-                owner,
-                EntityBlueprint::$unit_blueprint,
-            )
-        })
+        PlayFn::UnitSpawnPoint(
+            |target, owner, static_game_state, _semi_static_game_state, dynamic_game_state| {
+                world_place_unit(
+                    static_game_state,
+                    dynamic_game_state,
+                    target,
+                    owner,
+                    EntityBlueprint::$unit_blueprint,
+                )
+            },
+        )
     };
 }
 const CARD_DATA: &[CardData] = &[
@@ -136,15 +141,17 @@ const CARD_DATA: &[CardData] = &[
         name: "Direct Damage",
         energy_cost: 1,
         sprite_id: SpriteId::CardDirectDamage,
-        play_fn: PlayFn::Entity(|target, _owner, _static_game_state, dynamic_game_state| {
-            let Some(target_entity) =
-                find_entity_mut(&mut dynamic_game_state.entities, Some(target.id))
-            else {
-                return false;
-            };
-            target_entity.health.deal_damage(150.0);
-            return true;
-        }),
+        play_fn: PlayFn::Entity(
+            |target, _owner, _static_game_state, _semi_static_game_state, dynamic_game_state| {
+                let Some(target_entity) =
+                    find_entity_mut(&mut dynamic_game_state.entities, Some(target.id))
+                else {
+                    return false;
+                };
+                target_entity.health.deal_damage(150.0);
+                return true;
+            },
+        ),
     },
 ];
 

@@ -1,5 +1,5 @@
 use crate::{
-    game_state::{DynamicGameState, StaticGameState},
+    game_state::{DynamicGameState, SemiStaticGameState, StaticGameState},
     ids::{BuildingLocationId, EntityId, PathId, PlayerId},
     rect_transform::RectTransform,
     world::{get_path_pos, Direction},
@@ -39,12 +39,42 @@ pub enum PlayTarget {
 }
 
 pub enum PlayFn {
-    WorldPos(fn(WorldPosTarget, PlayerId, &StaticGameState, &mut DynamicGameState) -> bool),
-    UnitSpawnPoint(
-        fn(UnitSpawnpointTarget, PlayerId, &StaticGameState, &mut DynamicGameState) -> bool,
+    WorldPos(
+        fn(
+            WorldPosTarget,
+            PlayerId,
+            &StaticGameState,
+            &mut SemiStaticGameState,
+            &mut DynamicGameState,
+        ) -> bool,
     ),
-    BuildingSpot(fn(BuildingSpotTarget, PlayerId, &StaticGameState, &mut DynamicGameState) -> bool),
-    Entity(fn(EntityTarget, PlayerId, &StaticGameState, &mut DynamicGameState) -> bool),
+    UnitSpawnPoint(
+        fn(
+            UnitSpawnpointTarget,
+            PlayerId,
+            &StaticGameState,
+            &mut SemiStaticGameState,
+            &mut DynamicGameState,
+        ) -> bool,
+    ),
+    BuildingSpot(
+        fn(
+            BuildingSpotTarget,
+            PlayerId,
+            &StaticGameState,
+            &mut SemiStaticGameState,
+            &mut DynamicGameState,
+        ) -> bool,
+    ),
+    Entity(
+        fn(
+            EntityTarget,
+            PlayerId,
+            &StaticGameState,
+            &mut SemiStaticGameState,
+            &mut DynamicGameState,
+        ) -> bool,
+    ),
 }
 
 impl PlayFn {
@@ -53,21 +83,38 @@ impl PlayFn {
         target: PlayTarget,
         owner: PlayerId,
         static_game_state: &StaticGameState,
+        semi_static_game_state: &mut SemiStaticGameState,
         dynamic_game_state: &mut DynamicGameState,
     ) -> bool {
         match (self, target) {
-            (PlayFn::WorldPos(f), PlayTarget::WorldPos(target)) => {
-                f(target, owner, static_game_state, dynamic_game_state)
-            }
-            (PlayFn::UnitSpawnPoint(f), PlayTarget::UnitSpawnPoint(target)) => {
-                f(target, owner, static_game_state, dynamic_game_state)
-            }
-            (PlayFn::BuildingSpot(f), PlayTarget::BuildingSpot(target)) => {
-                f(target, owner, static_game_state, dynamic_game_state)
-            }
-            (PlayFn::Entity(f), PlayTarget::Entity(target)) => {
-                f(target, owner, static_game_state, dynamic_game_state)
-            }
+            (PlayFn::WorldPos(f), PlayTarget::WorldPos(target)) => f(
+                target,
+                owner,
+                static_game_state,
+                semi_static_game_state,
+                dynamic_game_state,
+            ),
+            (PlayFn::UnitSpawnPoint(f), PlayTarget::UnitSpawnPoint(target)) => f(
+                target,
+                owner,
+                static_game_state,
+                semi_static_game_state,
+                dynamic_game_state,
+            ),
+            (PlayFn::BuildingSpot(f), PlayTarget::BuildingSpot(target)) => f(
+                target,
+                owner,
+                static_game_state,
+                semi_static_game_state,
+                dynamic_game_state,
+            ),
+            (PlayFn::Entity(f), PlayTarget::Entity(target)) => f(
+                target,
+                owner,
+                static_game_state,
+                semi_static_game_state,
+                dynamic_game_state,
+            ),
             _ => panic!("Invalid target for play fn"),
         }
     }

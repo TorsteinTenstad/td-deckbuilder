@@ -114,7 +114,7 @@ fn main_draw(state: &ClientGameState) {
     if state.show_debug_info {
         for building_location in state
             .server_controled_game_state
-            .dynamic_game_state
+            .semi_static_game_state
             .building_locations
             .values()
         {
@@ -169,7 +169,7 @@ fn main_draw(state: &ClientGameState) {
     // locations
     for (_id, loc) in state
         .server_controled_game_state
-        .dynamic_game_state
+        .semi_static_game_state
         .building_locations
         .iter()
     {
@@ -338,7 +338,7 @@ fn main_draw(state: &ClientGameState) {
     {
         for (_id, loc) in state
             .server_controled_game_state
-            .dynamic_game_state
+            .semi_static_game_state
             .building_locations
             .iter()
         {

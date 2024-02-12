@@ -4,14 +4,15 @@ use common::{
     config::CLOSE_ENOUGH_TO_TARGET,
     entity::{Entity, EntityState},
     find_target::find_target_for_attack,
-    game_state::{DynamicGameState, StaticGameState},
+    game_state::{DynamicGameState, SemiStaticGameState, StaticGameState},
     world::world_place_building,
 };
 
 pub fn update_entity<'a>(
-    entity: &mut Entity,
-    static_state: &StaticGameState,
+    static_game_state: &StaticGameState,
+    semi_static_game_state: &mut SemiStaticGameState,
     dynamic_game_state: &mut DynamicGameState,
+    entity: &mut Entity,
     dt: f32,
 ) {
     let can_attack = entity.attacks.iter().any(|attack| {
@@ -33,7 +34,7 @@ pub fn update_entity<'a>(
             .building_to_construct
             .clone()
             .is_some_and(|(building_spot_target, _)| {
-                (dynamic_game_state
+                (semi_static_game_state
                     .building_locations
                     .get(&building_spot_target.id)
                     .unwrap()
@@ -53,27 +54,40 @@ pub fn update_entity<'a>(
 
     match entity.state {
         EntityState::Moving => {
-            Movement::update(entity, dynamic_game_state, dt, static_state);
+            Movement::update(
+                static_game_state,
+                semi_static_game_state,
+                dynamic_game_state,
+                entity,
+                dt,
+            );
         }
 
         EntityState::Attacking => {
-            Attack::update(entity, &mut dynamic_game_state.entities, dt);
+            Attack::update(
+                static_game_state,
+                semi_static_game_state,
+                dynamic_game_state,
+                entity,
+                dt,
+            );
         }
 
         EntityState::Building => {
             if let Some((building_spot_target, entity_blueprint)) =
                 entity.building_to_construct.clone()
             {
-                let building_to_construct_pos = dynamic_game_state
+                let building_to_construct_pos = semi_static_game_state
                     .building_locations
                     .get(&building_spot_target.id)
                     .unwrap()
                     .pos;
                 if (building_to_construct_pos - entity.pos).length() < CLOSE_ENOUGH_TO_TARGET {
                     world_place_building(
+                        semi_static_game_state,
                         dynamic_game_state,
                         entity_blueprint.create(entity.owner),
-                        building_spot_target,
+                        &building_spot_target.id,
                     );
                     entity.state = EntityState::Dead;
                 }

@@ -121,7 +121,10 @@ pub fn hand_step(state: &mut ClientGameState) {
                     if let Some(target) = state.unit_spawnpoint_targets.iter().find(|target| {
                         point_inside(
                             mouse_world_position(),
-                            &unit_spawnpoint_target_transform(target, &state.server_controled_game_state.static_game_state),
+                            &unit_spawnpoint_target_transform(
+                                target,
+                                &state.server_controled_game_state.static_game_state,
+                            ),
                         )
                     }) {
                         if let Some(card_instance) = hand_try_play(state) {
@@ -134,7 +137,8 @@ pub fn hand_step(state: &mut ClientGameState) {
                 }
                 PlayFn::BuildingSpot(_) => {
                     if let Some((id, _pos)) = state
-                        .server_controled_game_state.dynamic_game_state
+                        .server_controled_game_state
+                        .semi_static_game_state
                         .building_locations
                         .iter()
                         .find(|(_, loc)| {
@@ -153,9 +157,15 @@ pub fn hand_step(state: &mut ClientGameState) {
                     }
                 }
                 PlayFn::Entity(_) => {
-                    if let Some(entity) = state.server_controled_game_state.dynamic_game_state.entities.iter().find(|entity| {
-                        (entity.pos - mouse_world_position()).length() < entity.radius
-                    }) {
+                    if let Some(entity) = state
+                        .server_controled_game_state
+                        .dynamic_game_state
+                        .entities
+                        .iter()
+                        .find(|entity| {
+                            (entity.pos - mouse_world_position()).length() < entity.radius
+                        })
+                    {
                         if let Some(card_instance) = hand_try_play(state) {
                             state.commands.push(ClientMessage::PlayCard(
                                 card_instance.id,

@@ -30,7 +30,7 @@ fn main() -> std::io::Result<()> {
     }
 
     for (x, y) in BUILDING_LOCATIONS {
-        game_state.dynamic_game_state.building_locations.insert(
+        game_state.semi_static_game_state.building_locations.insert(
             BuildingLocationId::new(),
             BuildingLocation {
                 pos: Vec2 {
@@ -89,6 +89,7 @@ fn main() -> std::io::Result<()> {
                                     target,
                                     client_id,
                                     &game_state.static_game_state,
+                                    &mut game_state.semi_static_game_state,
                                     &mut game_state.dynamic_game_state,
                                 );
                             }
@@ -138,13 +139,30 @@ fn main() -> std::io::Result<()> {
                 }
             }
         }
-        let server_message = ServerMessage {
+        let mut server_messages: Vec<Vec<u8>> = Vec::new();
+        let dynamic_game_state_message = ServerMessage {
             metadata: game_state.game_metadata.clone(),
             data: ServerMessageData::DynamicGameState(game_state.dynamic_game_state.clone()),
         };
-        let msg_vec = rmp_serde::to_vec(&server_message).unwrap();
+        server_messages.push(rmp_serde::to_vec(&dynamic_game_state_message).unwrap());
+
+        if game_state.semi_static_game_state.dirty {
+            let semi_static_game_state_message = ServerMessage {
+                metadata: game_state.game_metadata.clone(),
+                data: ServerMessageData::SemiStaticGameState(
+                    game_state.semi_static_game_state.clone(),
+                ),
+            };
+            server_messages.push(rmp_serde::to_vec(&semi_static_game_state_message).unwrap());
+            game_state.semi_static_game_state.dirty = false;
+        }
+
         for (_client_id, client_addr) in &client_addresses {
-            udp_socket.send_to(msg_vec.as_slice(), client_addr).unwrap();
+            for server_message in &server_messages {
+                udp_socket
+                    .send_to(&server_message.as_slice(), client_addr)
+                    .unwrap();
+            }
         }
 
         game_state.game_metadata.server_tick += 1;
@@ -158,9 +176,10 @@ fn main() -> std::io::Result<()> {
         while i < game_state.dynamic_game_state.entities.len() {
             let mut entity = game_state.dynamic_game_state.entities.swap_remove(i);
             update_entity(
-                &mut entity,
                 &game_state.static_game_state,
+                &mut game_state.semi_static_game_state,
                 &mut game_state.dynamic_game_state,
+                &mut entity,
                 dt,
             );
             // TODO: Inserting at i causes a lot of memory movement, this can be optimized using a better swap routine for updating.
@@ -186,7 +205,7 @@ fn cleanup_entity(
     server_controlled_game_state: &mut ServerControledGameState,
 ) {
     if let Some((_id, building_location)) = server_controlled_game_state
-        .dynamic_game_state
+        .semi_static_game_state
         .building_locations
         .iter_mut()
         .find(|(_id, building_location)| building_location.entity_id == Some(entity_id))

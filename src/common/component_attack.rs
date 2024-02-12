@@ -4,6 +4,7 @@ use crate::{
     config::PROJECTILE_RADIUS,
     entity::{Entity, EntityState, EntityTag, Health},
     find_target::find_target_for_attack,
+    game_state::{DynamicGameState, SemiStaticGameState, StaticGameState},
 };
 use serde::{Deserialize, Serialize};
 
@@ -122,7 +123,13 @@ pub enum AttackVariant {
 }
 
 impl Attack {
-    pub fn update(entity: &mut Entity, entities: &mut Vec<Entity>, dt: f32) {
+    pub fn update(
+        _static_game_state: &StaticGameState,
+        _semi_static_game_state: &SemiStaticGameState,
+        dynamic_game_state: &mut DynamicGameState,
+        entity: &mut Entity,
+        dt: f32,
+    ) {
         for attack in &mut entity.attacks {
             let Some(target_entity) = find_target_for_attack(
                 entity.id,
@@ -132,7 +139,7 @@ impl Attack {
                 entity.spy.as_ref(),
                 attack.get_range(entity.radius),
                 &attack,
-                entities,
+                &mut dynamic_game_state.entities,
             ) else {
                 continue;
             };
@@ -156,7 +163,7 @@ impl Attack {
                             ..Attack::default()
                         });
 
-                        entities.push(bullet);
+                        dynamic_game_state.entities.push(bullet);
                     }
                     AttackVariant::MeleeAttack => {
                         target_entity.health.deal_damage(attack.get_damage());

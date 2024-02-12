@@ -13,10 +13,15 @@ pub struct StaticGameState {
 }
 
 #[derive(Clone, Default, Serialize, Deserialize)]
+pub struct SemiStaticGameState {
+    pub dirty: bool,
+    pub building_locations: HashMap<BuildingLocationId, BuildingLocation>,
+}
+
+#[derive(Clone, Default, Serialize, Deserialize)]
 pub struct DynamicGameState {
     pub entities: Vec<Entity>,
     pub players: HashMap<PlayerId, ServerPlayer>,
-    pub building_locations: HashMap<BuildingLocationId, BuildingLocation>,
 }
 
 #[derive(Clone, Default, Serialize, Deserialize)]
@@ -29,5 +34,6 @@ pub struct GameMetadata {
 pub struct ServerControledGameState {
     pub game_metadata: GameMetadata,
     pub static_game_state: StaticGameState,
+    pub semi_static_game_state: SemiStaticGameState,
     pub dynamic_game_state: DynamicGameState,
 }

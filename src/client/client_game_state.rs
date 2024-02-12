@@ -267,11 +267,15 @@ impl ClientGameState {
         match server_message.data {
             ServerMessageData::StaticGameState(static_state) => {
                 self.server_controled_game_state.static_game_state = static_state;
+                dbg!("static_game_state_received");
                 self.static_game_state_received = true;
             }
             ServerMessageData::DynamicGameState(dynamic_state) => {
                 self.server_controled_game_state.dynamic_game_state = dynamic_state;
                 hand_sync(self);
+            }
+            ServerMessageData::SemiStaticGameState(semi_static_state) => {
+                self.server_controled_game_state.semi_static_game_state = semi_static_state;
             }
         }
     }

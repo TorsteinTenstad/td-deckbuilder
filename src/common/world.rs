@@ -2,7 +2,7 @@ use crate::{
     component_movement::{get_detection_range, PathTargetSetter},
     entity::Entity,
     entity_blueprint::EntityBlueprint,
-    game_state::{DynamicGameState, StaticGameState},
+    game_state::{DynamicGameState, SemiStaticGameState, StaticGameState},
     get_unit_spawnpoints::get_unit_spawnpoints,
     ids::{BuildingLocationId, EntityId, PathId, PlayerId},
     play_target::{BuildingSpotTarget, UnitSpawnpointTarget},
@@ -102,14 +102,14 @@ pub fn world_get_building_locations_on_path(
     path_id: PathId,
     search_range: f32,
     static_game_state: &StaticGameState,
-    dynamic_game_state: &DynamicGameState,
+    semi_static_game_state: &SemiStaticGameState,
 ) -> Vec<(BuildingLocationId, BuildingLocation, usize)> {
     let path = static_game_state.paths.get(&path_id).unwrap();
     path.iter()
         .enumerate()
         .flat_map(|(path_idx, (x, y))| {
             let pos = Vec2 { x: *x, y: *y };
-            dynamic_game_state
+            semi_static_game_state
                 .building_locations
                 .iter()
                 .filter(move |(_building_location_id, building_location)| {
@@ -131,6 +131,7 @@ pub fn world_get_furthest_planned_or_existing_building(
     player_id: PlayerId,
     search_range: f32,
     static_game_state: &StaticGameState,
+    semi_static_game_state: &SemiStaticGameState,
     dynamic_game_state: &DynamicGameState,
 ) -> Option<(BuildingLocationId, BuildingLocation, usize)> {
     let player_direction = dynamic_game_state
@@ -142,7 +143,7 @@ pub fn world_get_furthest_planned_or_existing_building(
         path_id,
         search_range,
         static_game_state,
-        &dynamic_game_state,
+        &semi_static_game_state,
     );
     let mut owned_building_locations_along_path = building_locations_along_path.iter().filter(
         |(building_location_id, building_location, _)| {
@@ -207,13 +208,14 @@ pub fn world_place_path_entity(
 
 pub fn world_place_tower(
     static_game_state: &StaticGameState,
+    semi_static_game_state: &SemiStaticGameState,
     dynamic_game_state: &mut DynamicGameState,
     target: BuildingSpotTarget,
     owner: PlayerId,
     builder_blueprint: EntityBlueprint,
     building_blueprint: EntityBlueprint,
 ) -> bool {
-    let building_pos = dynamic_game_state
+    let building_pos = semi_static_game_state
         .building_locations
         .get(&target.id)
         .unwrap()
@@ -259,17 +261,19 @@ pub fn world_place_tower(
 }
 
 pub fn world_place_building(
+    semi_static_game_state: &mut SemiStaticGameState,
     dynamic_game_state: &mut DynamicGameState,
     mut entity: Entity,
-    target: BuildingSpotTarget,
+    building_location_id: &BuildingLocationId,
 ) -> bool {
-    let BuildingLocation { pos, entity_id } = dynamic_game_state
+    let BuildingLocation { pos, entity_id } = semi_static_game_state
         .building_locations
-        .get_mut(&target.id)
+        .get_mut(building_location_id)
         .unwrap();
     if let Some(_) = entity_id {
         return false;
     }
+    semi_static_game_state.dirty = true;
     entity.pos = *pos;
     *entity_id = Some(entity.id);
     dynamic_game_state.entities.push(entity);

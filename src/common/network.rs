@@ -1,6 +1,6 @@
 use crate::{
     card::Card,
-    game_state::{DynamicGameState, GameMetadata, StaticGameState},
+    game_state::{DynamicGameState, GameMetadata, SemiStaticGameState, StaticGameState},
     ids::{CardInstanceId, PlayerId},
     play_target::PlayTarget,
 };
@@ -27,6 +27,7 @@ pub enum ClientMessage {
 #[derive(Serialize, Deserialize)]
 pub enum ServerMessageData {
     StaticGameState(StaticGameState),
+    SemiStaticGameState(SemiStaticGameState),
     DynamicGameState(DynamicGameState),
 }
 
