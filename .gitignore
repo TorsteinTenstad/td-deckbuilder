@@ -1,3 +1,4 @@
 /target
 deck.json
 /td-mapbuilder/build
+**/.cache
