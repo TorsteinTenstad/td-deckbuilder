@@ -1,3 +1,5 @@
+use std::f32::consts::PI;
+
 use crate::{
     buff::{apply_arithmetic_buffs, ArithmeticBuff},
     config::CLOSE_ENOUGH_TO_TARGET,
@@ -224,7 +226,7 @@ impl Movement {
                     let mut v = v;
                     if !v.length().recip().is_finite() {
                         // Handle units being on top of each other
-                        let angle = rand::random();
+                        let angle = 2.0 * PI * rand::random::<f32>();
                         v = Vec2::from_angle(angle);
                     }
                     let mut contribution = SPRING_CONSTANT * v / v.length().powi(3);
