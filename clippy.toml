@@ -1,0 +1,4 @@
+[package.metadata.clippy.all]
+warn = true
+
+too-many-arguments-threshold = 12

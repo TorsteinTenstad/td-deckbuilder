@@ -31,7 +31,7 @@ impl HitNumbers {
             entity_healths: HashMap::new(),
         }
     }
-    pub fn step(&mut self, entities: &Vec<Entity>, dt: f32) {
+    pub fn step(&mut self, entities: &[Entity], dt: f32) {
         for entity in entities.iter() {
             if let Some(old_health) = self.entity_healths.get(&entity.id) {
                 let health_diff = entity.health.health - old_health;

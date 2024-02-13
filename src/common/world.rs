@@ -19,7 +19,7 @@ pub struct BuildingLocation {
     pub entity_id: Option<EntityId>,
 }
 
-#[derive(Copy, Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
 pub enum Direction {
     Positive,
     Negative,
@@ -74,7 +74,7 @@ pub fn path_length(path: &Vec<(f32, f32)>, start_idx: usize, stop_idx: usize) ->
         let (x2, y2) = path[i + 1];
         length += (x2 - x1).powi(2) + (y2 - y1).powi(2);
     }
-    return length.sqrt();
+    length.sqrt()
 }
 
 pub fn path_length_from_spawnpoint(
@@ -95,7 +95,7 @@ pub fn path_length_from_spawnpoint(
     let path_lengths =
         path_nodes_in_range.map(|(idx, _)| (idx, path_length(path, spawnpoint.path_idx, idx)));
 
-    path_lengths.min_by(|(_, len_a), (_, len_b)| len_a.partial_cmp(&&len_b).unwrap())
+    path_lengths.min_by(|(_, len_a), (_, len_b)| len_a.partial_cmp(len_b).unwrap())
 }
 
 pub fn world_get_building_locations_on_path(
@@ -116,11 +116,7 @@ pub fn world_get_building_locations_on_path(
                     (building_location.pos - pos).length_squared() < search_range.powi(2)
                 })
                 .map(move |(building_location_id, building_location)| {
-                    (
-                        building_location_id.clone(),
-                        building_location.clone(),
-                        path_idx,
-                    )
+                    (*building_location_id, building_location.clone(), path_idx)
                 })
         })
         .collect_vec()
@@ -138,12 +134,13 @@ pub fn world_get_furthest_planned_or_existing_building(
         .players
         .get(&player_id)
         .unwrap()
-        .direction;
+        .direction
+        .clone();
     let building_locations_along_path = world_get_building_locations_on_path(
         path_id,
         search_range,
         static_game_state,
-        &semi_static_game_state,
+        semi_static_game_state,
     );
     let mut owned_building_locations_along_path = building_locations_along_path.iter().filter(
         |(building_location_id, building_location, _)| {
@@ -165,11 +162,11 @@ pub fn world_get_furthest_planned_or_existing_building(
     }
 }
 
-pub fn find_entity_mut(entities: &mut Vec<Entity>, id: Option<EntityId>) -> Option<&mut Entity> {
+pub fn find_entity_mut(entities: &mut [Entity], id: Option<EntityId>) -> Option<&mut Entity> {
     return id.and_then(|id| entities.iter_mut().find(|entity| entity.id == id));
 }
 
-pub fn find_entity(entities: &Vec<Entity>, id: Option<EntityId>) -> Option<&Entity> {
+pub fn find_entity(entities: &[Entity], id: Option<EntityId>) -> Option<&Entity> {
     return id.and_then(|id| entities.iter().find(|entity| entity.id == id));
 }
 
@@ -195,7 +192,7 @@ pub fn world_place_path_entity(
     mut entity: Entity,
 ) -> bool {
     let Some(movement) = &mut entity.movement else {
-        assert!(false);
+        debug_assert!(false);
         return false;
     };
     entity.pos = get_path_pos(static_game_state, target.path_id, target.path_idx);
@@ -203,7 +200,7 @@ pub fn world_place_path_entity(
         path_state: Some(target.into()),
     });
     dynamic_game_state.entities.push(entity);
-    return true;
+    true
 }
 
 pub fn world_place_tower(
@@ -222,7 +219,7 @@ pub fn world_place_tower(
         .pos;
     let mut entity = builder_blueprint.create(owner);
     let Some(detection_range) = get_detection_range(&entity) else {
-        assert!(false);
+        debug_assert!(false);
         return false;
     };
 
@@ -240,7 +237,7 @@ pub fn world_place_tower(
                 )
                 .map(|(target_path_idx, len)| (spawnpoint, target_path_idx, len))
             })
-            .min_by(|(_, _, len_a), (_, _, len_b)| len_a.partial_cmp(&&len_b).unwrap())
+            .min_by(|(_, _, len_a), (_, _, len_b)| len_a.partial_cmp(len_b).unwrap())
             .map(|(spawnpoint, target_path_idx, _len)| (target_path_idx, spawnpoint.clone()))
     else {
         return false;
@@ -270,12 +267,12 @@ pub fn world_place_building(
         .building_locations
         .get_mut(building_location_id)
         .unwrap();
-    if let Some(_) = entity_id {
+    if entity_id.is_some() {
         return false;
     }
     semi_static_game_state.version_id = SemiStaticGameStateVersionId::new();
     entity.pos = *pos;
     *entity_id = Some(entity.id);
     dynamic_game_state.entities.push(entity);
-    return true;
+    true
 }

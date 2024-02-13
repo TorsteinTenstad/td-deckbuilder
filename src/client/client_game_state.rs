@@ -1,9 +1,7 @@
 use crate::{
-    config::default_server_addr,
     draw::{draw_card, load_sprites, Sprites, GOLDEN_RATIO},
     hit_numbers::HitNumbers,
     input::mouse_screen_position,
-    network::udp_init_socket,
     physical_card::PhysicalCard,
     physical_hand::{hand_sync, PhysicalHand},
     ClientNetworkState,
@@ -85,7 +83,7 @@ impl DeckBuilder {
     }
 
     pub fn step(&mut self, dt: f32) {
-        for (cards, x_start) in vec![
+        for (cards, x_start) in [
             (&mut self.card_pool, 0.0),
             (&mut self.deck, screen_width() / 2.0),
         ] {
@@ -112,7 +110,7 @@ impl DeckBuilder {
                 .find(|physical_card| {
                     point_inside(mouse_screen_position(), &physical_card.transform)
                 })
-                .map(|c| c.clone()))
+                .cloned());
         }
 
         if let Some(holding) = &mut self.holding {
@@ -197,18 +195,17 @@ pub struct ClientGameState {
 
 impl ClientGameState {
     pub async fn new() -> Self {
-        let (udp_socket, player_id) = udp_init_socket();
-
+        let client_network_state = ClientNetworkState::new();
         Self {
             server_controlled_game_state: Default::default(),
-            client_network_state: ClientNetworkState::new(udp_socket),
+            player_id: client_network_state.get_player_id(),
+            client_network_state,
             time: SystemTime::now(),
             in_deck_builder: true,
             show_debug_info: false,
             card_delta_angle: 0.1,
             relative_splay_radius: 4.5,
             selected_entity_id: None,
-            player_id,
             dt: 0.167,
             sprites: load_sprites().await,
             font: macroquad::text::load_ttf_font("assets\\fonts\\shaky-hand-some-comic.bold.ttf")

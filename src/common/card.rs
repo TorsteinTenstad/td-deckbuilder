@@ -149,7 +149,7 @@ const CARD_DATA: &[CardData] = &[
                     return false;
                 };
                 target_entity.health.deal_damage(150.0);
-                return true;
+                true
             },
         ),
     },

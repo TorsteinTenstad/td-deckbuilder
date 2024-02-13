@@ -138,7 +138,7 @@ impl Attack {
                 entity.owner,
                 entity.spy.as_ref(),
                 attack.get_range(entity.radius),
-                &attack,
+                attack,
                 &mut dynamic_game_state.entities,
             ) else {
                 continue;

@@ -116,7 +116,7 @@ pub fn get_path_id(entity: &Entity) -> Option<PathId> {
 
 impl PathState {
     pub fn incr(&mut self, static_game_state: &StaticGameState) {
-        self.target_path_idx = next_path_idx(self.target_path_idx, self.direction);
+        self.target_path_idx = next_path_idx(self.target_path_idx, self.direction.clone());
         self.target_path_idx = usize::min(
             self.target_path_idx,
             static_game_state.paths.get(&self.path_id).unwrap().len() - 1,
@@ -128,7 +128,7 @@ impl PathState {
             return;
         }
         self.direction = direction;
-        self.target_path_idx = next_path_idx(self.target_path_idx, self.direction);
+        self.target_path_idx = next_path_idx(self.target_path_idx, self.direction.clone());
     }
 }
 
@@ -136,7 +136,7 @@ impl From<UnitSpawnpointTarget> for PathState {
     fn from(target: UnitSpawnpointTarget) -> Self {
         Self {
             path_id: target.path_id,
-            target_path_idx: next_path_idx(target.path_idx, target.direction),
+            target_path_idx: next_path_idx(target.path_idx, target.direction.clone()),
             direction: target.direction,
         }
     }
@@ -333,7 +333,7 @@ impl PathTargetSetter {
         }
 
         let mut target_pos = get_path_pos(
-            &static_game_state,
+            static_game_state,
             path_state.path_id,
             path_state.target_path_idx,
         );
@@ -342,7 +342,7 @@ impl PathTargetSetter {
         if pos_diff.length() < CLOSE_ENOUGH_TO_TARGET {
             path_state.incr(static_game_state);
             target_pos = get_path_pos(
-                &static_game_state,
+                static_game_state,
                 path_state.path_id,
                 path_state.target_path_idx,
             );
@@ -360,7 +360,7 @@ impl DetectionBasedTargetSetter {
         entity: &mut Entity,
         _dt: f32,
     ) {
-        let entity_path_id = get_path_id(&entity);
+        let entity_path_id = get_path_id(entity);
         let Some(movement) = entity.movement.as_mut() else {
             return;
         };
@@ -394,7 +394,7 @@ impl DetectionBasedTargetSetter {
                 &mut dynamic_game_state.entities,
             ) {
                 if entity_path_id.is_some_and(|id| {
-                    get_path_id(&target_entity_to_attack).is_some_and(|other_id| id != other_id)
+                    get_path_id(target_entity_to_attack).is_some_and(|other_id| id != other_id)
                 }) {
                     continue;
                 }

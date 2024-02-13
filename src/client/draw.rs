@@ -27,7 +27,7 @@ pub enum TextOriginY {
     Bottom,
 }
 
-pub const GOLDEN_RATIO: f32 = 1.61803398875;
+pub const GOLDEN_RATIO: f32 = 1.618_034;
 
 pub fn to_screen_x<T>(x: T) -> f32
 where
@@ -129,7 +129,6 @@ pub fn draw_text_with_origin(
             rotation,
             color,
             font,
-            ..Default::default()
         },
     )
 }
@@ -205,7 +204,6 @@ pub fn draw_card(
             },
             rotation: transform.rotation,
             offset: inner_offset,
-            ..Default::default()
         },
     );
 
@@ -223,17 +221,16 @@ pub fn draw_card(
     let relative_border = CARD_BORDER / transform.w;
     let image_w = transform.w * (1.0 - 2.0 * relative_border);
     let image_pos = get_on_card_pos(relative_border, relative_border);
-    let sprite_id = card.get_card_data().sprite_id;
+    let sprite_id = card.get_card_data().sprite_id.clone();
     draw_texture_ex(
-        sprites.sprites.get(&sprite_id).expect(
-            format!(
+        sprites.sprites.get(&sprite_id).unwrap_or_else(|| {
+            panic!(
                 "Missing sprite {:?} (should be at {:?}) for card {:?}",
                 sprite_id,
                 sprite_id.to_path(),
                 card
             )
-            .as_str(),
-        ),
+        }),
         image_pos.x,
         image_pos.y,
         WHITE,
@@ -280,7 +277,7 @@ pub fn draw_card(
             2.0 * width_relative_margin + (i as f32 + 0.25) * (width_relative_icon_size),
         );
         let icon_size = Vec2::splat(transform.w * width_relative_icon_size);
-        let texture = &sprite_get_texture(sprites, *sprite_id);
+        let texture = &sprite_get_texture(sprites, sprite_id.clone());
         draw_texture_ex(
             texture,
             on_card_icon_pos.x,
@@ -342,7 +339,7 @@ pub fn sprite_get_team_texture(
         Some(Direction::Negative) => sprites.sprites_blue.get(&sprite_id),
         _ => None,
     }
-    .unwrap_or(&sprites.sprites.get(&SpriteId::Empty).unwrap())
+    .unwrap_or(sprites.sprites.get(&SpriteId::Empty).unwrap())
 }
 
 pub struct Sprites {
@@ -365,7 +362,7 @@ pub async fn load_sprites() -> Sprites {
             sprites.sprites.insert(sprite_id.clone(), texture);
         }
     }
-    for (color, sprites) in vec![
+    for (color, sprites) in [
         ("red", &mut sprites.sprites_red),
         ("blue", &mut sprites.sprites_blue),
     ] {
@@ -379,9 +376,10 @@ pub async fn load_sprites() -> Sprites {
         }
     }
 
-    if !sprites.sprites.contains_key(&SpriteId::Empty) {
-        sprites.sprites.insert(SpriteId::Empty, Texture2D::empty());
-    }
+    sprites
+        .sprites
+        .entry(SpriteId::Empty)
+        .or_insert_with(Texture2D::empty);
 
-    return sprites;
+    sprites
 }

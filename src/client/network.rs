@@ -1,6 +1,5 @@
 use crate::{config::default_server_addr, ClientGameState};
 use common::{
-    game_state::ServerControledGameState,
     ids::PlayerId,
     network::{hash_client_addr, ClientMessage, ClientPing, ServerMessage},
 };
@@ -21,30 +20,28 @@ pub struct ClientNetworkState {
 }
 
 impl ClientNetworkState {
-    pub fn new(udp_socket: UdpSocket) -> Self {
+    pub fn new() -> Self {
+        let local_ip = local_ip().unwrap();
+        let udp_socket = std::iter::successors(Some(6968), |port| Some(port + 1))
+            .find_map(|port| {
+                let socket_addr = SocketAddr::new(local_ip, port);
+                UdpSocket::bind(socket_addr).ok()
+            })
+            .unwrap();
+        udp_socket.set_nonblocking(true).unwrap();
+
         Self {
             server_addr: default_server_addr(),
+            udp_socket,
             commands: Vec::new(),
             frames_since_last_received: 0,
             static_game_state_received: false,
             frames_since_last_sent_ping: 0,
-            udp_socket,
         }
     }
-}
-
-pub fn udp_init_socket() -> (UdpSocket, PlayerId) {
-    let local_ip = local_ip().unwrap();
-    let udp_socket = std::iter::successors(Some(6968), |port| Some(port + 1))
-        .find_map(|port| {
-            let socket_addr = SocketAddr::new(local_ip, port);
-            UdpSocket::bind(socket_addr).ok()
-        })
-        .unwrap();
-    udp_socket.set_nonblocking(true).unwrap();
-    let player_id = hash_client_addr(&udp_socket.local_addr().unwrap());
-
-    (udp_socket, player_id)
+    pub fn get_player_id(&self) -> PlayerId {
+        hash_client_addr(&self.server_addr)
+    }
 }
 
 pub fn udp_update_game_state(state: &mut ClientGameState) {
@@ -138,7 +135,7 @@ pub fn udp_send_commands(client_network_state: &mut ClientNetworkState) {
         client_network_state
             .udp_socket
             .send_to(
-                &rmp_serde::to_vec(&command).unwrap().as_slice(),
+                rmp_serde::to_vec(&command).unwrap().as_slice(),
                 client_network_state.server_addr,
             )
             .unwrap();

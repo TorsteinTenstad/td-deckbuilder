@@ -130,7 +130,7 @@ pub fn unit_spawnpoint_target_transform(
         direction: _,
     } = target;
 
-    let Vec2 { x, y } = get_path_pos(&static_game_state, *path_id, *path_idx);
+    let Vec2 { x, y } = get_path_pos(static_game_state, *path_id, *path_idx);
     RectTransform {
         x,
         y,

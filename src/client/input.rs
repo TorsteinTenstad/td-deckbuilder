@@ -32,7 +32,8 @@ pub fn main_input(state: &mut ClientGameState) {
             .entities
             .iter()
             .find_map(|entity| {
-                ((entity.pos - mouse_world_position()).length() < entity.radius).then(|| entity.id)
+                ((entity.pos - mouse_world_position()).length() < entity.radius)
+                    .then_some(entity.id)
             });
     }
 

@@ -39,7 +39,7 @@ pub fn update_game_state(server_controlled_game_state: &mut ServerControledGameS
     }
 }
 
-pub fn update_entity<'a>(
+pub fn update_entity(
     static_game_state: &StaticGameState,
     semi_static_game_state: &mut SemiStaticGameState,
     dynamic_game_state: &mut DynamicGameState,
@@ -123,7 +123,7 @@ pub fn update_entity<'a>(
                     entity.state = EntityState::Dead;
                 }
             } else {
-                assert!(false);
+                debug_assert!(false);
             }
         }
 

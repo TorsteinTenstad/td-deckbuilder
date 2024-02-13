@@ -53,12 +53,12 @@ impl Health {
             damage -= damage_to_take;
             buff.health -= damage_to_take;
         }
-        self.health -= damage as f32;
+        self.health -= damage;
         self.damage_animation = 0.1;
     }
 
     pub fn heal(&mut self, damage: f32) {
-        self.health += damage as f32;
+        self.health += damage;
         self.health = self.health.min(self.max_health);
     }
 }

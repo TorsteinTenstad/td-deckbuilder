@@ -100,7 +100,7 @@ fn main_draw(state: &ClientGameState) {
     // board
     clear_background(BLACK);
     draw_texture_ex(
-        &sprite_get_texture(&state.sprites, SpriteId::Map),
+        sprite_get_texture(&state.sprites, SpriteId::Map),
         0.0,
         0.0,
         WHITE,
@@ -135,10 +135,10 @@ fn main_draw(state: &ClientGameState) {
             .iter()
         {
             for ((x1, y1), (x2, y2)) in path.iter().tuple_windows() {
-                let x1 = to_screen_x(*x1 as f32);
-                let y1 = to_screen_y(*y1 as f32);
-                let x2 = to_screen_x(*x2 as f32);
-                let y2 = to_screen_y(*y2 as f32);
+                let x1 = to_screen_x(*x1);
+                let y1 = to_screen_y(*y1);
+                let x2 = to_screen_x(*x2);
+                let y2 = to_screen_y(*y2);
                 draw_circle(x1, y1, 10.0, PINK);
                 draw_circle(x2, y2, 10.0, PINK);
                 draw_line(
@@ -176,8 +176,8 @@ fn main_draw(state: &ClientGameState) {
         .building_locations
         .iter()
     {
-        let x = to_screen_x(loc.pos.x as f32);
-        let y = to_screen_y(loc.pos.y as f32);
+        let x = to_screen_x(loc.pos.x);
+        let y = to_screen_y(loc.pos.y);
         draw_circle(x, y, 20.0, WHITE);
     }
 
@@ -205,8 +205,8 @@ fn main_draw(state: &ClientGameState) {
             EntityTag::Tower | EntityTag::Base | EntityTag::Unit => {
                 let texture = sprite_get_team_texture(
                     &state.sprites,
-                    entity.sprite_id,
-                    Some(player.direction),
+                    entity.sprite_id.clone(),
+                    Some(player.direction.clone()),
                 );
 
                 let flip_x = entity

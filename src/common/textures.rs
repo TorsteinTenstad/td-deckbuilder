@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use strum_macros::EnumIter;
 
-#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq, Hash, EnumIter)]
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq, Hash, EnumIter)]
 pub enum SpriteId {
     Empty,
     Hourglass,

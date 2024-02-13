@@ -14,7 +14,7 @@ pub fn find_target_for_attack<'a>(
     entity_spy: Option<&Spy>,
     range: f32,
     attack: &Attack,
-    other_entities: &'a mut Vec<Entity>,
+    other_entities: &'a mut [Entity],
 ) -> Option<&'a mut Entity> {
     match attack.target_pool {
         TargetPool::Enemies => find_entity_in_range(
@@ -70,8 +70,8 @@ pub fn can_find_target(
 pub fn find_entity_in_range<'a>(
     entity_pos: Vec2,
     range: f32,
-    can_target: &Vec<EntityTag>,
-    other_entities: &'a mut Vec<Entity>,
+    can_target: &[EntityTag],
+    other_entities: &'a mut [Entity],
     filter_predicate: impl Fn(&mut Entity) -> bool,
 ) -> Option<&'a mut Entity> {
     other_entities
@@ -81,7 +81,7 @@ pub fn find_entity_in_range<'a>(
             (other_entity.pos - entity_pos).length_squared()
                 < (range + other_entity.hitbox_radius).powi(2)
         })
-        .filter_map(|x| filter_predicate(x).then(|| x))
+        .filter_map(|x| filter_predicate(x).then_some(x))
         .min_by(|other_entity_a, other_entity_b| {
             let signed_distance_a = (other_entity_a.pos - entity_pos).length_squared()
                 - (range + other_entity_a.hitbox_radius).powi(2);

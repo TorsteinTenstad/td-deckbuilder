@@ -10,6 +10,7 @@ use common::server_player::ServerPlayer;
 use common::world::BuildingLocation;
 use common::*;
 use macroquad::math::Vec2;
+use std::collections::hash_map;
 use std::collections::HashMap;
 use std::net::{SocketAddr, UdpSocket};
 use std::time::{Duration, SystemTime};
@@ -95,8 +96,8 @@ fn main() -> std::io::Result<()> {
                             }
                         }
                         ClientMessage::JoinGame(deck) => {
-                            if !client_addresses.contains_key(&client_id) {
-                                client_addresses.insert(client_id, client_addr);
+                            if let hash_map::Entry::Vacant(e) = client_addresses.entry(client_id) {
+                                e.insert(client_addr);
                                 if let Some(available_config) = level_config::PLAYER_CONFIGS
                                     .get(game_state.dynamic_game_state.players.len())
                                 {
@@ -158,10 +159,10 @@ fn main() -> std::io::Result<()> {
             data: ServerMessageData::DynamicGameState(game_state.dynamic_game_state.clone()),
         };
 
-        for (_client_id, client_addr) in &client_addresses {
+        for client_addr in client_addresses.values() {
             udp_socket
                 .send_to(
-                    &rmp_serde::to_vec(&server_message).unwrap().as_slice(),
+                    rmp_serde::to_vec(&server_message).unwrap().as_slice(),
                     client_addr,
                 )
                 .unwrap();
