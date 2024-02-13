@@ -6,12 +6,13 @@ use crate::{
     network::udp_init_socket,
     physical_card::PhysicalCard,
     physical_hand::{hand_sync, PhysicalHand},
+    ClientNetworkState,
 };
 use common::{
     card::Card,
     game_state::ServerControledGameState,
     ids::{EntityId, PlayerId},
-    network::{ClientMessage, ServerMessage, ServerMessageData},
+    network::{ServerMessage, ServerMessageData},
     play_target::UnitSpawnpointTarget,
     rect_transform::{point_inside, RectTransform},
     server_player::ServerPlayer,
@@ -25,10 +26,7 @@ use macroquad::{
     text::Font,
     window::screen_width,
 };
-use std::{
-    net::{SocketAddr, UdpSocket},
-    time::SystemTime,
-};
+use std::time::SystemTime;
 
 pub struct DeckBuilder {
     pub card_pool: Vec<PhysicalCard>,
@@ -179,14 +177,10 @@ impl DeckBuilder {
 
 pub struct ClientGameState {
     time: SystemTime,
-    pub server_controled_game_state: ServerControledGameState,
+    pub server_controlled_game_state: ServerControledGameState,
+    pub client_network_state: ClientNetworkState,
     pub in_deck_builder: bool,
-    pub server_addr: SocketAddr,
     pub selected_entity_id: Option<EntityId>,
-    pub frames_since_last_received: i32,
-    pub static_game_state_received: bool,
-    pub commands: Vec<ClientMessage>,
-    pub udp_socket: UdpSocket,
     pub player_id: PlayerId,
     pub dt: f32,
     pub sprites: Sprites,
@@ -206,18 +200,14 @@ impl ClientGameState {
         let (udp_socket, player_id) = udp_init_socket();
 
         Self {
-            server_controled_game_state: Default::default(),
+            server_controlled_game_state: Default::default(),
+            client_network_state: ClientNetworkState::new(udp_socket),
             time: SystemTime::now(),
             in_deck_builder: true,
-            server_addr: default_server_addr(),
             show_debug_info: false,
             card_delta_angle: 0.1,
             relative_splay_radius: 4.5,
-            commands: Vec::new(),
-            frames_since_last_received: 0,
-            static_game_state_received: false,
             selected_entity_id: None,
-            udp_socket,
             player_id,
             dt: 0.167,
             sprites: load_sprites().await,
@@ -231,14 +221,14 @@ impl ClientGameState {
         }
     }
     pub fn has_player(&self) -> bool {
-        self.server_controled_game_state
+        self.server_controlled_game_state
             .dynamic_game_state
             .players
             .get(&self.player_id)
             .is_some()
     }
     pub fn get_player(&self) -> &ServerPlayer {
-        self.server_controled_game_state
+        self.server_controlled_game_state
             .dynamic_game_state
             .players
             .get(&self.player_id)
@@ -249,33 +239,37 @@ impl ClientGameState {
         self.time = SystemTime::now();
         self.dt = self.time.duration_since(old_time).unwrap().as_secs_f32();
     }
-    pub fn update_with_server_message(&mut self, server_message: ServerMessage) {
-        let new_game = self.server_controled_game_state.game_metadata.game_id
+
+    pub fn update_server_controled_game_state_with_server_message(
+        &mut self,
+        server_message: ServerMessage,
+    ) {
+        let new_game = self.server_controlled_game_state.game_metadata.game_id
             != server_message.metadata.game_id;
 
         if !new_game
-            && self.server_controled_game_state.game_metadata.server_tick
+            && self.server_controlled_game_state.game_metadata.server_tick
                 > server_message.metadata.server_tick
         {
             return;
         }
 
         if new_game {
-            self.static_game_state_received = false;
+            self.client_network_state.static_game_state_received = false;
         }
 
         match server_message.data {
             ServerMessageData::StaticGameState(static_state) => {
-                self.server_controled_game_state.static_game_state = static_state;
+                self.server_controlled_game_state.static_game_state = static_state;
                 dbg!("static_game_state_received");
-                self.static_game_state_received = true;
+                self.client_network_state.static_game_state_received = true;
             }
             ServerMessageData::DynamicGameState(dynamic_state) => {
-                self.server_controled_game_state.dynamic_game_state = dynamic_state;
+                self.server_controlled_game_state.dynamic_game_state = dynamic_state;
                 hand_sync(self);
             }
             ServerMessageData::SemiStaticGameState(semi_static_state) => {
-                self.server_controled_game_state.semi_static_game_state = semi_static_state;
+                self.server_controlled_game_state.semi_static_game_state = semi_static_state;
             }
         }
     }

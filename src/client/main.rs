@@ -42,7 +42,7 @@ async fn main() {
         h: 50.0,
         ..Default::default()
     });
-    text_box.text = state.server_addr.to_string();
+    text_box.text = state.client_network_state.server_addr.to_string();
 
     loop {
         if state.in_deck_builder {
@@ -57,14 +57,17 @@ async fn main() {
             next_frame().await;
 
             if is_key_pressed(KeyCode::Enter) {
-                state.server_addr = text_box.text.parse().unwrap_or(state.server_addr);
+                state.client_network_state.server_addr = text_box
+                    .text
+                    .parse()
+                    .unwrap_or(state.client_network_state.server_addr);
                 state.deck_builder.save();
                 state.in_deck_builder = false;
             }
         } else {
             udp_update_game_state(&mut state);
             main_step(&mut state);
-            udp_send_commands(&mut state);
+            udp_send_commands(&mut state.client_network_state);
             main_draw(&state);
 
             next_frame().await;
@@ -82,7 +85,7 @@ fn main_step(state: &mut ClientGameState) {
     hand_step(state);
     state.hit_numbers.step(
         &state
-            .server_controled_game_state
+            .server_controlled_game_state
             .dynamic_game_state
             .entities,
         state.dt,
@@ -113,7 +116,7 @@ fn main_draw(state: &ClientGameState) {
     //paths
     if state.show_debug_info {
         for building_location in state
-            .server_controled_game_state
+            .server_controlled_game_state
             .semi_static_game_state
             .building_locations
             .values()
@@ -126,7 +129,7 @@ fn main_draw(state: &ClientGameState) {
             );
         }
         for (_, path) in state
-            .server_controled_game_state
+            .server_controlled_game_state
             .static_game_state
             .paths
             .iter()
@@ -168,7 +171,7 @@ fn main_draw(state: &ClientGameState) {
 
     // locations
     for (_id, loc) in state
-        .server_controled_game_state
+        .server_controlled_game_state
         .semi_static_game_state
         .building_locations
         .iter()
@@ -180,13 +183,13 @@ fn main_draw(state: &ClientGameState) {
 
     // entities
     for entity in state
-        .server_controled_game_state
+        .server_controlled_game_state
         .dynamic_game_state
         .entities
         .iter()
     {
         let Some(player) = state
-            .server_controled_game_state
+            .server_controlled_game_state
             .dynamic_game_state
             .players
             .get(&entity.owner)
@@ -239,7 +242,7 @@ fn main_draw(state: &ClientGameState) {
     let mut range_circle_preview: Vec<(f32, f32, f32, Color)> = Vec::new();
     if let Some(entity) = find_entity(
         &state
-            .server_controled_game_state
+            .server_controlled_game_state
             .dynamic_game_state
             .entities,
         state.selected_entity_id,
@@ -274,7 +277,7 @@ fn main_draw(state: &ClientGameState) {
 
     // Progress bars
     if let Some(player) = state
-        .server_controled_game_state
+        .server_controlled_game_state
         .dynamic_game_state
         .players
         .get(&state.player_id)
@@ -306,7 +309,7 @@ fn main_draw(state: &ClientGameState) {
             outline_w,
             energy_progress,
             state
-                .server_controled_game_state
+                .server_controlled_game_state
                 .dynamic_game_state
                 .players
                 .get(&state.player_id)
@@ -337,7 +340,7 @@ fn main_draw(state: &ClientGameState) {
         .is_some()
     {
         for (_id, loc) in state
-            .server_controled_game_state
+            .server_controlled_game_state
             .semi_static_game_state
             .building_locations
             .iter()
@@ -363,7 +366,7 @@ fn main_draw(state: &ClientGameState) {
     for target in state.unit_spawnpoint_targets.iter() {
         let transform = &unit_spawnpoint_target_transform(
             target,
-            &state.server_controled_game_state.static_game_state,
+            &state.server_controlled_game_state.static_game_state,
         );
         let hovering = point_inside(mouse_world_position(), transform);
         draw_rect_transform(

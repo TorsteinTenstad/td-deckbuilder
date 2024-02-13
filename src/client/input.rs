@@ -27,7 +27,7 @@ pub fn mouse_world_position() -> Vec2 {
 pub fn main_input(state: &mut ClientGameState) {
     if is_mouse_button_released(MouseButton::Left) {
         state.selected_entity_id = state
-            .server_controled_game_state
+            .server_controlled_game_state
             .dynamic_game_state
             .entities
             .iter()

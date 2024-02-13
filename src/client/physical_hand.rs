@@ -98,8 +98,8 @@ pub fn hand_step(state: &mut ClientGameState) {
             PlayFn::UnitSpawnPoint(_) => {
                 state.unit_spawnpoint_targets = get_unit_spawnpoints(
                     state.player_id,
-                    &state.server_controled_game_state.static_game_state,
-                    &state.server_controled_game_state.dynamic_game_state,
+                    &state.server_controlled_game_state.static_game_state,
+                    &state.server_controlled_game_state.dynamic_game_state,
                 )
             }
             PlayFn::BuildingSpot(_) => {}
@@ -111,10 +111,13 @@ pub fn hand_step(state: &mut ClientGameState) {
                 PlayFn::WorldPos(_) => {
                     if let Some(card_instance) = hand_try_play(state) {
                         let Vec2 { x, y } = mouse_world_position();
-                        state.commands.push(ClientMessage::PlayCard(
-                            card_instance.id,
-                            PlayTarget::WorldPos(WorldPosTarget { x, y }),
-                        ));
+                        state
+                            .client_network_state
+                            .commands
+                            .push(ClientMessage::PlayCard(
+                                card_instance.id,
+                                PlayTarget::WorldPos(WorldPosTarget { x, y }),
+                            ));
                     }
                 }
                 PlayFn::UnitSpawnPoint(_) => {
@@ -123,21 +126,24 @@ pub fn hand_step(state: &mut ClientGameState) {
                             mouse_world_position(),
                             &unit_spawnpoint_target_transform(
                                 target,
-                                &state.server_controled_game_state.static_game_state,
+                                &state.server_controlled_game_state.static_game_state,
                             ),
                         )
                     }) {
                         if let Some(card_instance) = hand_try_play(state) {
-                            state.commands.push(ClientMessage::PlayCard(
-                                card_instance.id,
-                                PlayTarget::UnitSpawnPoint(target.clone()),
-                            ));
+                            state
+                                .client_network_state
+                                .commands
+                                .push(ClientMessage::PlayCard(
+                                    card_instance.id,
+                                    PlayTarget::UnitSpawnPoint(target.clone()),
+                                ));
                         }
                     }
                 }
                 PlayFn::BuildingSpot(_) => {
                     if let Some((id, _pos)) = state
-                        .server_controled_game_state
+                        .server_controlled_game_state
                         .semi_static_game_state
                         .building_locations
                         .iter()
@@ -149,16 +155,19 @@ pub fn hand_step(state: &mut ClientGameState) {
                         })
                     {
                         if let Some(card_instance) = hand_try_play(state) {
-                            state.commands.push(ClientMessage::PlayCard(
-                                card_instance.id,
-                                PlayTarget::BuildingSpot(BuildingSpotTarget { id: *id }),
-                            ));
+                            state
+                                .client_network_state
+                                .commands
+                                .push(ClientMessage::PlayCard(
+                                    card_instance.id,
+                                    PlayTarget::BuildingSpot(BuildingSpotTarget { id: *id }),
+                                ));
                         }
                     }
                 }
                 PlayFn::Entity(_) => {
                     if let Some(entity) = state
-                        .server_controled_game_state
+                        .server_controlled_game_state
                         .dynamic_game_state
                         .entities
                         .iter()
@@ -167,10 +176,13 @@ pub fn hand_step(state: &mut ClientGameState) {
                         })
                     {
                         if let Some(card_instance) = hand_try_play(state) {
-                            state.commands.push(ClientMessage::PlayCard(
-                                card_instance.id,
-                                PlayTarget::Entity(EntityTarget { id: entity.id }),
-                            ));
+                            state
+                                .client_network_state
+                                .commands
+                                .push(ClientMessage::PlayCard(
+                                    card_instance.id,
+                                    PlayTarget::Entity(EntityTarget { id: entity.id }),
+                                ));
                         }
                     }
                 }

@@ -1,5 +1,6 @@
-use crate::ClientGameState;
+use crate::{config::default_server_addr, ClientGameState};
 use common::{
+    game_state::ServerControledGameState,
     ids::PlayerId,
     network::{hash_client_addr, ClientMessage, ServerMessage},
 };
@@ -9,6 +10,26 @@ use std::{
     net::{SocketAddr, UdpSocket},
     time::SystemTime,
 };
+
+pub struct ClientNetworkState {
+    pub server_addr: SocketAddr,
+    pub udp_socket: UdpSocket,
+    pub commands: Vec<ClientMessage>,
+    pub frames_since_last_received: i32,
+    pub static_game_state_received: bool,
+}
+
+impl ClientNetworkState {
+    pub fn new(udp_socket: UdpSocket) -> Self {
+        Self {
+            server_addr: default_server_addr(),
+            commands: Vec::new(),
+            frames_since_last_received: 0,
+            static_game_state_received: false,
+            udp_socket,
+        }
+    }
+}
 
 pub fn udp_init_socket() -> (UdpSocket, PlayerId) {
     let local_ip = local_ip().unwrap();
@@ -27,11 +48,11 @@ pub fn udp_init_socket() -> (UdpSocket, PlayerId) {
 pub fn udp_update_game_state(state: &mut ClientGameState) {
     loop {
         let mut buf = [0; 20000];
-        let received_message = state.udp_socket.recv_from(&mut buf);
+        let received_message = state.client_network_state.udp_socket.recv_from(&mut buf);
         match received_message {
             Ok((number_of_bytes, _src)) => {
                 dbg!(number_of_bytes);
-                state.frames_since_last_received = 0;
+                state.client_network_state.frames_since_last_received = 0;
                 let buf = &mut buf[..number_of_bytes];
                 let log = |prefix: &str| {
                     let timestamp = SystemTime::now()
@@ -51,7 +72,10 @@ pub fn udp_update_game_state(state: &mut ClientGameState) {
                         dbg!(e);
                         panic!()
                     }
-                    Ok(server_message) => state.update_with_server_message(server_message),
+                    Ok(server_message) => {
+                        state
+                            .update_server_controled_game_state_with_server_message(server_message);
+                    }
                 }
             }
             Err(e) => match e.kind() {
@@ -66,9 +90,10 @@ pub fn udp_update_game_state(state: &mut ClientGameState) {
         }
     }
 
-    state.frames_since_last_received += 1;
-    if state.frames_since_last_received > 60 {
+    state.client_network_state.frames_since_last_received += 1;
+    if state.client_network_state.frames_since_last_received > 60 {
         state
+            .client_network_state
             .udp_socket
             .send_to(
                 &rmp_serde::to_vec(&ClientMessage::JoinGame(
@@ -80,30 +105,31 @@ pub fn udp_update_game_state(state: &mut ClientGameState) {
                         .collect(),
                 ))
                 .unwrap(),
-                state.server_addr,
+                state.client_network_state.server_addr,
             )
             .unwrap();
     }
-    if !state.static_game_state_received {
+    if !state.client_network_state.static_game_state_received {
         state
+            .client_network_state
             .udp_socket
             .send_to(
                 &rmp_serde::to_vec(&ClientMessage::RequestStaticGameState).unwrap(),
-                state.server_addr,
+                state.client_network_state.server_addr,
             )
             .unwrap();
     }
 }
 
-pub fn udp_send_commands(state: &mut ClientGameState) {
-    for command in &state.commands {
-        state
+pub fn udp_send_commands(client_network_state: &mut ClientNetworkState) {
+    for command in &client_network_state.commands {
+        client_network_state
             .udp_socket
             .send_to(
                 &rmp_serde::to_vec(&command).unwrap().as_slice(),
-                state.server_addr,
+                client_network_state.server_addr,
             )
             .unwrap();
     }
-    state.commands.clear();
+    client_network_state.commands.clear();
 }
