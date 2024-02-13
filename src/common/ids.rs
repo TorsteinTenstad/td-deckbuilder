@@ -11,6 +11,12 @@ macro_rules! new_id_type {
                 Self(thread_rng().gen())
             }
         }
+
+        impl Default for $name {
+            fn default() -> Self {
+                Self::new()
+            }
+        }
     };
 }
 
@@ -20,3 +26,4 @@ new_id_type!(BuildingLocationId);
 new_id_type!(PathId);
 new_id_type!(PlayerId);
 new_id_type!(GameId);
+new_id_type!(SemiStaticGameStateVersionId);

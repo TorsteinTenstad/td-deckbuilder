@@ -125,44 +125,46 @@ fn main() -> std::io::Result<()> {
                                 }
                             }
                         }
-                        ClientMessage::RequestStaticGameState => {
-                            let server_message = ServerMessage {
-                                metadata: game_state.game_metadata.clone(),
-                                data: ServerMessageData::StaticGameState(
-                                    game_state.static_game_state.clone(),
-                                ),
-                            };
-                            let msg_vec = rmp_serde::to_vec(&server_message).unwrap();
-                            udp_socket.send_to(msg_vec.as_slice(), client_addr).unwrap();
+                        ClientMessage::Ping(client_ping) => {
+                            if !client_ping.static_game_state_reseived {
+                                let server_message = ServerMessage {
+                                    metadata: game_state.game_metadata.clone(),
+                                    data: ServerMessageData::StaticGameState(
+                                        game_state.static_game_state.clone(),
+                                    ),
+                                };
+                                let msg_vec = rmp_serde::to_vec(&server_message).unwrap();
+                                udp_socket.send_to(msg_vec.as_slice(), client_addr).unwrap();
+                            }
+                            if client_ping.semi_static_game_state_version_id
+                                != game_state.semi_static_game_state.version_id
+                            {
+                                let server_message = ServerMessage {
+                                    metadata: game_state.game_metadata.clone(),
+                                    data: ServerMessageData::SemiStaticGameState(
+                                        game_state.semi_static_game_state.clone(),
+                                    ),
+                                };
+                                let msg_vec = rmp_serde::to_vec(&server_message).unwrap();
+                                udp_socket.send_to(msg_vec.as_slice(), client_addr).unwrap();
+                            }
                         }
                     }
                 }
             }
         }
-        let mut server_messages: Vec<Vec<u8>> = Vec::new();
-        let dynamic_game_state_message = ServerMessage {
+        let server_message = ServerMessage {
             metadata: game_state.game_metadata.clone(),
             data: ServerMessageData::DynamicGameState(game_state.dynamic_game_state.clone()),
         };
-        server_messages.push(rmp_serde::to_vec(&dynamic_game_state_message).unwrap());
-
-        if game_state.semi_static_game_state.dirty {
-            let semi_static_game_state_message = ServerMessage {
-                metadata: game_state.game_metadata.clone(),
-                data: ServerMessageData::SemiStaticGameState(
-                    game_state.semi_static_game_state.clone(),
-                ),
-            };
-            server_messages.push(rmp_serde::to_vec(&semi_static_game_state_message).unwrap());
-            game_state.semi_static_game_state.dirty = false;
-        }
 
         for (_client_id, client_addr) in &client_addresses {
-            for server_message in &server_messages {
-                udp_socket
-                    .send_to(&server_message.as_slice(), client_addr)
-                    .unwrap();
-            }
+            udp_socket
+                .send_to(
+                    &rmp_serde::to_vec(&server_message).unwrap().as_slice(),
+                    client_addr,
+                )
+                .unwrap();
         }
 
         game_state.game_metadata.server_tick += 1;

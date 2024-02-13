@@ -2,7 +2,7 @@ use crate::{config::default_server_addr, ClientGameState};
 use common::{
     game_state::ServerControledGameState,
     ids::PlayerId,
-    network::{hash_client_addr, ClientMessage, ServerMessage},
+    network::{hash_client_addr, ClientMessage, ClientPing, ServerMessage},
 };
 use local_ip_address::local_ip;
 use macroquad::input::is_key_down;
@@ -17,6 +17,7 @@ pub struct ClientNetworkState {
     pub commands: Vec<ClientMessage>,
     pub frames_since_last_received: i32,
     pub static_game_state_received: bool,
+    pub frames_since_last_sent_ping: i32,
 }
 
 impl ClientNetworkState {
@@ -26,6 +27,7 @@ impl ClientNetworkState {
             commands: Vec::new(),
             frames_since_last_received: 0,
             static_game_state_received: false,
+            frames_since_last_sent_ping: 0,
             udp_socket,
         }
     }
@@ -108,12 +110,23 @@ pub fn udp_update_game_state(state: &mut ClientGameState) {
             )
             .unwrap();
     }
-    if !state.client_network_state.static_game_state_received {
+    state.client_network_state.frames_since_last_sent_ping += 1;
+    if state.client_network_state.frames_since_last_sent_ping > 30 {
+        state.client_network_state.frames_since_last_sent_ping = 0;
         state
             .client_network_state
             .udp_socket
             .send_to(
-                &rmp_serde::to_vec(&ClientMessage::RequestStaticGameState).unwrap(),
+                &rmp_serde::to_vec(&ClientMessage::Ping(ClientPing {
+                    static_game_state_reseived: state
+                        .client_network_state
+                        .static_game_state_received,
+                    semi_static_game_state_version_id: state
+                        .server_controlled_game_state
+                        .semi_static_game_state
+                        .version_id,
+                }))
+                .unwrap(),
                 state.client_network_state.server_addr,
             )
             .unwrap();
