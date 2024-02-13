@@ -51,7 +51,6 @@ pub fn udp_update_game_state(state: &mut ClientGameState) {
         let received_message = state.client_network_state.udp_socket.recv_from(&mut buf);
         match received_message {
             Ok((number_of_bytes, _src)) => {
-                dbg!(number_of_bytes);
                 state.client_network_state.frames_since_last_received = 0;
                 let buf = &mut buf[..number_of_bytes];
                 let log = |prefix: &str| {

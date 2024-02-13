@@ -261,7 +261,6 @@ impl ClientGameState {
         match server_message.data {
             ServerMessageData::StaticGameState(static_state) => {
                 self.server_controlled_game_state.static_game_state = static_state;
-                dbg!("static_game_state_received");
                 self.client_network_state.static_game_state_received = true;
             }
             ServerMessageData::DynamicGameState(dynamic_state) => {
