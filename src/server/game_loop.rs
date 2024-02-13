@@ -4,9 +4,40 @@ use common::{
     config::CLOSE_ENOUGH_TO_TARGET,
     entity::{Entity, EntityState},
     find_target::find_target_for_attack,
-    game_state::{DynamicGameState, SemiStaticGameState, StaticGameState},
+    game_state::{
+        DynamicGameState, SemiStaticGameState, ServerControledGameState, StaticGameState,
+    },
     world::world_place_building,
 };
+
+pub fn update_game_state(server_controlled_game_state: &mut ServerControledGameState, dt: f32) {
+    //TODO: This implementation may cause entities to not be updated if the update_entities directly removes entities.
+    // This could be solved by cashing the update state of all entities, or by only killing entities by setting their state to dead.
+    let mut i = 0;
+    while i < server_controlled_game_state
+        .dynamic_game_state
+        .entities
+        .len()
+    {
+        let mut entity = server_controlled_game_state
+            .dynamic_game_state
+            .entities
+            .swap_remove(i);
+        update_entity(
+            &server_controlled_game_state.static_game_state,
+            &mut server_controlled_game_state.semi_static_game_state,
+            &mut server_controlled_game_state.dynamic_game_state,
+            &mut entity,
+            dt,
+        );
+        // TODO: Inserting at i causes a lot of memory movement, this can be optimized using a better swap routine for updating.
+        server_controlled_game_state
+            .dynamic_game_state
+            .entities
+            .insert(i, entity);
+        i += 1;
+    }
+}
 
 pub fn update_entity<'a>(
     static_game_state: &StaticGameState,

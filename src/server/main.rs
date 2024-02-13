@@ -2,13 +2,13 @@ use common::config::SERVER_PORT;
 use common::entity::EntityState;
 use common::entity_blueprint::EntityBlueprint;
 use common::game_state::ServerControledGameState;
+use common::gameplay_config::{STARTING_ENERGY, STARTING_HAND_SIZE};
 use common::ids::{BuildingLocationId, EntityId, PathId, PlayerId};
 use common::level_config::BUILDING_LOCATIONS;
 use common::network::{hash_client_addr, ClientMessage, ServerMessage, ServerMessageData};
 use common::server_player::ServerPlayer;
 use common::world::BuildingLocation;
 use common::*;
-use game_loop::update_entity;
 use macroquad::math::Vec2;
 use std::collections::HashMap;
 use std::net::{SocketAddr, UdpSocket};
@@ -115,8 +115,8 @@ fn main() -> std::io::Result<()> {
                                         .players
                                         .get_mut(&client_id)
                                         .unwrap();
-                                    server_player.hand.energy = 1;
-                                    for _ in 0..4 {
+                                    server_player.hand.energy = STARTING_ENERGY;
+                                    for _ in 0..STARTING_HAND_SIZE {
                                         server_player.hand.draw();
                                     }
                                     let mut base_entity = EntityBlueprint::Base.create(client_id);
@@ -170,22 +170,7 @@ fn main() -> std::io::Result<()> {
             client.hand.step(dt)
         }
 
-        //TODO: This implementation may cause entities to not be updated if the update_entities directly removes entities.
-        // This could be solved by cashing the update state of all entities, or by only killing entities by setting their state to dead.
-        let mut i = 0;
-        while i < game_state.dynamic_game_state.entities.len() {
-            let mut entity = game_state.dynamic_game_state.entities.swap_remove(i);
-            update_entity(
-                &game_state.static_game_state,
-                &mut game_state.semi_static_game_state,
-                &mut game_state.dynamic_game_state,
-                &mut entity,
-                dt,
-            );
-            // TODO: Inserting at i causes a lot of memory movement, this can be optimized using a better swap routine for updating.
-            game_state.dynamic_game_state.entities.insert(i, entity);
-            i += 1;
-        }
+        game_loop::update_game_state(&mut game_state, dt);
 
         let mut i = 0;
         while i < game_state.dynamic_game_state.entities.len() {

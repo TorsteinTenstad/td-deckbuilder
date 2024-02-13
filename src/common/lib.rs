@@ -7,6 +7,7 @@ pub mod entity;
 pub mod entity_blueprint;
 pub mod find_target;
 pub mod game_state;
+pub mod gameplay_config;
 pub mod get_unit_spawnpoints;
 pub mod hand;
 pub mod ids;
