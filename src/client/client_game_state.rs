@@ -256,6 +256,7 @@ impl ClientGameState {
 
         if new_game {
             self.client_network_state.static_game_state_received = false;
+            self.server_controlled_game_state = Default::default();
         }
 
         match server_message.data {
