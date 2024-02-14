@@ -4,7 +4,7 @@ use crate::{
     entity_blueprint::EntityBlueprint,
     game_state::{DynamicGameState, SemiStaticGameState, StaticGameState},
     get_unit_spawnpoints::get_unit_spawnpoints,
-    ids::{BuildingLocationId, EntityId, PathId, PlayerId, SemiStaticGameStateVersionId},
+    ids::{BuildingLocationId, EntityId, PathId, PlayerId},
     play_target::{BuildingSpotTarget, UnitSpawnpointTarget},
     serde_defs::Vec2Def,
 };
@@ -270,7 +270,6 @@ pub fn world_place_building(
     if entity_id.is_some() {
         return false;
     }
-    semi_static_game_state.version_id = SemiStaticGameStateVersionId::new();
     entity.pos = *pos;
     *entity_id = Some(entity.id);
     dynamic_game_state.entities.push(entity);

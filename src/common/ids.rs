@@ -26,4 +26,3 @@ new_id_type!(BuildingLocationId);
 new_id_type!(PathId);
 new_id_type!(PlayerId);
 new_id_type!(GameId);
-new_id_type!(SemiStaticGameStateVersionId);

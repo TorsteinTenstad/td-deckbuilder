@@ -65,9 +65,13 @@ async fn main() {
                 state.in_deck_builder = false;
             }
         } else {
-            udp_update_game_state(&mut state);
+            while let Some((server_message, _)) =
+                state.client_network_state.ack_udp_socket.receive()
+            {
+                state.update_server_controled_game_state_with_server_message(server_message.data);
+            }
             main_step(&mut state);
-            udp_send_commands(&mut state.client_network_state);
+            state.client_network_state.ack_udp_socket.send_queued();
             main_draw(&state);
 
             next_frame().await;

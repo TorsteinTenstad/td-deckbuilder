@@ -10,7 +10,7 @@ use common::{
     card::Card,
     game_state::ServerControledGameState,
     ids::{EntityId, PlayerId},
-    network::{ServerMessage, ServerMessageData},
+    network::ServerMessageData,
     play_target::UnitSpawnpointTarget,
     rect_transform::{point_inside, RectTransform},
     server_player::ServerPlayer,
@@ -239,27 +239,11 @@ impl ClientGameState {
 
     pub fn update_server_controled_game_state_with_server_message(
         &mut self,
-        server_message: ServerMessage,
+        server_message_data: ServerMessageData,
     ) {
-        let new_game = self.server_controlled_game_state.game_metadata.game_id
-            != server_message.metadata.game_id;
-
-        if !new_game
-            && self.server_controlled_game_state.game_metadata.server_tick
-                > server_message.metadata.server_tick
-        {
-            return;
-        }
-
-        if new_game {
-            self.client_network_state.static_game_state_received = false;
-            self.server_controlled_game_state = Default::default();
-        }
-
-        match server_message.data {
+        match server_message_data {
             ServerMessageData::StaticGameState(static_state) => {
                 self.server_controlled_game_state.static_game_state = static_state;
-                self.client_network_state.static_game_state_received = true;
             }
             ServerMessageData::DynamicGameState(dynamic_state) => {
                 self.server_controlled_game_state.dynamic_game_state = dynamic_state;

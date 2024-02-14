@@ -1,7 +1,7 @@
 use crate::{
     card::Card,
     game_state::{DynamicGameState, GameMetadata, SemiStaticGameState, StaticGameState},
-    ids::{CardInstanceId, PlayerId, SemiStaticGameStateVersionId},
+    ids::{CardInstanceId, PlayerId},
     play_target::PlayTarget,
 };
 use serde::{Deserialize, Serialize};
@@ -18,15 +18,8 @@ pub fn hash_client_addr(addr: &SocketAddr) -> PlayerId {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct ClientPing {
-    pub static_game_state_reseived: bool,
-    pub semi_static_game_state_version_id: SemiStaticGameStateVersionId,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
 pub enum ClientMessage {
     JoinGame(Vec<Card>),
-    Ping(ClientPing),
     PlayCard(CardInstanceId, PlayTarget),
 }
 

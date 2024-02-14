@@ -1,6 +1,6 @@
 use crate::{
     entity::Entity,
-    ids::{BuildingLocationId, PathId, PlayerId, SemiStaticGameStateVersionId},
+    ids::{BuildingLocationId, PathId, PlayerId},
     server_player::ServerPlayer,
     world::BuildingLocation,
 };
@@ -14,7 +14,6 @@ pub struct StaticGameState {
 
 #[derive(Clone, Default, Serialize, Deserialize)]
 pub struct SemiStaticGameState {
-    pub version_id: SemiStaticGameStateVersionId,
     pub building_locations: HashMap<BuildingLocationId, BuildingLocation>,
 }
 

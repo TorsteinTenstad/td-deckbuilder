@@ -113,8 +113,7 @@ pub fn hand_step(state: &mut ClientGameState) {
                         let Vec2 { x, y } = mouse_world_position();
                         state
                             .client_network_state
-                            .commands
-                            .push(ClientMessage::PlayCard(
+                            .push_command(ClientMessage::PlayCard(
                                 card_instance.id,
                                 PlayTarget::WorldPos(WorldPosTarget { x, y }),
                             ));
@@ -133,8 +132,7 @@ pub fn hand_step(state: &mut ClientGameState) {
                         if let Some(card_instance) = hand_try_play(state) {
                             state
                                 .client_network_state
-                                .commands
-                                .push(ClientMessage::PlayCard(
+                                .push_command(ClientMessage::PlayCard(
                                     card_instance.id,
                                     PlayTarget::UnitSpawnPoint(target.clone()),
                                 ));
@@ -157,8 +155,7 @@ pub fn hand_step(state: &mut ClientGameState) {
                         if let Some(card_instance) = hand_try_play(state) {
                             state
                                 .client_network_state
-                                .commands
-                                .push(ClientMessage::PlayCard(
+                                .push_command(ClientMessage::PlayCard(
                                     card_instance.id,
                                     PlayTarget::BuildingSpot(BuildingSpotTarget { id: *id }),
                                 ));
@@ -178,8 +175,7 @@ pub fn hand_step(state: &mut ClientGameState) {
                         if let Some(card_instance) = hand_try_play(state) {
                             state
                                 .client_network_state
-                                .commands
-                                .push(ClientMessage::PlayCard(
+                                .push_command(ClientMessage::PlayCard(
                                     card_instance.id,
                                     PlayTarget::Entity(EntityTarget { id: entity.id }),
                                 ));

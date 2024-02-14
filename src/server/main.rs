@@ -5,6 +5,7 @@ use common::game_state::ServerControledGameState;
 use common::gameplay_config::{STARTING_ENERGY, STARTING_HAND_SIZE};
 use common::ids::{BuildingLocationId, EntityId, PathId, PlayerId};
 use common::level_config::BUILDING_LOCATIONS;
+use common::message_acknowledgement::AckUdpSocket;
 use common::network::{hash_client_addr, ClientMessage, ServerMessage, ServerMessageData};
 use common::server_player::ServerPlayer;
 use common::world::BuildingLocation;
@@ -51,6 +52,8 @@ fn main() -> std::io::Result<()> {
     udp_socket
         .set_read_timeout(Some(Duration::from_millis(10)))
         .unwrap();
+    let mut ack_udp_socket =
+        AckUdpSocket::<ServerMessage, ClientMessage>::new(udp_socket, Duration::from_secs(1));
     let mut time = SystemTime::now();
 
     loop {
@@ -58,114 +61,67 @@ fn main() -> std::io::Result<()> {
         time = SystemTime::now();
         let dt = time.duration_since(old_time).unwrap().as_secs_f32();
 
-        loop {
-            let client_message_buf = &mut [0; 200];
-            let read_client_message = udp_socket.recv_from(client_message_buf);
-            match read_client_message {
-                Err(e) => match e.kind() {
-                    std::io::ErrorKind::ConnectionReset => {}
-                    std::io::ErrorKind::TimedOut => {
-                        break;
+        while let Some((client_message, client_addr)) = ack_udp_socket.receive() {
+            let client_id = hash_client_addr(&client_addr);
+            match client_message {
+                ClientMessage::PlayCard(card_id, target) => {
+                    if let Some(card_from_idx) = game_state
+                        .dynamic_game_state
+                        .players
+                        .get_mut(&client_id)
+                        .unwrap()
+                        .hand
+                        .try_play(card_id)
+                    {
+                        card_from_idx.get_card_data().play_fn.exec(
+                            target,
+                            client_id,
+                            &game_state.static_game_state,
+                            &mut game_state.semi_static_game_state,
+                            &mut game_state.dynamic_game_state,
+                        );
                     }
-                    _ => {
-                        dbg!(e);
-                        panic!()
-                    }
-                },
-                Ok((amt, client_addr)) => {
-                    let client_id = hash_client_addr(&client_addr);
-                    let command =
-                        rmp_serde::from_slice::<ClientMessage>(&client_message_buf[..amt]).unwrap();
-                    match command {
-                        ClientMessage::PlayCard(card_id, target) => {
-                            if let Some(card_from_idx) = game_state
+                }
+                ClientMessage::JoinGame(deck) => {
+                    if let hash_map::Entry::Vacant(vacant_entry) = client_addresses.entry(client_id)
+                    {
+                        vacant_entry.insert(client_addr);
+                        if let Some(available_config) = level_config::PLAYER_CONFIGS
+                            .get(game_state.dynamic_game_state.players.len())
+                        {
+                            let (base_pos, available_direction, available_color) = available_config;
+                            game_state.dynamic_game_state.players.insert(
+                                client_id,
+                                ServerPlayer::new(
+                                    available_direction.clone(),
+                                    *available_color,
+                                    deck,
+                                ),
+                            );
+                            let server_player = game_state
                                 .dynamic_game_state
                                 .players
                                 .get_mut(&client_id)
-                                .unwrap()
-                                .hand
-                                .try_play(card_id)
-                            {
-                                card_from_idx.get_card_data().play_fn.exec(
-                                    target,
-                                    client_id,
-                                    &game_state.static_game_state,
-                                    &mut game_state.semi_static_game_state,
-                                    &mut game_state.dynamic_game_state,
-                                );
+                                .unwrap();
+                            server_player.hand.energy = STARTING_ENERGY;
+                            for _ in 0..STARTING_HAND_SIZE {
+                                server_player.hand.draw();
                             }
-                        }
-                        ClientMessage::JoinGame(deck) => {
-                            if let hash_map::Entry::Vacant(e) = client_addresses.entry(client_id) {
-                                e.insert(client_addr);
-                                if let Some(available_config) = level_config::PLAYER_CONFIGS
-                                    .get(game_state.dynamic_game_state.players.len())
-                                {
-                                    let (base_pos, available_direction, available_color) =
-                                        available_config;
-                                    game_state.dynamic_game_state.players.insert(
-                                        client_id,
-                                        ServerPlayer::new(
-                                            available_direction.clone(),
-                                            *available_color,
-                                            deck,
-                                        ),
-                                    );
-                                    let server_player = game_state
-                                        .dynamic_game_state
-                                        .players
-                                        .get_mut(&client_id)
-                                        .unwrap();
-                                    server_player.hand.energy = STARTING_ENERGY;
-                                    for _ in 0..STARTING_HAND_SIZE {
-                                        server_player.hand.draw();
-                                    }
-                                    let mut base_entity = EntityBlueprint::Base.create(client_id);
-                                    base_entity.pos = *base_pos;
-                                    game_state.dynamic_game_state.entities.push(base_entity);
-                                }
-                            }
-                        }
-                        ClientMessage::Ping(client_ping) => {
-                            if !client_ping.static_game_state_reseived {
-                                let server_message = ServerMessage {
-                                    metadata: game_state.game_metadata.clone(),
-                                    data: ServerMessageData::StaticGameState(
-                                        game_state.static_game_state.clone(),
-                                    ),
-                                };
-                                let msg_vec = rmp_serde::to_vec(&server_message).unwrap();
-                                udp_socket.send_to(msg_vec.as_slice(), client_addr).unwrap();
-                            }
-                            if client_ping.semi_static_game_state_version_id
-                                != game_state.semi_static_game_state.version_id
-                            {
-                                let server_message = ServerMessage {
-                                    metadata: game_state.game_metadata.clone(),
-                                    data: ServerMessageData::SemiStaticGameState(
-                                        game_state.semi_static_game_state.clone(),
-                                    ),
-                                };
-                                let msg_vec = rmp_serde::to_vec(&server_message).unwrap();
-                                udp_socket.send_to(msg_vec.as_slice(), client_addr).unwrap();
-                            }
+                            let mut base_entity = EntityBlueprint::Base.create(client_id);
+                            base_entity.pos = *base_pos;
+                            game_state.dynamic_game_state.entities.push(base_entity);
                         }
                     }
                 }
             }
         }
-        let server_message = ServerMessage {
-            metadata: game_state.game_metadata.clone(),
-            data: ServerMessageData::DynamicGameState(game_state.dynamic_game_state.clone()),
-        };
 
         for client_addr in client_addresses.values() {
-            udp_socket
-                .send_to(
-                    rmp_serde::to_vec(&server_message).unwrap().as_slice(),
-                    client_addr,
-                )
-                .unwrap();
+            let server_message = ServerMessage {
+                metadata: game_state.game_metadata.clone(),
+                data: ServerMessageData::DynamicGameState(game_state.dynamic_game_state.clone()),
+            };
+            ack_udp_socket.send_to(server_message, client_addr, false)
         }
 
         game_state.game_metadata.server_tick += 1;

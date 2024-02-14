@@ -12,6 +12,7 @@ pub mod get_unit_spawnpoints;
 pub mod hand;
 pub mod ids;
 pub mod level_config;
+pub mod message_acknowledgement;
 pub mod network;
 pub mod play_target;
 pub mod rect_transform;
