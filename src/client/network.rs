@@ -5,11 +5,15 @@ use common::{
     network::{hash_client_addr, ClientMessage, ServerMessage},
 };
 use local_ip_address::local_ip;
-use std::net::{SocketAddr, UdpSocket};
+use std::{
+    net::{SocketAddr, UdpSocket},
+    time::SystemTime,
+};
 
 pub struct ClientNetworkState {
     pub server_addr: SocketAddr,
-    pub ack_udp_socket: AckUdpSocket<ClientMessage, ServerMessage>,
+    ack_udp_socket: AckUdpSocket<ClientMessage, ServerMessage>,
+    last_server_response: Option<SystemTime>,
 }
 
 impl ClientNetworkState {
@@ -26,12 +30,36 @@ impl ClientNetworkState {
         Self {
             server_addr: default_server_addr(),
             ack_udp_socket: AckUdpSocket::new(udp_socket, std::time::Duration::from_secs(1)),
+            last_server_response: None,
         }
+    }
+
+    pub fn ensure_joined(&mut self, join_message: ClientMessage) {
+        if self
+            .last_server_response
+            .is_some_and(|time| time.elapsed().unwrap().as_secs() < 5)
+        {
+            return;
+        }
+        self.ack_udp_socket
+            .send_to(join_message, &self.server_addr, true);
     }
 
     pub fn push_command(&mut self, client_message: ClientMessage) {
         self.ack_udp_socket
             .queue(client_message, &self.server_addr, true);
+    }
+
+    pub fn receive(&mut self) -> Option<ServerMessage> {
+        let response = self.ack_udp_socket.receive().map(|(message, _)| message);
+        if response.is_some() {
+            self.last_server_response = Some(SystemTime::now());
+        }
+        response
+    }
+
+    pub fn send_queued(&mut self) {
+        self.ack_udp_socket.send_queued();
     }
 
     pub fn get_player_id(&self) -> PlayerId {

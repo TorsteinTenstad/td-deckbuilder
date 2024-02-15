@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::entity::Entity;
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ArithmeticBuff {
     pub additive_value: f32,
     pub multiplier: f32,
@@ -19,7 +19,7 @@ pub fn apply_arithmetic_buffs(base_value: f32, buffs: &[ArithmeticBuff]) -> f32 
     (base_value + additive_value) * multiplier
 }
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ExtraHealthBuff {
     pub health: f32,
     pub seconds_left: f32,

@@ -10,7 +10,7 @@ use crate::{component_attack::Attack, ids::PlayerId, textures::SpriteId};
 use macroquad::math::Vec2;
 use serde::{Deserialize, Serialize};
 
-#[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum EntityTag {
     Base,
     Tower,
@@ -18,7 +18,7 @@ pub enum EntityTag {
     Bullet,
 }
 
-#[derive(PartialEq, Eq, Clone, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
 pub enum EntityState {
     Moving,
     Attacking,
@@ -27,7 +27,7 @@ pub enum EntityState {
     Dead,
 }
 
-#[derive(Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct Health {
     pub max_health: f32,
     pub health: f32,
@@ -63,12 +63,12 @@ impl Health {
     }
 }
 
-#[derive(Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum AbilityFlag {
     Protector,
 }
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Spy {
     pub hide_capacity: u32,
     pub is_hidden_from: HashSet<EntityId>,
@@ -91,7 +91,7 @@ impl Spy {
     }
 }
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Entity {
     pub id: EntityId,
     pub tag: EntityTag,

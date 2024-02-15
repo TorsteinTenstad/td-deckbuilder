@@ -8,7 +8,7 @@ use crate::{
 };
 use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum AttackRange {
     Melee,
     Short,
@@ -29,7 +29,7 @@ impl AttackRange {
     }
 }
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum AttackSpeed {
     Slow,
     Default,
@@ -48,14 +48,14 @@ impl AttackSpeed {
     }
 }
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum TargetPool {
     Enemies,
     Allies,
     All,
 }
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Attack {
     pub damage: f32,
     pub attack_speed: AttackSpeed,
@@ -116,7 +116,7 @@ impl Attack {
     }
 }
 
-#[derive(PartialEq, Eq, Clone, Serialize, Deserialize)]
+#[derive(PartialEq, Eq, Debug, Clone, Serialize, Deserialize)]
 pub enum AttackVariant {
     RangedAttack,
     MeleeAttack,

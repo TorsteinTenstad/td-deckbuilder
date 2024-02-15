@@ -66,7 +66,7 @@ pub fn update_entity(
             .clone()
             .is_some_and(|(building_spot_target, _)| {
                 (semi_static_game_state
-                    .building_locations
+                    .building_locations()
                     .get(&building_spot_target.id)
                     .unwrap()
                     .pos
@@ -109,7 +109,7 @@ pub fn update_entity(
                 entity.building_to_construct.clone()
             {
                 let building_to_construct_pos = semi_static_game_state
-                    .building_locations
+                    .building_locations()
                     .get(&building_spot_target.id)
                     .unwrap()
                     .pos;

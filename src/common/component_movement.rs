@@ -21,7 +21,7 @@ use crate::{
 use macroquad::math::Vec2;
 use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Movement {
     pub movement_towards_target: MovementTowardsTarget,
     pub path_target_setter: Option<PathTargetSetter>,
@@ -64,7 +64,7 @@ impl Movement {
     }
 }
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MovementTowardsTarget {
     #[serde(skip)] // Not used by client, skipped to avoid hassle of serializing Option<Vec2>
     pub target_pos: Option<Vec2>,
@@ -75,12 +75,12 @@ pub struct MovementTowardsTarget {
     pub keep_moving_on_loss_of_target: bool,
 }
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EntityTargetSetter {
     pub target_entity_id: Option<EntityId>,
 }
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DetectionBasedTargetSetter {
     pub detection_range: f32,
 }
@@ -93,12 +93,12 @@ pub fn get_detection_range(entity: &Entity) -> Option<f32> {
         .map(|detection_based_target_setter| detection_based_target_setter.detection_range)
 }
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PathTargetSetter {
     pub path_state: Option<PathState>,
 }
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PathState {
     pub path_id: PathId,
     pub target_path_idx: usize,
@@ -142,7 +142,7 @@ impl From<UnitSpawnpointTarget> for PathState {
     }
 }
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum MovementSpeed {
     VerySlow,
     Slow,
@@ -373,7 +373,7 @@ impl DetectionBasedTargetSetter {
 
         if let Some((building_spot_target, _)) = entity.building_to_construct.clone() {
             let building_to_construct_pos = semi_static_game_state
-                .building_locations
+                .building_locations()
                 .get(&building_spot_target.id)
                 .unwrap()
                 .pos;

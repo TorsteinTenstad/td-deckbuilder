@@ -12,14 +12,14 @@ use itertools::Itertools;
 use macroquad::math::Vec2;
 use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BuildingLocation {
     #[serde(with = "Vec2Def")]
     pub pos: Vec2,
     pub entity_id: Option<EntityId>,
 }
 
-#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
+#[derive(PartialEq, Eq, Debug, Clone, Serialize, Deserialize)]
 pub enum Direction {
     Positive,
     Negative,
@@ -110,7 +110,7 @@ pub fn world_get_building_locations_on_path(
         .flat_map(|(path_idx, (x, y))| {
             let pos = Vec2 { x: *x, y: *y };
             semi_static_game_state
-                .building_locations
+                .building_locations()
                 .iter()
                 .filter(move |(_building_location_id, building_location)| {
                     (building_location.pos - pos).length_squared() < search_range.powi(2)
@@ -213,7 +213,7 @@ pub fn world_place_tower(
     building_blueprint: EntityBlueprint,
 ) -> bool {
     let building_pos = semi_static_game_state
-        .building_locations
+        .building_locations()
         .get(&target.id)
         .unwrap()
         .pos;
@@ -264,7 +264,7 @@ pub fn world_place_building(
     building_location_id: &BuildingLocationId,
 ) -> bool {
     let BuildingLocation { pos, entity_id } = semi_static_game_state
-        .building_locations
+        .building_locations_mut()
         .get_mut(building_location_id)
         .unwrap();
     if entity_id.is_some() {

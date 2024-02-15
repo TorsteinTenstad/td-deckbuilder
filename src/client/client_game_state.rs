@@ -10,7 +10,7 @@ use common::{
     card::Card,
     game_state::ServerControledGameState,
     ids::{EntityId, PlayerId},
-    network::ServerMessageData,
+    network::{ServerMessage, ServerMessageData},
     play_target::UnitSpawnpointTarget,
     rect_transform::{point_inside, RectTransform},
     server_player::ServerPlayer,
@@ -239,9 +239,15 @@ impl ClientGameState {
 
     pub fn update_server_controled_game_state_with_server_message(
         &mut self,
-        server_message_data: ServerMessageData,
+        server_message: ServerMessage,
     ) {
-        match server_message_data {
+        if self.server_controlled_game_state.game_metadata.server_tick
+            >= server_message.metadata.server_tick
+        {
+            return;
+        }
+        self.server_controlled_game_state.game_metadata = server_message.metadata;
+        match server_message.data {
             ServerMessageData::StaticGameState(static_state) => {
                 self.server_controlled_game_state.static_game_state = static_state;
             }

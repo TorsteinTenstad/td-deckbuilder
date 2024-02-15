@@ -3,6 +3,7 @@ use common::component_attack::{Attack, AttackVariant};
 use common::component_movement::get_detection_range;
 use common::entity::EntityTag;
 use common::entity_blueprint::DEFAULT_UNIT_DETECTION_RADIUS;
+use common::network::ClientMessage;
 use common::play_target::{unit_spawnpoint_target_transform, PlayFn};
 use common::rect_transform::{point_inside, RectTransform};
 use common::textures::SpriteId;
@@ -65,13 +66,21 @@ async fn main() {
                 state.in_deck_builder = false;
             }
         } else {
-            while let Some((server_message, _)) =
-                state.client_network_state.ack_udp_socket.receive()
-            {
-                state.update_server_controled_game_state_with_server_message(server_message.data);
+            state
+                .client_network_state
+                .ensure_joined(ClientMessage::JoinGame(
+                    state
+                        .deck_builder
+                        .deck
+                        .iter()
+                        .map(|physical_card| physical_card.card.clone())
+                        .collect_vec(),
+                ));
+            while let Some(server_message) = state.client_network_state.receive() {
+                state.update_server_controled_game_state_with_server_message(server_message);
             }
             main_step(&mut state);
-            state.client_network_state.ack_udp_socket.send_queued();
+            state.client_network_state.send_queued();
             main_draw(&state);
 
             next_frame().await;
@@ -122,7 +131,7 @@ fn main_draw(state: &ClientGameState) {
         for building_location in state
             .server_controlled_game_state
             .semi_static_game_state
-            .building_locations
+            .building_locations()
             .values()
         {
             draw_circle(
@@ -177,7 +186,7 @@ fn main_draw(state: &ClientGameState) {
     for (_id, loc) in state
         .server_controlled_game_state
         .semi_static_game_state
-        .building_locations
+        .building_locations()
         .iter()
     {
         let x = to_screen_x(loc.pos.x);
@@ -346,7 +355,7 @@ fn main_draw(state: &ClientGameState) {
         for (_id, loc) in state
             .server_controlled_game_state
             .semi_static_game_state
-            .building_locations
+            .building_locations()
             .iter()
         {
             let x = to_screen_x(loc.pos.x);

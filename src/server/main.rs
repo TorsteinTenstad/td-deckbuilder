@@ -32,16 +32,19 @@ fn main() -> std::io::Result<()> {
     }
 
     for (x, y) in BUILDING_LOCATIONS {
-        game_state.semi_static_game_state.building_locations.insert(
-            BuildingLocationId::new(),
-            BuildingLocation {
-                pos: Vec2 {
-                    x: *x as f32,
-                    y: *y as f32,
+        game_state
+            .semi_static_game_state
+            .building_locations_mut()
+            .insert(
+                BuildingLocationId::new(),
+                BuildingLocation {
+                    pos: Vec2 {
+                        x: *x as f32,
+                        y: *y as f32,
+                    },
+                    entity_id: None,
                 },
-                entity_id: None,
-            },
-        );
+            );
     }
 
     let server_ip = local_ip_address::local_ip()
@@ -111,17 +114,57 @@ fn main() -> std::io::Result<()> {
                             base_entity.pos = *base_pos;
                             game_state.dynamic_game_state.entities.push(base_entity);
                         }
+                        ack_udp_socket.send_to(
+                            ServerMessage {
+                                metadata: game_state.game_metadata.clone(),
+                                data: ServerMessageData::StaticGameState(
+                                    game_state.static_game_state.clone(),
+                                ),
+                            },
+                            &client_addr,
+                            true,
+                        );
+                        ack_udp_socket.send_to(
+                            ServerMessage {
+                                metadata: game_state.game_metadata.clone(),
+                                data: ServerMessageData::SemiStaticGameState(
+                                    game_state.semi_static_game_state.clone(),
+                                ),
+                            },
+                            &client_addr,
+                            true,
+                        );
                     }
                 }
             }
         }
 
         for client_addr in client_addresses.values() {
-            let server_message = ServerMessage {
-                metadata: game_state.game_metadata.clone(),
-                data: ServerMessageData::DynamicGameState(game_state.dynamic_game_state.clone()),
-            };
-            ack_udp_socket.send_to(server_message, client_addr, false)
+            ack_udp_socket.send_to(
+                ServerMessage {
+                    metadata: game_state.game_metadata.clone(),
+                    data: ServerMessageData::DynamicGameState(
+                        game_state.dynamic_game_state.clone(),
+                    ),
+                },
+                client_addr,
+                false,
+            );
+        }
+        if game_state.semi_static_game_state.dirty {
+            game_state.semi_static_game_state.dirty = false;
+            for client_addr in client_addresses.values() {
+                ack_udp_socket.send_to(
+                    ServerMessage {
+                        metadata: game_state.game_metadata.clone(),
+                        data: ServerMessageData::SemiStaticGameState(
+                            game_state.semi_static_game_state.clone(),
+                        ),
+                    },
+                    client_addr,
+                    false,
+                );
+            }
         }
 
         game_state.game_metadata.server_tick += 1;
@@ -150,7 +193,7 @@ fn cleanup_entity(
 ) {
     if let Some((_id, building_location)) = server_controlled_game_state
         .semi_static_game_state
-        .building_locations
+        .building_locations_mut()
         .iter_mut()
         .find(|(_id, building_location)| building_location.entity_id == Some(entity_id))
     {

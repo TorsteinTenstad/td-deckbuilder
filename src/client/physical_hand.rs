@@ -143,7 +143,7 @@ pub fn hand_step(state: &mut ClientGameState) {
                     if let Some((id, _pos)) = state
                         .server_controlled_game_state
                         .semi_static_game_state
-                        .building_locations
+                        .building_locations()
                         .iter()
                         .find(|(_, loc)| {
                             let x = to_screen_x(loc.pos.x);

@@ -23,14 +23,14 @@ pub enum ClientMessage {
     PlayCard(CardInstanceId, PlayTarget),
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub enum ServerMessageData {
     StaticGameState(StaticGameState),
     SemiStaticGameState(SemiStaticGameState),
     DynamicGameState(DynamicGameState),
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct ServerMessage {
     pub metadata: GameMetadata,
     pub data: ServerMessageData,

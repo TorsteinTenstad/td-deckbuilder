@@ -9,7 +9,7 @@ use crate::{
     textures::SpriteId,
 };
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum EntityBlueprint {
     BasicBuilder,
     HomesickWarrior,

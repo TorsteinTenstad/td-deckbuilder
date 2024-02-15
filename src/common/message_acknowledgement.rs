@@ -1,12 +1,13 @@
 use rand::{thread_rng, Rng};
 use serde::{Deserialize, Serialize};
 use std::{
+    fmt::Debug,
     marker::PhantomData,
     net::{SocketAddr, UdpSocket},
     time::SystemTime,
 };
 
-#[derive(PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AckId(pub u64);
 impl Default for AckId {
     fn default() -> Self {
@@ -14,7 +15,7 @@ impl Default for AckId {
     }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 enum Message<MessageContent> {
     AckReply(AckId),
     Ack((AckId, MessageContent)),
@@ -23,8 +24,8 @@ enum Message<MessageContent> {
 
 pub struct AckUdpSocket<TxMessageContent, RxMessageContent>
 where
-    TxMessageContent: Serialize + for<'de> Deserialize<'de>,
-    RxMessageContent: Serialize + for<'de> Deserialize<'de>,
+    TxMessageContent: Serialize + for<'de> Deserialize<'de> + Debug,
+    RxMessageContent: Serialize + for<'de> Deserialize<'de> + Debug,
 {
     udp_socket: UdpSocket,
     resend_interval: std::time::Duration,
@@ -34,8 +35,8 @@ where
 
 impl<TxMessageContent, RxMessageContent> AckUdpSocket<TxMessageContent, RxMessageContent>
 where
-    TxMessageContent: Serialize + for<'de> Deserialize<'de>,
-    RxMessageContent: Serialize + for<'de> Deserialize<'de>,
+    TxMessageContent: Serialize + for<'de> Deserialize<'de> + Debug,
+    RxMessageContent: Serialize + for<'de> Deserialize<'de> + Debug,
 {
     pub fn new(udp_socket: UdpSocket, resend_interval: std::time::Duration) -> Self {
         Self {
@@ -98,7 +99,16 @@ where
         let mut buf = [0; 20000];
         let received_message = self.udp_socket.recv_from(&mut buf);
         let (bytes_received, addr) = match received_message {
-            Err(e) if matches!(e.kind(), std::io::ErrorKind::WouldBlock) => return None,
+            Err(e)
+                if matches!(
+                    e.kind(),
+                    std::io::ErrorKind::WouldBlock
+                        | std::io::ErrorKind::TimedOut
+                        | std::io::ErrorKind::ConnectionReset
+                ) =>
+            {
+                return None
+            }
             Err(e) => {
                 dbg!(e);
                 debug_assert!(false);
