@@ -126,7 +126,7 @@ where
         match message {
             Message::AckReply(ack_id) => {
                 self.messages.retain_mut(
-                    |(message, _, _)| matches!(message, Message::Ack((id, _)) if *id == ack_id),
+                    |(message, _, _)| matches!(message, Message::Ack((id, _)) if *id != ack_id),
                 );
                 self.receive()
             }

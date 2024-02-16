@@ -242,7 +242,7 @@ impl ClientGameState {
         server_message: ServerMessage,
     ) {
         if self.server_controlled_game_state.game_metadata.server_tick
-            >= server_message.metadata.server_tick
+            > server_message.metadata.server_tick
         {
             return;
         }
