@@ -15,6 +15,10 @@ path = "src/server/main.rs"
 name = "client"
 path = "src/client/main.rs"
 
+[[bin]]
+name = "card_gen"
+path = "src/card_gen/main.rs"
+
 [env]
 CLIPPY_CONF_DIR = "./"
 

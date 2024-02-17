@@ -1,5 +1,6 @@
 use common::{
     card::Card,
+    config::CARD_ASPECT_RATIO,
     rect_transform::{point_inside, RectTransform},
     vector::pop_where,
 };
@@ -8,11 +9,10 @@ use macroquad::{
     input::{is_mouse_button_pressed, is_mouse_button_released},
     math::Vec2,
     miniquad::MouseButton,
-    text::Font,
     window::screen_width,
 };
 
-use crate::{draw_card, mouse_screen_position, physical_card::PhysicalCard, Sprites, GOLDEN_RATIO};
+use crate::{draw_card, mouse_screen_position, physical_card::PhysicalCard, Sprites};
 
 pub struct DeckBuilder {
     pub card_pool: Vec<PhysicalCard>,
@@ -22,7 +22,7 @@ pub struct DeckBuilder {
 
 impl DeckBuilder {
     const W: f32 = 100.0;
-    const H: f32 = Self::W * GOLDEN_RATIO;
+    const H: f32 = Self::W * CARD_ASPECT_RATIO;
     const MARGIN: f32 = 25.0;
 
     pub fn save(&self) {
@@ -136,27 +136,15 @@ impl DeckBuilder {
         }
     }
 
-    pub fn draw(&self, sprites: &Sprites, font: Option<&Font>) {
+    pub fn draw(&self, sprites: &Sprites) {
         for physical_card in self.card_pool.iter() {
-            draw_card(
-                &physical_card.card,
-                &physical_card.transform,
-                1.0,
-                sprites,
-                font,
-            )
+            draw_card(&physical_card.card, &physical_card.transform, 1.0, sprites)
         }
         for physical_card in self.deck.iter() {
-            draw_card(
-                &physical_card.card,
-                &physical_card.transform,
-                1.0,
-                sprites,
-                font,
-            )
+            draw_card(&physical_card.card, &physical_card.transform, 1.0, sprites)
         }
         if let Some(card) = &self.holding {
-            draw_card(&card.card, &card.transform, 1.0, sprites, font)
+            draw_card(&card.card, &card.transform, 1.0, sprites)
         }
     }
 }

@@ -53,7 +53,7 @@ async fn main() {
             text_box.step();
             text_box.transform.x = screen_width() - text_box.transform.w - 10.0;
             text_box.transform.y = screen_height() - text_box.transform.h - 10.0;
-            state.deck_builder.draw(&state.sprites, Some(&state.font));
+            state.deck_builder.draw(&state.sprites);
             text_box.draw(Some(&state.font));
 
             next_frame().await;
@@ -173,13 +173,19 @@ fn main_draw(state: &ClientGameState) {
     }
 
     // hand
-    for physical_card in state.physical_hand.cards.iter() {
+    let mut physical_cards = state.physical_hand.cards.clone();
+    physical_cards.sort_by(|a, b| {
+        a.transform
+            .w
+            .partial_cmp(&b.transform.w)
+            .unwrap_or(std::cmp::Ordering::Equal)
+    });
+    for physical_card in physical_cards.iter() {
         draw_card(
             &physical_card.card_instance.card,
             &physical_card.transform,
             1.0,
             &state.sprites,
-            Some(&state.font),
         )
     }
 
