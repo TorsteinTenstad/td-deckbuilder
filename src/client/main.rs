@@ -32,6 +32,7 @@ mod physical_card;
 mod physical_hand;
 mod text_box;
 use text_box::*;
+mod deck_builder;
 
 #[macroquad::main("Client")]
 async fn main() {
