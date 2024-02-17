@@ -113,7 +113,7 @@ fn main_draw(state: &ClientGameState) {
     // board
     clear_background(BLACK);
     draw_texture_ex(
-        sprite_get_texture(&state.sprites, SpriteId::Map),
+        state.sprites.get_texture(&SpriteId::Map),
         0.0,
         0.0,
         WHITE,
@@ -216,11 +216,9 @@ fn main_draw(state: &ClientGameState) {
 
         match entity.tag {
             EntityTag::Tower | EntityTag::Base | EntityTag::Unit => {
-                let texture = sprite_get_team_texture(
-                    &state.sprites,
-                    entity.sprite_id.clone(),
-                    Some(player.direction.clone()),
-                );
+                let texture = state
+                    .sprites
+                    .get_team_texture(&entity.sprite_id, Some(player.direction.clone()));
 
                 let flip_x = entity
                     .movement

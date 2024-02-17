@@ -277,7 +277,7 @@ pub fn draw_card(
             2.0 * width_relative_margin + (i as f32 + 0.25) * (width_relative_icon_size),
         );
         let icon_size = Vec2::splat(transform.w * width_relative_icon_size);
-        let texture = &sprite_get_texture(sprites, sprite_id.clone());
+        let texture = sprites.get_texture(sprite_id);
         draw_texture_ex(
             texture,
             on_card_icon_pos.x,
@@ -322,64 +322,61 @@ pub fn draw_card(
     );
 }
 
-pub fn sprite_get_texture(sprites: &Sprites, sprite_id: SpriteId) -> &Texture2D {
-    sprite_get_team_texture(sprites, sprite_id, None)
-}
-
-pub fn sprite_get_team_texture(
-    sprites: &Sprites,
-    sprite_id: SpriteId,
-    team: Option<Direction>,
-) -> &Texture2D {
-    if let Some(sprite) = sprites.sprites.get(&sprite_id) {
-        return sprite;
-    }
-    match team {
-        Some(Direction::Positive) => sprites.sprites_red.get(&sprite_id),
-        Some(Direction::Negative) => sprites.sprites_blue.get(&sprite_id),
-        _ => None,
-    }
-    .unwrap_or(sprites.sprites.get(&SpriteId::Empty).unwrap())
-}
-
 pub struct Sprites {
     sprites: HashMap<SpriteId, Texture2D>,
     sprites_red: HashMap<SpriteId, Texture2D>,
     sprites_blue: HashMap<SpriteId, Texture2D>,
 }
 
-pub async fn load_sprites() -> Sprites {
-    let mut sprites = Sprites {
-        sprites: HashMap::new(),
-        sprites_red: HashMap::new(),
-        sprites_blue: HashMap::new(),
-    };
+impl Sprites {
+    pub async fn load() -> Sprites {
+        let mut sprites = Sprites {
+            sprites: HashMap::new(),
+            sprites_red: HashMap::new(),
+            sprites_blue: HashMap::new(),
+        };
 
-    for sprite_id in SpriteId::iter() {
-        if let Ok(texture) =
-            load_texture(format!("assets/textures/{}", sprite_id.to_path()).as_str()).await
-        {
-            sprites.sprites.insert(sprite_id.clone(), texture);
-        }
-    }
-    for (color, sprites) in [
-        ("red", &mut sprites.sprites_red),
-        ("blue", &mut sprites.sprites_blue),
-    ] {
         for sprite_id in SpriteId::iter() {
             if let Ok(texture) =
-                load_texture(format!("assets/textures/{}/{}", color, sprite_id.to_path()).as_str())
-                    .await
+                load_texture(format!("assets/textures/{}", sprite_id.to_path()).as_str()).await
             {
-                sprites.insert(sprite_id.clone(), texture);
+                sprites.sprites.insert(sprite_id.clone(), texture);
             }
         }
+        for (color, sprites) in [
+            ("red", &mut sprites.sprites_red),
+            ("blue", &mut sprites.sprites_blue),
+        ] {
+            for sprite_id in SpriteId::iter() {
+                if let Ok(texture) = load_texture(
+                    format!("assets/textures/{}/{}", color, sprite_id.to_path()).as_str(),
+                )
+                .await
+                {
+                    sprites.insert(sprite_id.clone(), texture);
+                }
+            }
+        }
+
+        sprites
+            .sprites
+            .entry(SpriteId::Empty)
+            .or_insert_with(Texture2D::empty);
+
+        sprites
     }
-
-    sprites
-        .sprites
-        .entry(SpriteId::Empty)
-        .or_insert_with(Texture2D::empty);
-
-    sprites
+    pub fn get_texture(&self, sprite_id: &SpriteId) -> &Texture2D {
+        self.get_team_texture(sprite_id, None)
+    }
+    pub fn get_team_texture(&self, sprite_id: &SpriteId, team: Option<Direction>) -> &Texture2D {
+        if let Some(sprite) = self.sprites.get(sprite_id) {
+            return sprite;
+        }
+        match team {
+            Some(Direction::Positive) => self.sprites_red.get(sprite_id),
+            Some(Direction::Negative) => self.sprites_blue.get(sprite_id),
+            _ => None,
+        }
+        .unwrap_or(&self.sprites.get(&SpriteId::Empty).unwrap())
+    }
 }

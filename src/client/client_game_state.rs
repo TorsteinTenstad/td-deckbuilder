@@ -1,5 +1,5 @@
 use crate::{
-    draw::{draw_card, load_sprites, Sprites, GOLDEN_RATIO},
+    draw::{draw_card, Sprites, GOLDEN_RATIO},
     hit_numbers::HitNumbers,
     input::mouse_screen_position,
     physical_card::PhysicalCard,
@@ -196,6 +196,7 @@ pub struct ClientGameState {
 impl ClientGameState {
     pub async fn new() -> Self {
         let client_network_state = ClientNetworkState::new();
+        let sprites = Sprites::load().await;
         Self {
             server_controlled_game_state: Default::default(),
             player_id: client_network_state.get_player_id(),
@@ -207,7 +208,7 @@ impl ClientGameState {
             relative_splay_radius: 4.5,
             selected_entity_id: None,
             dt: 0.167,
-            sprites: load_sprites().await,
+            sprites,
             font: macroquad::text::load_ttf_font("assets\\fonts\\shaky-hand-some-comic.bold.ttf")
                 .await
                 .unwrap(),
