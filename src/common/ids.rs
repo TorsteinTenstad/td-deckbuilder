@@ -11,6 +11,12 @@ macro_rules! new_id_type {
                 Self(thread_rng().gen())
             }
         }
+
+        impl Default for $name {
+            fn default() -> Self {
+                Self::new()
+            }
+        }
     };
 }
 

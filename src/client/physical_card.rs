@@ -1,5 +1,6 @@
 use common::{
     card::{Card, CardInstance},
+    config::CARD_ASPECT_RATIO,
     rect_transform::RectTransform,
 };
 use macroquad::{
@@ -7,9 +8,6 @@ use macroquad::{
     window::{screen_height, screen_width},
 };
 
-use crate::draw::GOLDEN_RATIO;
-
-pub const CARD_BORDER: f32 = 5.0;
 pub const CARD_VISIBLE_HEIGHT: f32 = 0.8;
 
 #[derive(Debug, Clone)]
@@ -19,6 +17,7 @@ pub struct PhysicalCard {
     pub target_transform: RectTransform,
 }
 
+#[derive(Debug, Clone)]
 pub struct PhysicalCardInstance {
     pub card_instance: CardInstance,
     pub transform: RectTransform,
@@ -41,8 +40,8 @@ pub fn card_transform_in_hand(
     relative_splay_radius: f32,
     card_delta_angle: f32,
 ) -> RectTransform {
-    let w = screen_width() / 12.0;
-    let h = w * GOLDEN_RATIO;
+    let w = screen_width() / 8.0;
+    let h = w * CARD_ASPECT_RATIO;
     RectTransform {
         w,
         h,
@@ -57,10 +56,10 @@ pub fn card_transform_in_hand(
 }
 
 pub fn card_transform_outside_hand(x: f32, y: f32) -> RectTransform {
-    let w = screen_width() / 10.0;
+    let w = screen_width() / 6.0;
     RectTransform {
         w,
-        h: w * GOLDEN_RATIO,
+        h: w * CARD_ASPECT_RATIO,
         x,
         y,
         rotation: 0.0,
@@ -74,8 +73,8 @@ pub fn card_transform_hovered(
     relative_splay_radius: f32,
     card_delta_angle: f32,
 ) -> RectTransform {
-    let w = screen_width() / 10.0;
-    let h = w * GOLDEN_RATIO;
+    let w = screen_width() / 6.0;
+    let h = w * CARD_ASPECT_RATIO;
     let x = screen_width() / 2.0
         + ((relative_splay_radius * h) - (CARD_VISIBLE_HEIGHT * h))
             * f32::sin((card_idx as f32 - ((hand_size - 1) as f32 / 2.0)) * card_delta_angle);
@@ -83,7 +82,7 @@ pub fn card_transform_hovered(
 
     RectTransform {
         w,
-        h: w * GOLDEN_RATIO,
+        h: w * CARD_ASPECT_RATIO,
         x,
         y,
         rotation: 0.0,

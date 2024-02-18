@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use strum_macros::EnumIter;
 
-#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq, Hash, EnumIter)]
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq, Hash, EnumIter)]
 pub enum SpriteId {
     Empty,
     Hourglass,
@@ -36,14 +36,6 @@ pub enum SpriteId {
     UnitOldSwordMaster,
     UnitElfWarrior,
     UnitHomesickWarrior,
-    CardHomesickWarrior,
-    CardElfWarrior,
-    CardOldSwordMaster,
-    CardDemonWolf,
-    CardSmallCriminal,
-    CardStreetCriminal,
-    CardSpy,
-    CardRecklessKnight,
 }
 
 impl SpriteId {
@@ -82,14 +74,6 @@ impl SpriteId {
             SpriteId::CardTower => "card_art/tower.jpg",
             SpriteId::CardDirectDamage => "card_art/direct_damage.jpg",
             SpriteId::CardDemonPig => "card_art/demon_pig.jpg",
-            SpriteId::CardHomesickWarrior => "card_art/homesick_warrior.jpg",
-            SpriteId::CardElfWarrior => "card_art/elf_warrior.jpg",
-            SpriteId::CardOldSwordMaster => "card_art/old_sword_master.jpg",
-            SpriteId::CardDemonWolf => "card_art/demon_wolf.jpg",
-            SpriteId::CardSmallCriminal => "card_art/small_criminal.jpg",
-            SpriteId::CardStreetCriminal => "card_art/street_criminal.jpg",
-            SpriteId::CardSpy => "card_art/spy.jpg",
-            SpriteId::CardRecklessKnight => "card_art/reckless_knight.jpg",
         }
     }
 }

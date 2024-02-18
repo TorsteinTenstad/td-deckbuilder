@@ -1,10 +1,15 @@
+use std::f32::consts::PI;
+
 use crate::{
     buff::{apply_arithmetic_buffs, ArithmeticBuff},
     config::CLOSE_ENOUGH_TO_TARGET,
-    entity::{AbilityFlag, Entity},
+    entity::{AbilityFlag, Entity, EntityTag},
     entity_blueprint::DEFAULT_UNIT_DETECTION_RADIUS,
     find_target::find_target_for_attack,
-    game_state::{DynamicGameState, StaticGameState},
+    game_state::{DynamicGameState, SemiStaticGameState, StaticGameState},
+    gameplay_config::{
+        SPRING_CONSTANT, SPRING_EFFECT_RADIUS, SPRING_MAX_CONTRIBUTION, SPRING_MAX_DISPLACEMENT,
+    },
     ids::{EntityId, PathId},
     play_target::UnitSpawnpointTarget,
     serde_defs::Vec2Def,
@@ -16,7 +21,7 @@ use crate::{
 use macroquad::math::Vec2;
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Movement {
     pub movement_towards_target: MovementTowardsTarget,
     pub path_target_setter: Option<PathTargetSetter>,
@@ -59,9 +64,9 @@ impl Movement {
     }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MovementTowardsTarget {
-    #[serde(skip)]
+    #[serde(skip)] // Not used by client, skipped to avoid hassle of serializing Option<Vec2>
     pub target_pos: Option<Vec2>,
     pub speed: MovementSpeed,
     pub speed_buffs: Vec<ArithmeticBuff>,
@@ -70,12 +75,12 @@ pub struct MovementTowardsTarget {
     pub keep_moving_on_loss_of_target: bool,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EntityTargetSetter {
     pub target_entity_id: Option<EntityId>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DetectionBasedTargetSetter {
     pub detection_range: f32,
 }
@@ -88,12 +93,12 @@ pub fn get_detection_range(entity: &Entity) -> Option<f32> {
         .map(|detection_based_target_setter| detection_based_target_setter.detection_range)
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PathTargetSetter {
     pub path_state: Option<PathState>,
 }
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PathState {
     pub path_id: PathId,
     pub target_path_idx: usize,
@@ -111,7 +116,7 @@ pub fn get_path_id(entity: &Entity) -> Option<PathId> {
 
 impl PathState {
     pub fn incr(&mut self, static_game_state: &StaticGameState) {
-        self.target_path_idx = next_path_idx(self.target_path_idx, self.direction);
+        self.target_path_idx = next_path_idx(self.target_path_idx, self.direction.clone());
         self.target_path_idx = usize::min(
             self.target_path_idx,
             static_game_state.paths.get(&self.path_id).unwrap().len() - 1,
@@ -123,7 +128,7 @@ impl PathState {
             return;
         }
         self.direction = direction;
-        self.target_path_idx = next_path_idx(self.target_path_idx, self.direction);
+        self.target_path_idx = next_path_idx(self.target_path_idx, self.direction.clone());
     }
 }
 
@@ -131,13 +136,13 @@ impl From<UnitSpawnpointTarget> for PathState {
     fn from(target: UnitSpawnpointTarget) -> Self {
         Self {
             path_id: target.path_id,
-            target_path_idx: next_path_idx(target.path_idx, target.direction),
+            target_path_idx: next_path_idx(target.path_idx, target.direction.clone()),
             direction: target.direction,
         }
     }
 }
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum MovementSpeed {
     VerySlow,
     Slow,
@@ -171,24 +176,81 @@ impl MovementTowardsTarget {
 
 impl Movement {
     pub fn update(
-        entity: &mut Entity,
-        dynamic_game_state: &mut DynamicGameState,
-        dt: f32,
         static_game_state: &StaticGameState,
+        semi_static_game_state: &SemiStaticGameState,
+        dynamic_game_state: &mut DynamicGameState,
+        entity: &mut Entity,
+        dt: f32,
     ) {
-        PathTargetSetter::update(entity, dynamic_game_state, dt, static_game_state);
-        DetectionBasedTargetSetter::update(entity, dynamic_game_state, dt, static_game_state);
-        EntityTargetSetter::update(entity, dynamic_game_state, dt, static_game_state);
-        MovementTowardsTarget::update(entity, dynamic_game_state, dt, static_game_state);
+        PathTargetSetter::update(
+            static_game_state,
+            semi_static_game_state,
+            dynamic_game_state,
+            entity,
+            dt,
+        );
+        DetectionBasedTargetSetter::update(
+            static_game_state,
+            semi_static_game_state,
+            dynamic_game_state,
+            entity,
+            dt,
+        );
+        EntityTargetSetter::update(
+            static_game_state,
+            semi_static_game_state,
+            dynamic_game_state,
+            entity,
+            dt,
+        );
+        MovementTowardsTarget::update(
+            static_game_state,
+            semi_static_game_state,
+            dynamic_game_state,
+            entity,
+            dt,
+        );
+        if entity.movement.is_some() && entity.tag != EntityTag::Bullet {
+            let spring_force = dynamic_game_state
+                .entities
+                .iter()
+                .filter(|other_entity| other_entity.tag != EntityTag::Bullet)
+                .filter_map(|other_entity| {
+                    other_entity
+                        .movement
+                        .as_ref()
+                        .map(|_| entity.pos - other_entity.pos)
+                        .filter(|v| v.length() < SPRING_EFFECT_RADIUS)
+                })
+                .fold(Vec2::ZERO, |acc, v| {
+                    let mut v = v;
+                    if !v.length().recip().is_finite() {
+                        // Handle units being on top of each other
+                        let angle = 2.0 * PI * rand::random::<f32>();
+                        v = Vec2::from_angle(angle);
+                    }
+                    let mut contribution = SPRING_CONSTANT * v / v.length().powi(3);
+                    if contribution.length() > SPRING_MAX_CONTRIBUTION {
+                        contribution = contribution.normalize() * SPRING_MAX_CONTRIBUTION
+                    }
+                    acc + contribution
+                });
+            let mut displacement = spring_force;
+            if displacement.length() > SPRING_MAX_DISPLACEMENT {
+                displacement = displacement.normalize() * SPRING_MAX_DISPLACEMENT
+            }
+            entity.pos += displacement;
+        }
     }
 }
 
 impl MovementTowardsTarget {
     pub fn update(
-        entity: &mut Entity,
-        _dynamic_game_state: &mut DynamicGameState,
-        dt: f32,
         _static_game_state: &StaticGameState,
+        _semi_static_game_state: &SemiStaticGameState,
+        _dynamic_game_state: &mut DynamicGameState,
+        entity: &mut Entity,
+        dt: f32,
     ) {
         let Some(movement) = &mut entity.movement else {
             return;
@@ -212,10 +274,11 @@ impl MovementTowardsTarget {
 
 impl PathTargetSetter {
     pub fn update(
-        entity: &mut Entity,
-        dynamic_game_state: &mut DynamicGameState,
-        _dt: f32,
         static_game_state: &StaticGameState,
+        semi_static_game_state: &SemiStaticGameState,
+        dynamic_game_state: &mut DynamicGameState,
+        entity: &mut Entity,
+        _dt: f32,
     ) {
         let Some(movement) = entity.movement.as_mut() else {
             return;
@@ -234,6 +297,7 @@ impl PathTargetSetter {
                     entity.owner,
                     DEFAULT_UNIT_DETECTION_RADIUS, //TODO: Maybe not hardcode?
                     static_game_state,
+                    semi_static_game_state,
                     dynamic_game_state,
                 )
             {
@@ -269,7 +333,7 @@ impl PathTargetSetter {
         }
 
         let mut target_pos = get_path_pos(
-            &static_game_state,
+            static_game_state,
             path_state.path_id,
             path_state.target_path_idx,
         );
@@ -278,7 +342,7 @@ impl PathTargetSetter {
         if pos_diff.length() < CLOSE_ENOUGH_TO_TARGET {
             path_state.incr(static_game_state);
             target_pos = get_path_pos(
-                &static_game_state,
+                static_game_state,
                 path_state.path_id,
                 path_state.target_path_idx,
             );
@@ -290,12 +354,13 @@ impl PathTargetSetter {
 
 impl DetectionBasedTargetSetter {
     pub fn update(
-        entity: &mut Entity,
-        dynamic_game_state: &mut DynamicGameState,
-        _dt: f32,
         _static_game_state: &StaticGameState,
+        semi_static_game_state: &SemiStaticGameState,
+        dynamic_game_state: &mut DynamicGameState,
+        entity: &mut Entity,
+        _dt: f32,
     ) {
-        let entity_path_id = get_path_id(&entity);
+        let entity_path_id = get_path_id(entity);
         let Some(movement) = entity.movement.as_mut() else {
             return;
         };
@@ -307,8 +372,8 @@ impl DetectionBasedTargetSetter {
         let detection_range = detection_based_target_setter.detection_range;
 
         if let Some((building_spot_target, _)) = entity.building_to_construct.clone() {
-            let building_to_construct_pos = dynamic_game_state
-                .building_locations
+            let building_to_construct_pos = semi_static_game_state
+                .building_locations()
                 .get(&building_spot_target.id)
                 .unwrap()
                 .pos;
@@ -329,7 +394,7 @@ impl DetectionBasedTargetSetter {
                 &mut dynamic_game_state.entities,
             ) {
                 if entity_path_id.is_some_and(|id| {
-                    get_path_id(&target_entity_to_attack).is_some_and(|other_id| id != other_id)
+                    get_path_id(target_entity_to_attack).is_some_and(|other_id| id != other_id)
                 }) {
                     continue;
                 }
@@ -342,10 +407,11 @@ impl DetectionBasedTargetSetter {
 
 impl EntityTargetSetter {
     pub fn update(
-        entity: &mut Entity,
-        dynamic_game_state: &mut DynamicGameState,
-        _dt: f32,
         _static_game_state: &StaticGameState,
+        _semi_static_game_state: &SemiStaticGameState,
+        dynamic_game_state: &mut DynamicGameState,
+        entity: &mut Entity,
+        _dt: f32,
     ) {
         let Some(movement) = entity.movement.as_mut() else {
             return;

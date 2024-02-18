@@ -1,6 +1,8 @@
 use crate::{
+    card::Card,
+    game_state::{DynamicGameState, GameMetadata, SemiStaticGameState, StaticGameState},
     ids::{CardInstanceId, PlayerId},
-    play_target::PlayTarget, card::Card,
+    play_target::PlayTarget,
 };
 use serde::{Deserialize, Serialize};
 use std::{
@@ -16,7 +18,20 @@ pub fn hash_client_addr(addr: &SocketAddr) -> PlayerId {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub enum ClientCommand {
-    PlayCard(CardInstanceId, PlayTarget),
+pub enum ClientMessage {
     JoinGame(Vec<Card>),
+    PlayCard(CardInstanceId, PlayTarget),
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub enum ServerMessageData {
+    StaticGameState(StaticGameState),
+    SemiStaticGameState(SemiStaticGameState),
+    DynamicGameState(DynamicGameState),
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ServerMessage {
+    pub metadata: GameMetadata,
+    pub data: ServerMessageData,
 }

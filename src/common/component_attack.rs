@@ -4,10 +4,11 @@ use crate::{
     config::PROJECTILE_RADIUS,
     entity::{Entity, EntityState, EntityTag, Health},
     find_target::find_target_for_attack,
+    game_state::{DynamicGameState, SemiStaticGameState, StaticGameState},
 };
 use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum AttackRange {
     Melee,
     Short,
@@ -28,7 +29,7 @@ impl AttackRange {
     }
 }
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum AttackSpeed {
     Slow,
     Default,
@@ -47,14 +48,14 @@ impl AttackSpeed {
     }
 }
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum TargetPool {
     Enemies,
     Allies,
     All,
 }
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Attack {
     pub damage: f32,
     pub attack_speed: AttackSpeed,
@@ -115,14 +116,20 @@ impl Attack {
     }
 }
 
-#[derive(PartialEq, Eq, Clone, Serialize, Deserialize)]
+#[derive(PartialEq, Eq, Debug, Clone, Serialize, Deserialize)]
 pub enum AttackVariant {
     RangedAttack,
     MeleeAttack,
 }
 
 impl Attack {
-    pub fn update(entity: &mut Entity, entities: &mut Vec<Entity>, dt: f32) {
+    pub fn update(
+        _static_game_state: &StaticGameState,
+        _semi_static_game_state: &SemiStaticGameState,
+        dynamic_game_state: &mut DynamicGameState,
+        entity: &mut Entity,
+        dt: f32,
+    ) {
         for attack in &mut entity.attacks {
             let Some(target_entity) = find_target_for_attack(
                 entity.id,
@@ -131,8 +138,8 @@ impl Attack {
                 entity.owner,
                 entity.spy.as_ref(),
                 attack.get_range(entity.radius),
-                &attack,
-                entities,
+                attack,
+                &mut dynamic_game_state.entities,
             ) else {
                 continue;
             };
@@ -156,7 +163,7 @@ impl Attack {
                             ..Attack::default()
                         });
 
-                        entities.push(bullet);
+                        dynamic_game_state.entities.push(bullet);
                     }
                     AttackVariant::MeleeAttack => {
                         target_entity.health.deal_damage(attack.get_damage());

@@ -1,9 +1,10 @@
-use crate::{physical_card::CARD_BORDER, rect_transform::RectTransform};
+use crate::rect_transform::RectTransform;
 use common::{card::Card, textures::SpriteId, world::Direction, *};
 use macroquad::{
-    color::{Color, BLACK, BLUE, GRAY, LIGHTGRAY, WHITE, YELLOW},
+    color::{Color, WHITE},
     math::Vec2,
-    shapes::{draw_circle, draw_rectangle, draw_rectangle_ex, DrawRectangleParams},
+    miniquad::FilterMode,
+    shapes::{draw_rectangle, draw_rectangle_ex, DrawRectangleParams},
     text::{camera_font_scale, draw_text_ex, measure_text, Font, TextDimensions, TextParams},
     texture::{draw_texture_ex, load_texture, DrawTextureParams, Texture2D},
     window::{screen_height, screen_width},
@@ -26,8 +27,6 @@ pub enum TextOriginY {
     Base,
     Bottom,
 }
-
-pub const GOLDEN_RATIO: f32 = 1.61803398875;
 
 pub fn to_screen_x<T>(x: T) -> f32
 where
@@ -129,7 +128,6 @@ pub fn draw_text_with_origin(
             rotation,
             color,
             font,
-            ..Default::default()
         },
     )
 }
@@ -178,210 +176,92 @@ pub fn draw_progress_bar(
     )
 }
 
-pub fn draw_card(
-    card: &Card,
-    transform: &RectTransform,
-    alpha: f32,
-    sprites: &Sprites,
-    font: Option<&Font>,
-) {
-    draw_circle(transform.x, transform.y, 3.0, YELLOW); //TODO: remove this, it's just for debugging
-    draw_rect_transform(transform, Color { a: alpha, ..GRAY });
-    let inner_offset = transform.offset
-        + Vec2 {
-            x: 0.0,
-            y: (2.0 * transform.offset.y - 1.0) * CARD_BORDER / transform.h,
-        };
-
-    draw_rectangle_ex(
-        transform.x,
-        transform.y,
-        transform.w - 2.0 * CARD_BORDER,
-        transform.h - 2.0 * CARD_BORDER,
-        DrawRectangleParams {
-            color: Color {
-                a: alpha,
-                ..LIGHTGRAY
-            },
-            rotation: transform.rotation,
-            offset: inner_offset,
-            ..Default::default()
-        },
-    );
-
-    let get_on_card_pos = |rel_x, rel_y| -> Vec2 {
-        Vec2 {
-            x: transform.x,
-            y: transform.y,
-        } + Vec2::from_angle(transform.rotation).rotate(
-            Vec2 {
-                x: transform.w,
-                y: transform.h,
-            } * (Vec2 { x: rel_x, y: rel_y } - transform.offset),
-        )
-    };
-    let relative_border = CARD_BORDER / transform.w;
-    let image_w = transform.w * (1.0 - 2.0 * relative_border);
-    let image_pos = get_on_card_pos(relative_border, relative_border);
-    let sprite_id = card.get_card_data().sprite_id;
+pub fn draw_card(card: &Card, transform: &RectTransform, alpha: f32, sprites: &Sprites) {
+    let texture = sprites.get_card_texture(card);
+    #[rustfmt::skip]
+    let offset_x 
+        = transform.offset.x * transform.w * f32::cos(-transform.rotation)
+        + transform.offset.y * transform.h * f32::sin(-transform.rotation);
+    #[rustfmt::skip]
+    let offset_y 
+        = transform.offset.x * transform.w * f32::sin(-transform.rotation)
+        + transform.offset.y * transform.h * f32::cos(-transform.rotation);
     draw_texture_ex(
-        sprites.sprites.get(&sprite_id).expect(
-            format!(
-                "Missing sprite {:?} (should be at {:?}) for card {:?}",
-                sprite_id,
-                sprite_id.to_path(),
-                card
-            )
-            .as_str(),
-        ),
-        image_pos.x,
-        image_pos.y,
-        WHITE,
+        texture,
+        transform.x - offset_x,
+        transform.y - offset_y,
+        Color { a: alpha, ..WHITE },
         DrawTextureParams {
+            dest_size: Some(Vec2::new(transform.w, transform.h)),
             rotation: transform.rotation,
-            dest_size: Some(Vec2 {
-                x: image_w,
-                y: image_w * (9.0 / 16.0),
-            }),
-            pivot: Some(image_pos),
             ..Default::default()
         },
-    );
-
-    let card_name_pos = get_on_card_pos(0.5, 0.4);
-    draw_text_with_origin(
-        card.name(),
-        card_name_pos.x,
-        card_name_pos.y,
-        0.15 * transform.w,
-        transform.rotation,
-        Color { a: alpha, ..BLACK },
-        TextOriginX::Center,
-        TextOriginY::Top,
-        font,
-    );
-
-    let width_relative_margin = 0.1;
-    let energy_indicator_pos = get_on_card_pos(
-        width_relative_margin,
-        width_relative_margin * transform.w / transform.h,
-    );
-
-    let icons: Vec<(SpriteId, f32)> = Vec::new();
-
-    for (i, (sprite_id, value)) in icons.iter().filter(|(_, value)| *value > 0.001).enumerate() {
-        let width_relative_icon_size = 0.2;
-        let on_card_icon_pos = get_on_card_pos(
-            width_relative_margin,
-            2.0 * width_relative_margin + i as f32 * (width_relative_icon_size),
-        );
-        let on_card_value_pos = get_on_card_pos(
-            2.0 * width_relative_margin + width_relative_icon_size,
-            2.0 * width_relative_margin + (i as f32 + 0.25) * (width_relative_icon_size),
-        );
-        let icon_size = Vec2::splat(transform.w * width_relative_icon_size);
-        let texture = &sprite_get_texture(sprites, *sprite_id);
-        draw_texture_ex(
-            texture,
-            on_card_icon_pos.x,
-            on_card_icon_pos.y,
-            Color { a: alpha, ..WHITE },
-            DrawTextureParams {
-                rotation: transform.rotation,
-                dest_size: Some(icon_size),
-                pivot: Some(on_card_icon_pos + icon_size / 2.0),
-                ..Default::default()
-            },
-        );
-        draw_text_with_origin(
-            format!("{}", value).as_str(),
-            on_card_value_pos.x,
-            on_card_value_pos.y,
-            26.0,
-            transform.rotation,
-            Color { a: alpha, ..BLACK },
-            TextOriginX::Left,
-            TextOriginY::AbsoluteCenter,
-            font,
-        );
-    }
-
-    draw_circle(
-        energy_indicator_pos.x,
-        energy_indicator_pos.y,
-        transform.w / 8.0,
-        BLUE,
-    );
-    draw_text_with_origin(
-        format!("{}", card.energy_cost()).as_str(),
-        energy_indicator_pos.x,
-        energy_indicator_pos.y,
-        24.0,
-        transform.rotation,
-        WHITE,
-        TextOriginX::Center,
-        TextOriginY::AbsoluteCenter,
-        font,
-    );
+    )
 }
 
-pub fn sprite_get_texture(sprites: &Sprites, sprite_id: SpriteId) -> &Texture2D {
-    sprite_get_team_texture(sprites, sprite_id, None)
-}
-
-pub fn sprite_get_team_texture(
-    sprites: &Sprites,
-    sprite_id: SpriteId,
-    team: Option<Direction>,
-) -> &Texture2D {
-    if let Some(sprite) = sprites.sprites.get(&sprite_id) {
-        return sprite;
-    }
-    match team {
-        Some(Direction::Positive) => sprites.sprites_red.get(&sprite_id),
-        Some(Direction::Negative) => sprites.sprites_blue.get(&sprite_id),
-        _ => None,
-    }
-    .unwrap_or(&sprites.sprites.get(&SpriteId::Empty).unwrap())
-}
-
+#[derive(Default)]
 pub struct Sprites {
     sprites: HashMap<SpriteId, Texture2D>,
     sprites_red: HashMap<SpriteId, Texture2D>,
     sprites_blue: HashMap<SpriteId, Texture2D>,
+    card_textures: HashMap<Card, Texture2D>,
 }
 
-pub async fn load_sprites() -> Sprites {
-    let mut sprites = Sprites {
-        sprites: HashMap::new(),
-        sprites_red: HashMap::new(),
-        sprites_blue: HashMap::new(),
-    };
+impl Sprites {
+    pub async fn load() -> Sprites {
+        let mut sprites = Sprites::default();
 
-    for sprite_id in SpriteId::iter() {
-        if let Ok(texture) =
-            load_texture(format!("assets/textures/{}", sprite_id.to_path()).as_str()).await
-        {
-            sprites.sprites.insert(sprite_id.clone(), texture);
-        }
-    }
-    for (color, sprites) in vec![
-        ("red", &mut sprites.sprites_red),
-        ("blue", &mut sprites.sprites_blue),
-    ] {
         for sprite_id in SpriteId::iter() {
             if let Ok(texture) =
-                load_texture(format!("assets/textures/{}/{}", color, sprite_id.to_path()).as_str())
-                    .await
+                load_texture(format!("assets/textures/{}", sprite_id.to_path()).as_str()).await
             {
-                sprites.insert(sprite_id.clone(), texture);
+                sprites.sprites.insert(sprite_id.clone(), texture);
             }
         }
+        for (color, sprites) in [
+            ("red", &mut sprites.sprites_red),
+            ("blue", &mut sprites.sprites_blue),
+        ] {
+            for sprite_id in SpriteId::iter() {
+                if let Ok(texture) = load_texture(
+                    format!("assets/textures/{}/{}", color, sprite_id.to_path()).as_str(),
+                )
+                .await
+                {
+                    sprites.insert(sprite_id.clone(), texture);
+                }
+            }
+        }
+
+        for card in Card::iter() {
+            if let Ok(texture) = load_texture(card.get_texture_path().as_str()).await {
+                sprites.card_textures.insert(card, texture);
+            }
+        }
+
+        sprites
+            .sprites
+            .entry(SpriteId::Empty)
+            .or_insert_with(Texture2D::empty);
+
+        sprites
+    }
+    pub fn get_texture(&self, sprite_id: &SpriteId) -> &Texture2D {
+        self.get_team_texture(sprite_id, None)
+    }
+    pub fn get_team_texture(&self, sprite_id: &SpriteId, team: Option<Direction>) -> &Texture2D {
+        if let Some(sprite) = self.sprites.get(sprite_id) {
+            return sprite;
+        }
+        match team {
+            Some(Direction::Positive) => self.sprites_red.get(sprite_id),
+            Some(Direction::Negative) => self.sprites_blue.get(sprite_id),
+            _ => None,
+        }
+        .unwrap_or(self.sprites.get(&SpriteId::Empty).unwrap())
     }
 
-    if !sprites.sprites.contains_key(&SpriteId::Empty) {
-        sprites.sprites.insert(SpriteId::Empty, Texture2D::empty());
+    fn get_card_texture(&self, card: &Card) -> &Texture2D {
+        self.card_textures.get(card).unwrap()
     }
-
-    return sprites;
 }

@@ -3,6 +3,7 @@ use common::component_attack::{Attack, AttackVariant};
 use common::component_movement::get_detection_range;
 use common::entity::EntityTag;
 use common::entity_blueprint::DEFAULT_UNIT_DETECTION_RADIUS;
+use common::network::ClientMessage;
 use common::play_target::{unit_spawnpoint_target_transform, PlayFn};
 use common::rect_transform::{point_inside, RectTransform};
 use common::textures::SpriteId;
@@ -17,7 +18,7 @@ use macroquad::shapes::{draw_circle, draw_circle_lines, draw_line};
 use macroquad::texture::{draw_texture_ex, DrawTextureParams};
 use macroquad::window::{clear_background, screen_height, screen_width};
 use macroquad::{window::next_frame, window::request_new_screen_size};
-use physical_hand::{hand_step, PhysicalHand};
+use physical_hand::hand_step;
 pub mod config;
 mod draw;
 use draw::*;
@@ -31,6 +32,7 @@ mod physical_card;
 mod physical_hand;
 mod text_box;
 use text_box::*;
+mod deck_builder;
 
 #[macroquad::main("Client")]
 async fn main() {
@@ -42,7 +44,7 @@ async fn main() {
         h: 50.0,
         ..Default::default()
     });
-    text_box.text = state.server_addr.to_string();
+    text_box.text = state.client_network_state.server_addr.to_string();
 
     loop {
         if state.in_deck_builder {
@@ -51,20 +53,35 @@ async fn main() {
             text_box.step();
             text_box.transform.x = screen_width() - text_box.transform.w - 10.0;
             text_box.transform.y = screen_height() - text_box.transform.h - 10.0;
-            state.deck_builder.draw(&state.sprites, Some(&state.font));
+            state.deck_builder.draw(&state.sprites);
             text_box.draw(Some(&state.font));
 
             next_frame().await;
 
             if is_key_pressed(KeyCode::Enter) {
-                state.server_addr = text_box.text.parse().unwrap_or(state.server_addr);
+                state.client_network_state.server_addr = text_box
+                    .text
+                    .parse()
+                    .unwrap_or(state.client_network_state.server_addr);
                 state.deck_builder.save();
                 state.in_deck_builder = false;
             }
         } else {
-            udp_update_game_state(&mut state);
+            state
+                .client_network_state
+                .ensure_joined(ClientMessage::JoinGame(
+                    state
+                        .deck_builder
+                        .deck
+                        .iter()
+                        .map(|physical_card| physical_card.card.clone())
+                        .collect_vec(),
+                ));
+            while let Some(server_message) = state.client_network_state.receive() {
+                state.update_server_controled_game_state_with_server_message(server_message);
+            }
             main_step(&mut state);
-            udp_send_commands(&mut state);
+            state.client_network_state.send_queued();
             main_draw(&state);
 
             next_frame().await;
@@ -80,9 +97,13 @@ fn main_step(state: &mut ClientGameState) {
     state.step();
     main_input(state);
     hand_step(state);
-    state
-        .hit_numbers
-        .step(&state.dynamic_game_state.entities, state.dt);
+    state.hit_numbers.step(
+        &state
+            .server_controlled_game_state
+            .dynamic_game_state
+            .entities,
+        state.dt,
+    );
 }
 
 fn main_draw(state: &ClientGameState) {
@@ -93,7 +114,7 @@ fn main_draw(state: &ClientGameState) {
     // board
     clear_background(BLACK);
     draw_texture_ex(
-        &sprite_get_texture(&state.sprites, SpriteId::Map),
+        state.sprites.get_texture(&SpriteId::Map),
         0.0,
         0.0,
         WHITE,
@@ -108,7 +129,12 @@ fn main_draw(state: &ClientGameState) {
 
     //paths
     if state.show_debug_info {
-        for building_location in state.dynamic_game_state.building_locations.values() {
+        for building_location in state
+            .server_controlled_game_state
+            .semi_static_game_state
+            .building_locations()
+            .values()
+        {
             draw_circle(
                 to_screen_x(building_location.pos.x),
                 to_screen_y(building_location.pos.y),
@@ -116,12 +142,17 @@ fn main_draw(state: &ClientGameState) {
                 Color { a: 0.2, ..PINK },
             );
         }
-        for (_, path) in state.static_game_state.paths.iter() {
+        for (_, path) in state
+            .server_controlled_game_state
+            .static_game_state
+            .paths
+            .iter()
+        {
             for ((x1, y1), (x2, y2)) in path.iter().tuple_windows() {
-                let x1 = to_screen_x(*x1 as f32);
-                let y1 = to_screen_y(*y1 as f32);
-                let x2 = to_screen_x(*x2 as f32);
-                let y2 = to_screen_y(*y2 as f32);
+                let x1 = to_screen_x(*x1);
+                let y1 = to_screen_y(*y1);
+                let x2 = to_screen_x(*x2);
+                let y2 = to_screen_y(*y2);
                 draw_circle(x1, y1, 10.0, PINK);
                 draw_circle(x2, y2, 10.0, PINK);
                 draw_line(
@@ -142,26 +173,47 @@ fn main_draw(state: &ClientGameState) {
     }
 
     // hand
-    for physical_card in state.physical_hand.cards.iter() {
+    let mut physical_cards = state.physical_hand.cards.clone();
+    physical_cards.sort_by(|a, b| {
+        a.transform
+            .w
+            .partial_cmp(&b.transform.w)
+            .unwrap_or(std::cmp::Ordering::Equal)
+    });
+    for physical_card in physical_cards.iter() {
         draw_card(
             &physical_card.card_instance.card,
             &physical_card.transform,
             1.0,
             &state.sprites,
-            Some(&state.font),
         )
     }
 
     // locations
-    for (_id, loc) in state.dynamic_game_state.building_locations.iter() {
-        let x = to_screen_x(loc.pos.x as f32);
-        let y = to_screen_y(loc.pos.y as f32);
+    for (_id, loc) in state
+        .server_controlled_game_state
+        .semi_static_game_state
+        .building_locations()
+        .iter()
+    {
+        let x = to_screen_x(loc.pos.x);
+        let y = to_screen_y(loc.pos.y);
         draw_circle(x, y, 20.0, WHITE);
     }
 
     // entities
-    for entity in state.dynamic_game_state.entities.iter() {
-        let Some(player) = state.dynamic_game_state.players.get(&entity.owner) else {
+    for entity in state
+        .server_controlled_game_state
+        .dynamic_game_state
+        .entities
+        .iter()
+    {
+        let Some(player) = state
+            .server_controlled_game_state
+            .dynamic_game_state
+            .players
+            .get(&entity.owner)
+        else {
             continue;
         };
         let damage_animation_color = (entity.health.damage_animation > 0.0).then_some(RED);
@@ -171,11 +223,9 @@ fn main_draw(state: &ClientGameState) {
 
         match entity.tag {
             EntityTag::Tower | EntityTag::Base | EntityTag::Unit => {
-                let texture = sprite_get_team_texture(
-                    &state.sprites,
-                    entity.sprite_id,
-                    Some(player.direction),
-                );
+                let texture = state
+                    .sprites
+                    .get_team_texture(&entity.sprite_id, Some(player.direction.clone()));
 
                 let flip_x = entity
                     .movement
@@ -208,8 +258,13 @@ fn main_draw(state: &ClientGameState) {
 
     // range_circle_preview
     let mut range_circle_preview: Vec<(f32, f32, f32, Color)> = Vec::new();
-    if let Some(entity) = find_entity(&state.dynamic_game_state.entities, state.selected_entity_id)
-    {
+    if let Some(entity) = find_entity(
+        &state
+            .server_controlled_game_state
+            .dynamic_game_state
+            .entities,
+        state.selected_entity_id,
+    ) {
         if let Some(Attack { range, .. }) = entity
             .attacks
             .iter()
@@ -239,7 +294,12 @@ fn main_draw(state: &ClientGameState) {
     }
 
     // Progress bars
-    if let Some(player) = state.dynamic_game_state.players.get(&state.player_id) {
+    if let Some(player) = state
+        .server_controlled_game_state
+        .dynamic_game_state
+        .players
+        .get(&state.player_id)
+    {
         let margin = 10.0;
         let outline_w = 5.0;
         let w = 25.0;
@@ -267,6 +327,7 @@ fn main_draw(state: &ClientGameState) {
             outline_w,
             energy_progress,
             state
+                .server_controlled_game_state
                 .dynamic_game_state
                 .players
                 .get(&state.player_id)
@@ -296,7 +357,12 @@ fn main_draw(state: &ClientGameState) {
         })
         .is_some()
     {
-        for (_id, loc) in state.dynamic_game_state.building_locations.iter() {
+        for (_id, loc) in state
+            .server_controlled_game_state
+            .semi_static_game_state
+            .building_locations()
+            .iter()
+        {
             let x = to_screen_x(loc.pos.x);
             let y = to_screen_y(loc.pos.y);
             let r = 20.0;
@@ -316,7 +382,10 @@ fn main_draw(state: &ClientGameState) {
 
     // spawnpoint indicators
     for target in state.unit_spawnpoint_targets.iter() {
-        let transform = &unit_spawnpoint_target_transform(target, &state.static_game_state);
+        let transform = &unit_spawnpoint_target_transform(
+            target,
+            &state.server_controlled_game_state.static_game_state,
+        );
         let hovering = point_inside(mouse_world_position(), transform);
         draw_rect_transform(
             &to_screen_transform(transform),

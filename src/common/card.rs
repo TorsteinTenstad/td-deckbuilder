@@ -2,14 +2,13 @@ use crate::{
     entity_blueprint::EntityBlueprint,
     ids::CardInstanceId,
     play_target::PlayFn,
-    textures::SpriteId,
     world::{find_entity_mut, world_place_tower, world_place_unit},
 };
 use serde::{Deserialize, Serialize};
 use strum::IntoEnumIterator;
 use strum_macros::EnumIter;
 
-#[derive(Debug, Clone, EnumIter, Serialize, Deserialize, Eq, PartialEq)]
+#[derive(Hash, EnumIter, Debug, Clone, Serialize, Deserialize, Eq, PartialEq)]
 pub enum Card {
     Tower,
     SpawnPoint,
@@ -39,112 +38,165 @@ pub struct CardInstance {
 pub struct CardData {
     pub name: &'static str,
     pub energy_cost: i32,
-    pub sprite_id: SpriteId,
     pub play_fn: PlayFn,
+    pub description: &'static str,
+    pub card_art_path: &'static str,
+    pub attack: Option<i32>,
+    pub health: Option<i32>,
 }
+
+const DEFAULT_CARD_DATA: CardData = CardData {
+    name: "",
+    energy_cost: 0,
+    play_fn: PlayFn::WorldPos(|_, _, _, _, _| false),
+    card_art_path: "",
+    description: "",
+    attack: None,
+    health: None,
+};
 
 macro_rules! play_building {
     ($builder_blueprint:ident, $building_blueprint:ident) => {
-        PlayFn::BuildingSpot(|target, owner, static_game_state, dynamic_game_state| {
-            world_place_tower(
-                static_game_state,
-                dynamic_game_state,
-                target,
-                owner,
-                EntityBlueprint::$builder_blueprint,
-                EntityBlueprint::$building_blueprint,
-            )
-        })
+        PlayFn::BuildingSpot(
+            |target, owner, static_game_state, semi_static_game_state, dynamic_game_state| {
+                world_place_tower(
+                    static_game_state,
+                    semi_static_game_state,
+                    dynamic_game_state,
+                    target,
+                    owner,
+                    EntityBlueprint::$builder_blueprint,
+                    EntityBlueprint::$building_blueprint,
+                )
+            },
+        )
     };
 }
 
 macro_rules! play_unit {
     ($unit_blueprint:ident) => {
-        PlayFn::UnitSpawnPoint(|target, owner, static_game_state, dynamic_game_state| {
-            world_place_unit(
-                static_game_state,
-                dynamic_game_state,
-                target,
-                owner,
-                EntityBlueprint::$unit_blueprint,
-            )
-        })
+        PlayFn::UnitSpawnPoint(
+            |target, owner, static_game_state, _semi_static_game_state, dynamic_game_state| {
+                world_place_unit(
+                    static_game_state,
+                    dynamic_game_state,
+                    target,
+                    owner,
+                    EntityBlueprint::$unit_blueprint,
+                )
+            },
+        )
     };
 }
+
 const CARD_DATA: &[CardData] = &[
     CardData {
         name: "Tower",
         energy_cost: 3,
-        sprite_id: SpriteId::CardTower,
         play_fn: play_building!(BasicBuilder, Tower),
+        card_art_path: "tower.jpg",
+        attack: Some(3),
+        health: Some(500),
+        description: "[Ranged]",
     },
     CardData {
         name: "Spawn Point",
         energy_cost: 3,
-        sprite_id: SpriteId::CardSpawnPoint,
         play_fn: play_building!(BasicBuilder, SpawnPoint),
+        card_art_path: "spawn_point.jpg",
+        attack: None,
+        health: Some(400),
+        description: "You may spawn units\nfrom this building",
     },
     CardData {
         name: "Homesick Warrior",
         energy_cost: 3,
-        sprite_id: SpriteId::CardHomesickWarrior,
         play_fn: play_unit!(HomesickWarrior),
+        card_art_path: "homesick_warrior.jpg",
+        attack: Some(20),
+        health: Some(200),
+        description: "[Protector]",
     },
     CardData {
         name: "Elf Warrior",
         energy_cost: 2,
-        sprite_id: SpriteId::CardElfWarrior,
         play_fn: play_unit!(ElfWarrior),
+        card_art_path: "elf_warrior.jpg",
+        attack: Some(10),
+        health: Some(100),
+        description: "[Fast attacking], [Ranged]",
     },
     CardData {
         name: "Old Sword Master",
         energy_cost: 4,
-        sprite_id: SpriteId::CardOldSwordMaster,
         play_fn: play_unit!(OldSwordMaster),
+        card_art_path: "old_sword_master.jpg",
+        attack: Some(50),
+        health: Some(200),
+        description: "[Very slow moving]",
     },
     CardData {
         name: "Demon Wolf",
         energy_cost: 3,
-        sprite_id: SpriteId::CardDemonWolf,
         play_fn: play_unit!(DemonWolf),
+        card_art_path: "demon_wolf.jpg",
+        attack: Some(20),
+        health: Some(200),
+        description: "[Fast moving]",
     },
     CardData {
         name: "Small Criminal",
         energy_cost: 1,
-        sprite_id: SpriteId::CardSmallCriminal,
         play_fn: play_unit!(SmallCriminal),
+        card_art_path: "small_criminal.jpg",
+        attack: Some(10),
+        health: Some(200),
+        description: "[Fast moving]",
     },
     CardData {
         name: "Street Criminal",
         energy_cost: 2,
-        sprite_id: SpriteId::CardStreetCriminal,
         play_fn: play_unit!(StreetCriminal),
+        card_art_path: "street_criminal.jpg",
+        attack: Some(10),
+        health: Some(200),
+        description: "[Fast attacking]",
     },
     CardData {
         name: "Spy",
         energy_cost: 3,
-        sprite_id: SpriteId::CardSpy,
         play_fn: play_unit!(Spy),
+        card_art_path: "spy.jpg",
+        attack: Some(20),
+        health: Some(200),
+        description: "Will not be seen\nby the first\n2 enimes it passes",
     },
     CardData {
         name: "Reckless Knight",
         energy_cost: 2,
-        sprite_id: SpriteId::CardRecklessKnight,
         play_fn: play_unit!(RecklessKnight),
+        card_art_path: "reckless_knight.jpg",
+        attack: Some(30),
+        health: Some(100),
+        description: "[Fast moving]",
     },
     CardData {
         name: "Direct Damage",
         energy_cost: 1,
-        sprite_id: SpriteId::CardDirectDamage,
-        play_fn: PlayFn::Entity(|target, _owner, _static_game_state, dynamic_game_state| {
-            let Some(target_entity) =
-                find_entity_mut(&mut dynamic_game_state.entities, Some(target.id))
-            else {
-                return false;
-            };
-            target_entity.health.deal_damage(150.0);
-            return true;
-        }),
+        play_fn: PlayFn::Entity(
+            |target, _owner, _static_game_state, _semi_static_game_state, dynamic_game_state| {
+                let Some(target_entity) =
+                    find_entity_mut(&mut dynamic_game_state.entities, Some(target.id))
+                else {
+                    return false;
+                };
+                target_entity.health.deal_damage(150.0);
+                true
+            },
+        ),
+        card_art_path: "direct_damage.jpg",
+        description: "Deal 150 damage\nto a unit or building",
+        ..DEFAULT_CARD_DATA
     },
 ];
 
@@ -158,5 +210,8 @@ impl Card {
     }
     pub fn energy_cost(&self) -> i32 {
         self.get_card_data().energy_cost
+    }
+    pub fn get_texture_path(&self) -> String {
+        format!("assets/cards/{}.png", self.get_card_data().name)
     }
 }

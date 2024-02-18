@@ -26,9 +26,15 @@ pub fn mouse_world_position() -> Vec2 {
 
 pub fn main_input(state: &mut ClientGameState) {
     if is_mouse_button_released(MouseButton::Left) {
-        state.selected_entity_id = state.dynamic_game_state.entities.iter().find_map(|entity| {
-            ((entity.pos - mouse_world_position()).length() < entity.radius).then(|| entity.id)
-        });
+        state.selected_entity_id = state
+            .server_controlled_game_state
+            .dynamic_game_state
+            .entities
+            .iter()
+            .find_map(|entity| {
+                ((entity.pos - mouse_world_position()).length() < entity.radius)
+                    .then_some(entity.id)
+            });
     }
 
     if is_key_pressed(macroquad::miniquad::KeyCode::F3) {

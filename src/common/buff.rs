@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::entity::Entity;
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ArithmeticBuff {
     pub additive_value: f32,
     pub multiplier: f32,
@@ -19,7 +19,7 @@ pub fn apply_arithmetic_buffs(base_value: f32, buffs: &[ArithmeticBuff]) -> f32 
     (base_value + additive_value) * multiplier
 }
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ExtraHealthBuff {
     pub health: f32,
     pub seconds_left: f32,
@@ -51,12 +51,11 @@ pub fn buff_add_to_entity(entity: &mut Entity, buff: Buff) {
                 attack.range_buffs.push(buff.clone());
             }
         }
-        Buff::MovementSpeed(buff) => match entity.movement {
-            Some(ref mut movement) => {
+        Buff::MovementSpeed(buff) => {
+            if let Some(ref mut movement) = entity.movement {
                 movement.movement_towards_target.speed_buffs.push(buff);
             }
-            None => (),
-        },
+        }
         Buff::ExtraHealth(buff) => {
             entity.health.extra_health_buffs.push(buff);
         }
@@ -78,17 +77,14 @@ pub fn buff_update_timers(entity: &mut Entity, dt: f32) {
             buff.seconds_left > 0.0
         });
     }
-    match entity.movement {
-        Some(ref mut movement) => {
-            movement
-                .movement_towards_target
-                .speed_buffs
-                .retain_mut(|buff| {
-                    buff.seconds_left -= dt;
-                    buff.seconds_left > 0.0
-                });
-        }
-        None => (),
+    if let Some(ref mut movement) = entity.movement {
+        movement
+            .movement_towards_target
+            .speed_buffs
+            .retain_mut(|buff| {
+                buff.seconds_left -= dt;
+                buff.seconds_left > 0.0
+            });
     }
     entity.health.extra_health_buffs.retain_mut(|buff| {
         buff.seconds_left -= dt;

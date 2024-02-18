@@ -1,0 +1,10 @@
+pub const STARTING_HAND_SIZE: i32 = 4;
+pub const MAX_HAND_SIZE: usize = 10;
+pub const STARTING_ENERGY: i32 = 10;
+pub const BASE_SECONDS_TO_DRAW_CARD: f32 = 30.0;
+pub const BASE_SECONDS_TO_GET_ENERGY: f32 = 10.0;
+
+pub const SPRING_CONSTANT: f32 = 500.0;
+pub const SPRING_MAX_CONTRIBUTION: f32 = 100.0;
+pub const SPRING_MAX_DISPLACEMENT: f32 = 10.0;
+pub const SPRING_EFFECT_RADIUS: f32 = 70.0;

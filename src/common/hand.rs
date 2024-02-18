@@ -1,10 +1,13 @@
 use crate::card::{Card, CardInstance};
+use crate::gameplay_config::{
+    BASE_SECONDS_TO_DRAW_CARD, BASE_SECONDS_TO_GET_ENERGY, MAX_HAND_SIZE,
+};
 use crate::ids::CardInstanceId;
 use crate::vector::{pop_where, shuffle_vec};
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Hand {
     pub card_draw_counter: f32,
     pub energy_counter: f32,
@@ -35,7 +38,7 @@ impl Hand {
     }
 
     pub fn draw(&mut self) -> Option<CardInstance> {
-        if self.cards.len() >= 10 {
+        if self.cards.len() >= MAX_HAND_SIZE {
             return None;
         }
         if self.deck.is_empty() {
@@ -49,8 +52,8 @@ impl Hand {
     }
 
     pub fn step(&mut self, dt: f32) {
-        self.card_draw_counter += dt / 30.0;
-        self.energy_counter += dt / 10.0;
+        self.card_draw_counter += dt / BASE_SECONDS_TO_DRAW_CARD;
+        self.energy_counter += dt / BASE_SECONDS_TO_GET_ENERGY;
 
         if self.card_draw_counter >= 1.0 {
             self.draw();
