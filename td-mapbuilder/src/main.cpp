@@ -4,8 +4,14 @@
 #include <SFML/Graphics.hpp>
 #include <cassert>
 #include <iostream>
+#include "SFML/Window/Window.hpp"
 #include "file_sys.cpp"
 #include "git.cpp"
+
+
+struct Globals{
+    sf::RenderWindow window;
+} globals;
 
 
 class gameEntity
@@ -45,6 +51,29 @@ class gameEntity
     }
 };
 
+class MouseEvent
+{          
+    public:
+    sf::Mouse mouse;
+    bool pressed;
+    bool released_this_frame;
+    sf::Vector2f position;
+    void update()
+    {
+        position = sf::Vector2f(mouse.getPosition(globals.window));
+        released_this_frame = false;
+        if (mouse.isButtonPressed(mouse.Left))
+        {
+            pressed = true;
+        }
+        else
+        {
+            if(pressed){released_this_frame = true;}
+            pressed = false;
+        }
+    }
+};
+
 bool isWithinBoundary(sf::Vector2f relative_pos, sf::Vector2f size)
 {
     return relative_pos.x > 0 && relative_pos.y > 0 && relative_pos.x < size.x && relative_pos.y < size.y; 
@@ -59,6 +88,7 @@ bool intersectCircle(sf::Vector2f pos, sf::Vector2f origin, float radius)
 
 int mouseEntitiesIntersection(sf::Vector2f pos, std::vector<sf::Vector2f> entity_pos, float radius)
 {
+
     for(int i = 0; i < entity_pos.size(); i ++)
     {
         if (intersectCircle(pos, entity_pos[i], radius)){return i;}
@@ -81,6 +111,7 @@ bool any(std::vector<bool> b)
     }
     return false;
 }
+
 
 int main() {
     std::string project_folder = "projects/";
@@ -119,38 +150,44 @@ int main() {
     std::string background_path = findFileInDirectory(project_path, "map", {"png", "jpeg"});
 
     gameEntity entities = gameEntity(25, sf::Color(0,0,139, 128), sf::Color(0,0, 200));
-    sf::Mouse mouse;
+    MouseEvent mouse_event;
 
 
     // Create a window with SFML
-    sf::RenderWindow window(sf::VideoMode(800, 600), "Td Mapbuilder");
+    globals.window.create(sf::VideoMode(800, 600), "Td Mapbuilder");
 
     sf::Texture map;
     map.loadFromFile(background_path);
     sf::Sprite map_sprite;
     map_sprite.setTexture(map);
     sf::Vector2f map_texture_size = sf::Vector2f(map.getSize());
-    window.setView(sf::View(map_texture_size / 2.f, map_texture_size));
+    globals.window.setView(sf::View(map_texture_size / 2.f, map_texture_size));
 
     // Main loop
-    while (window.isOpen()) {
+    while (globals.window.isOpen()) {
         // Process events
         sf::Event event{};
-        while (window.pollEvent(event)) {
+        while (globals.window.pollEvent(event)) {
             if (event.type == sf::Event::Closed)
-                window.close();
+                globals.window.close();
         }
 
-        sf::Vector2f mouse_pos = vectorRescaler(sf::Vector2f(mouse.getPosition(window)), sf::Vector2f(window.getSize()), map_texture_size);
-        if (mouse.isButtonPressed(mouse.Left) && isWithinBoundary(mouse_pos, map_texture_size)) 
+        mouse_event.update();
+        sf::Vector2f mouse_pos = vectorRescaler(sf::Vector2f(mouse_event.position), sf::Vector2f(globals.window.getSize()), map_texture_size);
+        if (mouse_event.released_this_frame && isWithinBoundary(mouse_pos, map_texture_size)) 
         {   
             int select_id = mouseEntitiesIntersection(mouse_pos, entities.positions, entities.radius);
             if (any(entities.are_selected) && select_id < 0)
             {
                 entities.deselectAll();
             }
-            else if (select_id < 0){
+            else if (select_id < 0)
+            {
                 entities.addEntity(mouse_pos);
+            }
+            else if(entities.are_selected[select_id])
+            {
+                entities.are_selected[select_id] = false;
             }
             else{
                 entities.are_selected[select_id] = true;
@@ -158,8 +195,8 @@ int main() {
         }
 
         // Clear the window
-        window.clear(sf::Color::White);
-        window.draw(map_sprite);
+        globals.window.clear(sf::Color::White);
+        globals.window.draw(map_sprite);
         for (int i = 0; i < entities.positions.size(); i ++)
         {
             entities.shapes[i].setPosition(entities.positions[i]);
@@ -172,11 +209,11 @@ int main() {
             {
                 entities.shapes[i].setOutlineThickness(0.f);
             }
-            window.draw(entities.shapes[i]);
+            globals.window.draw(entities.shapes[i]);
         }
         
         // Display what was drawn
-        window.display();
+        globals.window.display();
     }
 
     return 0;
