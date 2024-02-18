@@ -4,14 +4,6 @@ use strum_macros::EnumIter;
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq, Hash, EnumIter)]
 pub enum SpriteId {
     Empty,
-    Hourglass,
-    HourglassBow,
-    HourglassSword,
-    Range,
-    Shield,
-    Sword,
-    Bow,
-    Concept,
     Map,
     UnitArcher,
     UnitSwordsman,
@@ -21,13 +13,6 @@ pub enum SpriteId {
     UnitBuilder,
     UnitPriest,
     UnitDemonPig,
-    CardTower,
-    CardSpawnPoint,
-    CardSwordsman,
-    CardRanger,
-    CardPriest,
-    CardDirectDamage,
-    CardDemonPig,
     UnitRecklessKnight,
     UnitSpy,
     UnitStreetCriminal,
@@ -36,19 +21,15 @@ pub enum SpriteId {
     UnitOldSwordMaster,
     UnitElfWarrior,
     UnitHomesickWarrior,
+    UnitAirBalloon,
+    UnitDragon,
+    UnitWarEagle,
 }
 
 impl SpriteId {
     pub fn to_path(&self) -> &'static str {
         match self {
-            SpriteId::Bow => "bow.png",
-            SpriteId::Concept => "concept.png",
             SpriteId::Map => "map.png",
-            SpriteId::Hourglass => "hourglass.png",
-            SpriteId::HourglassBow => "hourglass_bow.png",
-            SpriteId::HourglassSword => "hourglass_sword.png",
-            SpriteId::Range => "range.png",
-            SpriteId::Shield => "shield.png",
             SpriteId::UnitArcher => "unit_archer.png",
             SpriteId::UnitSwordsman => "unit_swordsman.png",
             SpriteId::UnitPriest => "unit_priest.png",
@@ -62,18 +43,13 @@ impl SpriteId {
             SpriteId::UnitOldSwordMaster => "old_sword_master.png",
             SpriteId::UnitElfWarrior => "elf_warrior.png",
             SpriteId::UnitHomesickWarrior => "homesick_warrior.png",
-            SpriteId::Sword => "sword.png",
+            SpriteId::UnitAirBalloon => "air_balloon.png",
+            SpriteId::UnitDragon => "dragon.png",
+            SpriteId::UnitWarEagle => "war_eagle.png",
             SpriteId::Empty => "x.png",
             SpriteId::BuildingBase => "building_base.png",
             SpriteId::BuildingTower => "building_tower.png",
             SpriteId::BuildingSpawnpoint => "building_spawnpoint.png",
-            SpriteId::CardPriest => "card_art/priest.jpg",
-            SpriteId::CardRanger => "card_art/archer.jpg",
-            SpriteId::CardSwordsman => "card_art/swordsman.jpg",
-            SpriteId::CardSpawnPoint => "card_art/spawn_point.jpg",
-            SpriteId::CardTower => "card_art/tower.jpg",
-            SpriteId::CardDirectDamage => "card_art/direct_damage.jpg",
-            SpriteId::CardDemonPig => "card_art/demon_pig.jpg",
         }
     }
 }
