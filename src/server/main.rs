@@ -114,27 +114,27 @@ fn main() -> std::io::Result<()> {
                             base_entity.pos = *base_pos;
                             game_state.dynamic_game_state.entities.push(base_entity);
                         }
-                        ack_udp_socket.send_to(
-                            ServerMessage {
-                                metadata: game_state.game_metadata.clone(),
-                                data: ServerMessageData::StaticGameState(
-                                    game_state.static_game_state.clone(),
-                                ),
-                            },
-                            &client_addr,
-                            true,
-                        );
-                        ack_udp_socket.send_to(
-                            ServerMessage {
-                                metadata: game_state.game_metadata.clone(),
-                                data: ServerMessageData::SemiStaticGameState(
-                                    game_state.semi_static_game_state.clone(),
-                                ),
-                            },
-                            &client_addr,
-                            true,
-                        );
                     }
+                    ack_udp_socket.send_to(
+                        ServerMessage {
+                            metadata: game_state.game_metadata.clone(),
+                            data: ServerMessageData::StaticGameState(
+                                game_state.static_game_state.clone(),
+                            ),
+                        },
+                        &client_addr,
+                        true,
+                    );
+                    ack_udp_socket.send_to(
+                        ServerMessage {
+                            metadata: game_state.game_metadata.clone(),
+                            data: ServerMessageData::SemiStaticGameState(
+                                game_state.semi_static_game_state.clone(),
+                            ),
+                        },
+                        &client_addr,
+                        true,
+                    );
                 }
             }
         }
