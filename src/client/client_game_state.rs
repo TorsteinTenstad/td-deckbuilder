@@ -89,7 +89,7 @@ impl ClientGameState {
             && server_message.metadata.game_id
                 == self.server_controlled_game_state.game_metadata.game_id
         {
-            åreturn;
+            return;
         }
         self.server_controlled_game_state.game_metadata = server_message.metadata;
         match server_message.data {
