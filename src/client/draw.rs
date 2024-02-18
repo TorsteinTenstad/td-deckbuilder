@@ -3,7 +3,6 @@ use common::{card::Card, textures::SpriteId, world::Direction, *};
 use macroquad::{
     color::{Color, WHITE},
     math::Vec2,
-    miniquad::FilterMode,
     shapes::{draw_rectangle, draw_rectangle_ex, DrawRectangleParams},
     text::{camera_font_scale, draw_text_ex, measure_text, Font, TextDimensions, TextParams},
     texture::{draw_texture_ex, load_texture, DrawTextureParams, Texture2D},

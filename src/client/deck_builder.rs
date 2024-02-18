@@ -21,9 +21,9 @@ pub struct DeckBuilder {
 }
 
 impl DeckBuilder {
-    const W: f32 = 100.0;
+    const W: f32 = 150.0;
     const H: f32 = Self::W * CARD_ASPECT_RATIO;
-    const MARGIN: f32 = 25.0;
+    const MARGIN: f32 = 5.0;
 
     pub fn save(&self) {
         let cards = self
