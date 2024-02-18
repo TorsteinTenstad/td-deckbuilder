@@ -86,8 +86,10 @@ impl ClientGameState {
     ) {
         if self.server_controlled_game_state.game_metadata.server_tick
             > server_message.metadata.server_tick
+            && server_message.metadata.game_id
+                == self.server_controlled_game_state.game_metadata.game_id
         {
-            return;
+            åreturn;
         }
         self.server_controlled_game_state.game_metadata = server_message.metadata;
         match server_message.data {

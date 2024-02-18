@@ -1,6 +1,6 @@
 use crate::{
     entity::Entity,
-    ids::{BuildingLocationId, PathId, PlayerId},
+    ids::{BuildingLocationId, GameId, PathId, PlayerId},
     server_player::ServerPlayer,
     world::BuildingLocation,
 };
@@ -36,7 +36,7 @@ pub struct DynamicGameState {
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct GameMetadata {
-    pub game_id: u32,
+    pub game_id: GameId,
     pub server_tick: u32,
 }
 
