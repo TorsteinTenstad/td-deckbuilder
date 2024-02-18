@@ -43,3 +43,8 @@ add_custom_command(TARGET mapbuilder POST_BUILD
         "$<TARGET_FILE_DIR:sfml-graphics>"
         $<TARGET_FILE_DIR:mapbuilder>
 )
+add_custom_command(TARGET mapbuilder POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy
+    "${CMAKE_BINARY_DIR}/_deps/libgit2-build/git2.dll"
+    $<TARGET_FILE_DIR:mapbuilder>
+)

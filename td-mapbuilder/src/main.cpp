@@ -1,102 +1,86 @@
+#include "SFML/Graphics/CircleShape.hpp"
+#include "SFML/Graphics/Color.hpp"
 #include "SFML/System/Vector2.hpp"
 #include <SFML/Graphics.hpp>
+#include <cassert>
 #include <iostream>
-#include <filesystem>
-
-namespace fs = std::filesystem;
-
-// Function to list subdirectories in a folder
-void listSubdirectories(const std::string& folderPath) {
-    std::cout << "Subdirectories in " << folderPath << ":\n";
-    for (const auto& entry : fs::directory_iterator(folderPath)) {
-        if (fs::is_directory(entry)) {
-            std::cout << entry.path().filename() << "\n";
-        }
-    }
-}
-
-// Function to find a file with a specific name and type in the project directory
-std::string findFileInDirectory(const std::string& projectPath, const std::string& fileName, const std::vector<std::string>& file_types) {
-
-    fs::path directoryPath(projectPath);
-
-    // Iterate through the files in the directory
-    for (const auto& entry : fs::directory_iterator(directoryPath)) {
-
-        if (!entry.is_regular_file() || entry.path().filename().stem() != fileName) {
-            continue;
-            // Check if the file matches the specified name and type
-        }
-        for (std::string file_type: file_types)
-        { 
-            if(entry.path().extension() == "." + file_type) 
-            { 
-                // Return the path to the file
-                return entry.path().string();
-            }
-        }
-    }
-    // Return an empty string if the file is not found
-    return "";
-}
-
-std::string findSubDirectory(const std::string& dir, const std::string& subdir) {
-
-    fs::path directoryPath(dir);
-
-    // Iterate through the files in the directory
-    for (const auto& entry : fs::directory_iterator(directoryPath)) {
-
-        if (entry.is_directory() && entry.path().filename() == subdir) {
-            return entry.path().string();
-        }
-    }
-    // Return an empty string if the file is not found
-    return "";
-}
-
-// Function to create a new project
-int createNewProject(std::string project_folder) {
-
-    std::string project_name;
-    std::cout << "Please create a name for the project: \n";
-    while(true){
-        std::cin >> project_name;
-        if (project_name == "break"){return -1;}
-        if (findSubDirectory(project_folder, project_name) != ""){
-            std::cout << "This project already exists, please choose another name or remove existing project \n";
-            continue;
-        }
-        break;
-    }
-    
-    std::string project_path = project_folder + project_name;
+#include "file_sys.cpp"
+#include "git.cpp"
 
 
-    // Prompt user to select an image file
-    std::cout << "Select an image file for the background (do not add file suffix):\n";
-    std::string background_path;
-    std::string user_input;
-    while (true)
+class gameEntity
+{
+    public:
+    float radius;
+    sf::Color fill_color;
+    sf::Color outline_color;
+    std::vector<sf::Vector2f> positions;
+    std::vector<bool> are_selected;
+    std::vector<sf::CircleShape> shapes;
+
+    gameEntity(float radius, sf::Color fill_color, sf::Color outline_color) : radius(radius), fill_color(fill_color), outline_color(outline_color){}
+
+    void addEntity(sf::Vector2f position)
     {
-        std::cin >> user_input;
-        if(user_input== "break"){return -1;}
-        background_path = findFileInDirectory(".", user_input, {"png", "jpeg"});
-        if (background_path == ""){
-            std::cout << "Could not find the image file, please reenter \n";
-            continue;
-        }
-        break;
+        positions.push_back(position);
+        shapes.emplace_back(radius, 400);
+        int end_ix = shapes.size() - 1;
+        shapes[end_ix].setFillColor(fill_color);
+        shapes[end_ix].setOutlineColor(outline_color);
+        are_selected.push_back(false);
     }
+    void deleteEntity(int index)
+    {
+        assert(positions.size() > index);
+        positions.erase(positions.begin() + index);
+        shapes.erase(shapes.begin() + index);
+        are_selected.erase(are_selected.begin() + index);
+    }
+    void deselectAll()
+    {
+        for (auto && i : are_selected)
+        {
+            i = false;
+        }
+    }
+};
 
-    // Create a new project directory
-    fs::create_directory(project_path);
-
-    // Copy the selected image file to the project directory/
-    fs::copy_file(background_path, project_path + "/map.png");
-    return 0;
+bool isWithinBoundary(sf::Vector2f relative_pos, sf::Vector2f size)
+{
+    return relative_pos.x > 0 && relative_pos.y > 0 && relative_pos.x < size.x && relative_pos.y < size.y; 
 }
 
+bool intersectCircle(sf::Vector2f pos, sf::Vector2f origin, float radius)
+{
+    float x = pos.x - origin.x;
+    float y = pos.y - origin.y;
+    return x*x + y*y < radius*radius;
+}
+
+int mouseEntitiesIntersection(sf::Vector2f pos, std::vector<sf::Vector2f> entity_pos, float radius)
+{
+    for(int i = 0; i < entity_pos.size(); i ++)
+    {
+        if (intersectCircle(pos, entity_pos[i], radius)){return i;}
+    }
+    return -1;
+}
+
+sf::Vector2f vectorRescaler(sf::Vector2f pos, sf::Vector2f from_scale, sf::Vector2f to_scale)
+{
+    float x = pos.x / from_scale.x * to_scale.x;
+    float y = pos.y / from_scale.y * to_scale.y;
+    return {x, y};
+}
+
+bool any(std::vector<bool> b)
+{
+    for (auto && i : b)
+    {
+        if (i){return true;}
+    }
+    return false;
+}
 
 int main() {
     std::string project_folder = "projects/";
@@ -106,19 +90,37 @@ int main() {
     }
     
     listSubdirectories(project_folder);
+
+    std::string project_name;
+    
     std::string userInput;
     std::cout << "Select a project or choose 'new' to create a new project: ";
-    std::cin >> userInput;
+    while(true){
+        std::cin >> userInput;
+        if (userInput == "break"){return -1;}
 
-    std::string project_path;
+        else if (userInput == "new") {
+            project_name = createNewProject(project_folder);
+            if (project_name == ""){return -1;};
+            break;
+        }
 
-    if (userInput == "new") {
-        int a = createNewProject(project_folder);
-        if(a == -1){return 0;}
+        else if (findSubDirectory(project_folder, userInput) != ""){
+            project_name = userInput;
+            break;
+        }
+        else{
+            std::cout << "Couldn't parse your command. Please open an existing project, make a new project with code \"new\" or write \"break\" to exit\n";
+        }
     }
-    else{project_path = project_folder + userInput;}
-
+    
+    std::string project_path = project_folder + project_name;
+    if(!initializeGitRepository(project_path)){return -1;}
     std::string background_path = findFileInDirectory(project_path, "map", {"png", "jpeg"});
+
+    gameEntity entities = gameEntity(25, sf::Color(0,0,139, 128), sf::Color(0,0, 200));
+    sf::Mouse mouse;
+
 
     // Create a window with SFML
     sf::RenderWindow window(sf::VideoMode(800, 600), "Td Mapbuilder");
@@ -127,6 +129,8 @@ int main() {
     map.loadFromFile(background_path);
     sf::Sprite map_sprite;
     map_sprite.setTexture(map);
+    sf::Vector2f map_texture_size = sf::Vector2f(map.getSize());
+    window.setView(sf::View(map_texture_size / 2.f, map_texture_size));
 
     // Main loop
     while (window.isOpen()) {
@@ -137,11 +141,39 @@ int main() {
                 window.close();
         }
 
+        sf::Vector2f mouse_pos = vectorRescaler(sf::Vector2f(mouse.getPosition(window)), sf::Vector2f(window.getSize()), map_texture_size);
+        if (mouse.isButtonPressed(mouse.Left) && isWithinBoundary(mouse_pos, map_texture_size)) 
+        {   
+            int select_id = mouseEntitiesIntersection(mouse_pos, entities.positions, entities.radius);
+            if (any(entities.are_selected) && select_id < 0)
+            {
+                entities.deselectAll();
+            }
+            else if (select_id < 0){
+                entities.addEntity(mouse_pos);
+            }
+            else{
+                entities.are_selected[select_id] = true;
+            }
+        }
+
         // Clear the window
         window.clear(sf::Color::White);
-        window.setView(sf::View(sf::Vector2f(map_sprite.getTexture()->getSize())/2.f, sf::Vector2f(map_sprite.getTexture()->getSize())));
-        
         window.draw(map_sprite);
+        for (int i = 0; i < entities.positions.size(); i ++)
+        {
+            entities.shapes[i].setPosition(entities.positions[i]);
+            entities.shapes[i].setOrigin(sf::Vector2f(entities.radius, entities.radius));
+            if (entities.are_selected[i])
+            {
+                entities.shapes[i].setOutlineThickness(5.f);
+            }
+            else 
+            {
+                entities.shapes[i].setOutlineThickness(0.f);
+            }
+            window.draw(entities.shapes[i]);
+        }
         
         // Display what was drawn
         window.display();
