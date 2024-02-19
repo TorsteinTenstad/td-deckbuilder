@@ -10,7 +10,7 @@
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}/td-mapbuilder", // Set the working directory to the project folder
             "environment": [],
-            "externalConsole": false
+            "externalConsole": true
         }
     ]
 }
