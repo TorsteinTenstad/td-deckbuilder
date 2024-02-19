@@ -7,9 +7,6 @@ use crate::{
     entity_blueprint::DEFAULT_UNIT_DETECTION_RADIUS,
     find_target::find_target_for_attack,
     game_state::{DynamicGameState, SemiStaticGameState, StaticGameState},
-    gameplay_config::{
-        SPRING_CONSTANT, SPRING_EFFECT_RADIUS, SPRING_MAX_CONTRIBUTION, SPRING_MAX_DISPLACEMENT,
-    },
     ids::{EntityId, PathId},
     play_target::UnitSpawnpointTarget,
     serde_defs::Vec2Def,
@@ -210,37 +207,6 @@ impl Movement {
             entity,
             dt,
         );
-        if entity.movement.is_some() && entity.tag != EntityTag::Bullet {
-            let spring_force = dynamic_game_state
-                .entities
-                .iter()
-                .filter(|other_entity| other_entity.tag != EntityTag::Bullet)
-                .filter_map(|other_entity| {
-                    other_entity
-                        .movement
-                        .as_ref()
-                        .map(|_| entity.pos - other_entity.pos)
-                        .filter(|v| v.length() < SPRING_EFFECT_RADIUS)
-                })
-                .fold(Vec2::ZERO, |acc, v| {
-                    let mut v = v;
-                    if !v.length().recip().is_finite() {
-                        // Handle units being on top of each other
-                        let angle = 2.0 * PI * rand::random::<f32>();
-                        v = Vec2::from_angle(angle);
-                    }
-                    let mut contribution = SPRING_CONSTANT * v / v.length().powi(3);
-                    if contribution.length() > SPRING_MAX_CONTRIBUTION {
-                        contribution = contribution.normalize() * SPRING_MAX_CONTRIBUTION
-                    }
-                    acc + contribution
-                });
-            let mut displacement = spring_force;
-            if displacement.length() > SPRING_MAX_DISPLACEMENT {
-                displacement = displacement.normalize() * SPRING_MAX_DISPLACEMENT
-            }
-            entity.pos += displacement;
-        }
     }
 }
 
