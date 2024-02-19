@@ -76,7 +76,7 @@ impl DeckBuilder {
             (&mut self.deck, screen_width() / 2.0),
         ] {
             let mut y = Self::MARGIN + Self::H / 2.0;
-            for row in cards.iter_mut().chunks(3).into_iter() {
+            for row in cards.iter_mut().chunks(4).into_iter() {
                 let mut x = x_start + Self::MARGIN + Self::W / 2.0;
                 for card in row {
                     card.target_transform.x = x;

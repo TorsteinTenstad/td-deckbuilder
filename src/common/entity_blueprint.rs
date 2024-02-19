@@ -23,6 +23,9 @@ pub enum EntityBlueprint {
     Tower,
     SpawnPoint,
     Base,
+    Dragon,
+    WarEagle,
+    AirBalloon,
 }
 
 const UNIT_RADIUS: f32 = 36.0;
@@ -41,17 +44,20 @@ impl EntityBlueprint {
             | EntityBlueprint::ElfWarrior
             | EntityBlueprint::OldSwordMaster
             | EntityBlueprint::BasicBuilder => EntityTag::Unit,
+            EntityBlueprint::Dragon | EntityBlueprint::WarEagle | EntityBlueprint::AirBalloon => {
+                EntityTag::FlyingUnit
+            }
             EntityBlueprint::Tower | EntityBlueprint::SpawnPoint => EntityTag::Tower,
             EntityBlueprint::Base => EntityTag::Base,
         };
         let state = match tag {
-            EntityTag::Unit => EntityState::Moving,
+            EntityTag::Unit | EntityTag::FlyingUnit => EntityState::Moving,
             EntityTag::Tower => EntityState::Attacking,
             EntityTag::Base => EntityState::Passive,
             EntityTag::Bullet => EntityState::Moving,
         };
         let radius = match tag {
-            EntityTag::Unit => UNIT_RADIUS,
+            EntityTag::Unit | EntityTag::FlyingUnit => UNIT_RADIUS,
             EntityTag::Tower => BUILDING_RADIUS,
             EntityTag::Base => BUILDING_RADIUS,
             EntityTag::Bullet => PROJECTILE_RADIUS,
@@ -142,6 +148,33 @@ impl EntityBlueprint {
                 entity.attacks.push(Attack {
                     damage: 30.0,
                     ..Attack::default()
+                });
+            }
+            EntityBlueprint::WarEagle => {
+                entity.health = Health::new(100.0);
+                entity.movement = Some(Movement::new(MovementSpeed::Default));
+                entity.sprite_id = SpriteId::UnitWarEagle;
+                entity.attacks.push(Attack {
+                    damage: 10.0,
+                    ..Attack::default_flying()
+                });
+            }
+            EntityBlueprint::AirBalloon => {
+                entity.health = Health::new(400.0);
+                entity.movement = Some(Movement::new(MovementSpeed::Slow));
+                entity.sprite_id = SpriteId::UnitAirBalloon;
+                entity.attacks.push(Attack {
+                    damage: 40.0,
+                    ..Attack::default_flying()
+                });
+            }
+            EntityBlueprint::Dragon => {
+                entity.health = Health::new(400.0);
+                entity.movement = Some(Movement::new(MovementSpeed::Default));
+                entity.sprite_id = SpriteId::UnitDragon;
+                entity.attacks.push(Attack {
+                    damage: 40.0,
+                    ..Attack::default_flying()
                 });
             }
             EntityBlueprint::Tower => {
