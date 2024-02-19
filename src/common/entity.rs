@@ -15,6 +15,7 @@ pub enum EntityTag {
     Base,
     Tower,
     Unit,
+    FlyingUnit,
     Bullet,
 }
 

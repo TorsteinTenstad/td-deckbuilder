@@ -20,6 +20,9 @@ pub enum Card {
     StreetCriminal,
     Spy,
     RecklessKnight,
+    WarEagle,
+    AirBalloon,
+    Dragon,
     DirectDamage,
 }
 
@@ -179,6 +182,33 @@ const CARD_DATA: &[CardData] = &[
         attack: Some(30),
         health: Some(100),
         description: "[Fast moving]",
+    },
+    CardData {
+        name: "War Eagle",
+        energy_cost: 3,
+        play_fn: play_unit!(WarEagle),
+        card_art_path: "war_eagle.jpg",
+        attack: Some(10),
+        health: Some(100),
+        description: "[Flying]",
+    },
+    CardData {
+        name: "Air Balloon",
+        energy_cost: 5,
+        play_fn: play_unit!(AirBalloon),
+        card_art_path: "air_balloon.jpg",
+        attack: Some(40),
+        health: Some(400),
+        description: "[Flying]",
+    },
+    CardData {
+        name: "Dragon",
+        energy_cost: 7,
+        play_fn: play_unit!(Dragon),
+        card_art_path: "dragon.jpg",
+        attack: Some(40),
+        health: Some(400),
+        description: "[Flying]",
     },
     CardData {
         name: "Direct Damage",

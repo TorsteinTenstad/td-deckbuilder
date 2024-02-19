@@ -222,7 +222,7 @@ fn main_draw(state: &ClientGameState) {
         let radius = to_screen_size(entity.radius);
 
         match entity.tag {
-            EntityTag::Tower | EntityTag::Base | EntityTag::Unit => {
+            EntityTag::Tower | EntityTag::Base | EntityTag::Unit | EntityTag::FlyingUnit => {
                 let texture = state
                     .sprites
                     .get_team_texture(&entity.sprite_id, Some(player.direction.clone()));

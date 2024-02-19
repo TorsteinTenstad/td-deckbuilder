@@ -93,12 +93,24 @@ impl Attack {
         Self {
             variant: AttackVariant::RangedAttack,
             range: AttackRange::Default,
+            can_target: vec![
+                EntityTag::Base,
+                EntityTag::Tower,
+                EntityTag::Unit,
+                EntityTag::FlyingUnit,
+            ],
             ..Default::default()
+        }
+    }
+    pub fn default_flying() -> Self {
+        Self {
+            can_target: vec![EntityTag::Base, EntityTag::Tower, EntityTag::FlyingUnit],
+            ..Attack::default()
         }
     }
     pub fn default_ranged_tower() -> Self {
         Self {
-            can_target: vec![EntityTag::Unit],
+            can_target: vec![EntityTag::Unit, EntityTag::FlyingUnit],
             ..Attack::default_ranged()
         }
     }
