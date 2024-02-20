@@ -1,7 +1,71 @@
+#include <fstream>
 #include <iostream>
 #include <filesystem>
+#include "SFML/Graphics/Color.hpp"
+#include "SFML/System/Vector2.hpp"
+#include "game_entity.hpp"
+#include "json.hpp"
+#include "nlohmann/adl_serializer.hpp"
+#include "nlohmann/detail/iterators/iteration_proxy.hpp"
+#include "nlohmann/json_fwd.hpp"
 
 namespace fs = std::filesystem;
+using json = nlohmann::json;
+
+template<> struct nlohmann::adl_serializer<sf::Vector2f>
+{
+    static void to_json(json& j, const sf::Vector2f& vector)
+    {
+        j = json{{"x", vector.x}, {"y", vector.y}};
+    }
+    static void from_json(const json& j, sf::Vector2f& vector)
+    {
+        j.at("x").get_to(vector.x);
+        j.at("y").get_to(vector.y);
+    }
+};
+
+template<> struct nlohmann::adl_serializer<sf::Color>
+{
+    static void to_json(json& j, const sf::Color& color)
+    {
+        j = json{{"a", color.a}, {"b", color.b}, {"g",color.g}, {"r", color.r}};
+    }
+    static void from_json(const json& j, sf::Color& color)
+    {
+        j.at("a").get_to(color.a);
+        j.at("b").get_to(color.b);
+        j.at("g").get_to(color.g);
+        j.at("r").get_to(color.r);
+    }
+};
+template<> struct nlohmann::adl_serializer<entityBundle>
+{
+    static void to_json(json& j, const entityBundle& entity)
+    {
+        j = json{{"position", entity.position}, {"is_selected", entity.is_selected}};
+    }
+    static void from_json(const json& j, entityBundle& entity)
+    {
+        j.at("position").get_to(entity.position);
+        j.at("is_selected").get_to(entity.is_selected);
+    }
+};
+
+template<> struct nlohmann::adl_serializer<gameEntity>
+{
+    static void to_json(json& j, const gameEntity& game_entity)
+    {
+        j = json{{"radius", game_entity.radius}, {"fill_color", game_entity.fill_color}, {"outline_color", game_entity.outline_color}, {"entities", game_entity.entities}};
+    }
+    static void from_json(const json& j, gameEntity& game_entity)
+    {
+        j.at("radius").get_to(game_entity.radius);
+        j.at("fill_color").get_to(game_entity.fill_color);
+        j.at("outline_color").get_to(game_entity.outline_color);
+        j.at("entities").get_to(game_entity.entities);
+    }
+};
 
 // Function to list subdirectories in a folder
 void listSubdirectories(const std::string& folderPath) {
@@ -93,4 +157,29 @@ std::string createNewProject(std::string project_folder) {
     // Copy the selected image file to the project directory/
     fs::copy_file(background_path, project_path + "/map.png");
     return project_name;
+}
+
+void saveEntitiesToFile(std::string filename, const gameEntity& game_entity)
+{
+    std::ofstream f;
+    f.open(filename);
+
+    json j = game_entity;
+    f << j << std::endl;
+}
+
+gameEntity loadEntitiesFromFile(std::string filename)
+{
+    std::ifstream f;
+    f.open(filename);
+
+    json j;
+    f >> j;
+    gameEntity game_entity {j["radius"].template get<float>(),
+                j["fill_color"].template get<sf::Color>(),
+                j["outline_color"].template get<sf::Color>()
+    };
+    game_entity.entities = j["entities"].template get<std::vector<entityBundle>>();
+    game_entity.reconstructEntityShapes();
+    return game_entity;
 }
