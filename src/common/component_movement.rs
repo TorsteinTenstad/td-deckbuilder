@@ -1,15 +1,14 @@
-use std::f32::consts::PI;
-
 use crate::{
     buff::{apply_arithmetic_buffs, ArithmeticBuff},
     config::CLOSE_ENOUGH_TO_TARGET,
-    entity::{AbilityFlag, Entity, EntityTag},
+    entity::{AbilityFlag, Entity},
     entity_blueprint::DEFAULT_UNIT_DETECTION_RADIUS,
     find_target::find_target_for_attack,
-    game_state::{DynamicGameState, SemiStaticGameState, StaticGameState},
+    game_state::StaticGameState,
     ids::{EntityId, PathId},
     play_target::UnitSpawnpointTarget,
     serde_defs::Vec2Def,
+    update_args::UpdateArgs,
     world::{
         find_entity, get_path_pos, next_path_idx, world_get_furthest_planned_or_existing_building,
         Direction,
@@ -172,81 +171,39 @@ impl MovementTowardsTarget {
 }
 
 impl Movement {
-    pub fn update(
-        static_game_state: &StaticGameState,
-        semi_static_game_state: &SemiStaticGameState,
-        dynamic_game_state: &mut DynamicGameState,
-        entity: &mut Entity,
-        dt: f32,
-    ) {
-        PathTargetSetter::update(
-            static_game_state,
-            semi_static_game_state,
-            dynamic_game_state,
-            entity,
-            dt,
-        );
-        DetectionBasedTargetSetter::update(
-            static_game_state,
-            semi_static_game_state,
-            dynamic_game_state,
-            entity,
-            dt,
-        );
-        EntityTargetSetter::update(
-            static_game_state,
-            semi_static_game_state,
-            dynamic_game_state,
-            entity,
-            dt,
-        );
-        MovementTowardsTarget::update(
-            static_game_state,
-            semi_static_game_state,
-            dynamic_game_state,
-            entity,
-            dt,
-        );
+    pub fn update(update_args: &mut UpdateArgs) {
+        PathTargetSetter::update(update_args);
+        DetectionBasedTargetSetter::update(update_args);
+        EntityTargetSetter::update(update_args);
+        MovementTowardsTarget::update(update_args);
     }
 }
 
 impl MovementTowardsTarget {
-    pub fn update(
-        _static_game_state: &StaticGameState,
-        _semi_static_game_state: &SemiStaticGameState,
-        _dynamic_game_state: &mut DynamicGameState,
-        entity: &mut Entity,
-        dt: f32,
-    ) {
-        let Some(movement) = &mut entity.movement else {
+    pub fn update(update_args: &mut UpdateArgs) {
+        let Some(movement) = &mut update_args.entity.movement else {
             return;
         };
         let movement_towards_target = &mut movement.movement_towards_target;
         if let Some(target_pos) = movement_towards_target.target_pos {
-            let diff = target_pos - entity.pos;
-            if diff.length() < movement_towards_target.velocity.length() * dt {
-                entity.pos = target_pos;
+            let diff = target_pos - update_args.entity.pos;
+            if diff.length() < movement_towards_target.velocity.length() * update_args.dt {
+                update_args.entity.pos = target_pos;
                 movement_towards_target.target_pos = None;
             } else {
                 movement_towards_target.velocity =
                     diff.normalize_or_zero() * movement_towards_target.get_speed();
-                entity.pos += movement_towards_target.velocity * dt;
+                update_args.entity.pos += movement_towards_target.velocity * update_args.dt;
             }
         } else if movement_towards_target.keep_moving_on_loss_of_target {
-            entity.pos += movement_towards_target.velocity * dt;
+            update_args.entity.pos += movement_towards_target.velocity * update_args.dt;
         }
     }
 }
 
 impl PathTargetSetter {
-    pub fn update(
-        static_game_state: &StaticGameState,
-        semi_static_game_state: &SemiStaticGameState,
-        dynamic_game_state: &mut DynamicGameState,
-        entity: &mut Entity,
-        _dt: f32,
-    ) {
-        let Some(movement) = entity.movement.as_mut() else {
+    pub fn update(update_args: &mut UpdateArgs) {
+        let Some(movement) = update_args.entity.movement.as_mut() else {
             return;
         };
         let Some(path_target_setter) = &mut movement.path_target_setter else {
@@ -256,22 +213,26 @@ impl PathTargetSetter {
             return;
         };
 
-        if entity.ability_flags.contains(&AbilityFlag::Protector) {
+        if update_args
+            .entity
+            .ability_flags
+            .contains(&AbilityFlag::Protector)
+        {
             if let Some((_, _, building_location_closest_path_idx)) =
                 world_get_furthest_planned_or_existing_building(
                     path_state.path_id,
-                    entity.owner,
+                    update_args.entity.owner,
                     DEFAULT_UNIT_DETECTION_RADIUS, //TODO: Maybe not hardcode?
-                    static_game_state,
-                    semi_static_game_state,
-                    dynamic_game_state,
+                    update_args.static_game_state,
+                    update_args.semi_static_game_state,
+                    update_args.dynamic_game_state,
                 )
             {
                 if (get_path_pos(
-                    static_game_state,
+                    update_args.static_game_state,
                     path_state.path_id,
                     building_location_closest_path_idx,
-                ) - entity.pos)
+                ) - update_args.entity.pos)
                     .length()
                     < CLOSE_ENOUGH_TO_TARGET
                 {
@@ -288,9 +249,10 @@ impl PathTargetSetter {
                 }
             } else {
                 path_state.set_direction(
-                    dynamic_game_state
+                    update_args
+                        .dynamic_game_state
                         .players
-                        .get(&entity.owner)
+                        .get(&update_args.entity.owner)
                         .unwrap()
                         .direction
                         .flipped(),
@@ -299,16 +261,16 @@ impl PathTargetSetter {
         }
 
         let mut target_pos = get_path_pos(
-            static_game_state,
+            update_args.static_game_state,
             path_state.path_id,
             path_state.target_path_idx,
         );
-        let pos_diff = target_pos - entity.pos;
+        let pos_diff = target_pos - update_args.entity.pos;
 
         if pos_diff.length() < CLOSE_ENOUGH_TO_TARGET {
-            path_state.incr(static_game_state);
+            path_state.incr(update_args.static_game_state);
             target_pos = get_path_pos(
-                static_game_state,
+                update_args.static_game_state,
                 path_state.path_id,
                 path_state.target_path_idx,
             );
@@ -319,15 +281,9 @@ impl PathTargetSetter {
 }
 
 impl DetectionBasedTargetSetter {
-    pub fn update(
-        _static_game_state: &StaticGameState,
-        semi_static_game_state: &SemiStaticGameState,
-        dynamic_game_state: &mut DynamicGameState,
-        entity: &mut Entity,
-        _dt: f32,
-    ) {
-        let entity_path_id = get_path_id(entity);
-        let Some(movement) = entity.movement.as_mut() else {
+    pub fn update(update_args: &mut UpdateArgs) {
+        let entity_path_id = get_path_id(update_args.entity);
+        let Some(movement) = update_args.entity.movement.as_mut() else {
             return;
         };
         let Some(detection_based_target_setter) = &mut movement.detection_based_target_setter
@@ -337,27 +293,28 @@ impl DetectionBasedTargetSetter {
 
         let detection_range = detection_based_target_setter.detection_range;
 
-        if let Some((building_spot_target, _)) = entity.building_to_construct.clone() {
-            let building_to_construct_pos = semi_static_game_state
+        if let Some((building_spot_target, _)) = update_args.entity.building_to_construct.clone() {
+            let building_to_construct_pos = update_args
+                .semi_static_game_state
                 .building_locations()
                 .get(&building_spot_target.id)
                 .unwrap()
                 .pos;
-            if (building_to_construct_pos - entity.pos).length() < detection_range {
+            if (building_to_construct_pos - update_args.entity.pos).length() < detection_range {
                 movement.movement_towards_target.target_pos = Some(building_to_construct_pos);
                 return;
             }
         }
-        for attack in &entity.attacks {
+        for attack in &update_args.entity.attacks {
             if let Some(target_entity_to_attack) = find_target_for_attack(
-                entity.id,
-                entity.tag.clone(),
-                entity.pos,
-                entity.owner,
-                entity.spy.as_ref(),
+                update_args.entity.id,
+                update_args.entity.tag.clone(),
+                update_args.entity.pos,
+                update_args.entity.owner,
+                update_args.entity.spy.as_ref(),
                 detection_range,
                 attack,
-                &mut dynamic_game_state.entities,
+                &mut update_args.dynamic_game_state.entities,
             ) {
                 if entity_path_id.is_some_and(|id| {
                     get_path_id(target_entity_to_attack).is_some_and(|other_id| id != other_id)
@@ -372,21 +329,15 @@ impl DetectionBasedTargetSetter {
 }
 
 impl EntityTargetSetter {
-    pub fn update(
-        _static_game_state: &StaticGameState,
-        _semi_static_game_state: &SemiStaticGameState,
-        dynamic_game_state: &mut DynamicGameState,
-        entity: &mut Entity,
-        _dt: f32,
-    ) {
-        let Some(movement) = entity.movement.as_mut() else {
+    pub fn update(update_args: &mut UpdateArgs) {
+        let Some(movement) = update_args.entity.movement.as_mut() else {
             return;
         };
         let Some(entity_target_setter) = &mut movement.entity_target_setter else {
             return;
         };
         movement.movement_towards_target.target_pos = find_entity(
-            &dynamic_game_state.entities,
+            &update_args.dynamic_game_state.entities,
             entity_target_setter.target_entity_id,
         )
         .map(|entity| entity.pos);

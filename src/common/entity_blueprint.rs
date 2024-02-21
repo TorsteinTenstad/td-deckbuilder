@@ -2,9 +2,11 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     component_attack::{Attack, AttackSpeed},
+    component_health::Health,
     component_movement::{Movement, MovementSpeed},
+    component_spy::Spy,
     config::PROJECTILE_RADIUS,
-    entity::{AbilityFlag, Entity, EntityState, EntityTag, Health, Spy},
+    entity::{AbilityFlag, Entity, EntityState, EntityTag},
     ids::PlayerId,
     textures::SpriteId,
 };

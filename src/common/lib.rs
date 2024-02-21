@@ -1,7 +1,10 @@
 pub mod buff;
 pub mod card;
 pub mod component_attack;
+pub mod component_buff_aura;
+pub mod component_health;
 pub mod component_movement;
+pub mod component_spy;
 pub mod config;
 pub mod entity;
 pub mod entity_blueprint;
@@ -19,5 +22,6 @@ pub mod rect_transform;
 pub mod serde_defs;
 pub mod server_player;
 pub mod textures;
+pub mod update_args;
 pub mod vector;
 pub mod world;

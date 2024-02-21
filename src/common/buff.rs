@@ -25,7 +25,7 @@ pub struct ExtraHealthBuff {
     pub seconds_left: f32,
 }
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Buff {
     AttackDamage(ArithmeticBuff),
     AttackSpeed(ArithmeticBuff),

@@ -2,7 +2,8 @@ use macroquad::math::Vec2;
 
 use crate::{
     component_attack::{Attack, TargetPool},
-    entity::{Entity, EntityTag, Spy},
+    component_spy::Spy,
+    entity::{Entity, EntityTag},
     ids::{EntityId, PlayerId},
 };
 
