@@ -1,10 +1,11 @@
 use crate::{
     buff::{apply_arithmetic_buffs, ArithmeticBuff},
+    component_health::Health,
     component_movement::Movement,
     config::PROJECTILE_RADIUS,
-    entity::{Entity, EntityState, EntityTag, Health},
+    entity::{Entity, EntityState, EntityTag},
     find_target::find_target_for_attack,
-    game_state::{DynamicGameState, SemiStaticGameState, StaticGameState},
+    update_args::UpdateArgs,
 };
 use serde::{Deserialize, Serialize};
 
@@ -135,23 +136,17 @@ pub enum AttackVariant {
 }
 
 impl Attack {
-    pub fn update(
-        _static_game_state: &StaticGameState,
-        _semi_static_game_state: &SemiStaticGameState,
-        dynamic_game_state: &mut DynamicGameState,
-        entity: &mut Entity,
-        dt: f32,
-    ) {
-        for attack in &mut entity.attacks {
+    pub fn update(update_args: &mut UpdateArgs) {
+        for attack in &mut update_args.entity.attacks {
             let Some(target_entity) = find_target_for_attack(
-                entity.id,
-                entity.tag.clone(),
-                entity.pos,
-                entity.owner,
-                entity.spy.as_ref(),
-                attack.get_range(entity.radius),
+                update_args.entity.id,
+                update_args.entity.tag.clone(),
+                update_args.entity.pos,
+                update_args.entity.owner,
+                update_args.entity.spy.as_ref(),
+                attack.get_range(update_args.entity.radius),
                 attack,
-                &mut dynamic_game_state.entities,
+                &mut update_args.dynamic_game_state.entities,
             ) else {
                 continue;
             };
@@ -159,9 +154,12 @@ impl Attack {
                 attack.cooldown_timer = attack.get_attack_speed();
                 match attack.variant {
                     AttackVariant::RangedAttack => {
-                        let mut bullet =
-                            Entity::new(EntityTag::Bullet, entity.owner, EntityState::Moving);
-                        bullet.pos = entity.pos;
+                        let mut bullet = Entity::new(
+                            EntityTag::Bullet,
+                            update_args.entity.owner,
+                            EntityState::Moving,
+                        );
+                        bullet.pos = update_args.entity.pos;
                         bullet.movement = Some(Movement::new_projectile(target_entity.id));
                         bullet.radius = PROJECTILE_RADIUS;
                         bullet.health = Health::new(1.0);
@@ -175,17 +173,17 @@ impl Attack {
                             ..Attack::default()
                         });
 
-                        dynamic_game_state.entities.push(bullet);
+                        update_args.dynamic_game_state.entities.push(bullet);
                     }
                     AttackVariant::MeleeAttack => {
                         target_entity.health.deal_damage(attack.get_damage());
                     }
                 }
                 if attack.self_destruct {
-                    entity.state = EntityState::Dead;
+                    update_args.entity.state = EntityState::Dead;
                 };
             } else {
-                attack.cooldown_timer -= dt;
+                attack.cooldown_timer -= update_args.dt;
             }
         }
     }
