@@ -62,15 +62,25 @@ class KeyboardEvent{
     sf::Keyboard::Key esc = sf::Keyboard::Key::Escape;
     bool save;
     bool saved;
+    bool undo;
+    bool undid;
     void update()
     {
         save = false;
+        undo = false;
         if (keyboard.isKeyPressed(sf::Keyboard::LControl) && keyboard.isKeyPressed(sf::Keyboard::S)){
             if(!saved){save = true;}
         saved = true;
         }
         else{
             saved = false;
+        }
+        if (keyboard.isKeyPressed(sf::Keyboard::LControl) && keyboard.isKeyPressed(sf::Keyboard::Z)){
+            if(!undid){undo = true;}
+        undid = true;
+        }
+        else{
+            undid = false;
         }
     }
 };
@@ -114,6 +124,16 @@ bool anySelected(const std::vector<entityBundle> entities)
     return false;
 }
 
+gameEntity loadGameEntities(std::string project_path)
+{
+    if(findFileInDirectory(project_path, "entities", {"json"}) != "")
+    {
+        return loadEntitiesFromFile(project_path + "/entities.json");
+    }
+    else {
+        return gameEntity(25, sf::Color(0,0,139, 128), sf::Color(0,0, 200));
+    }
+}
 
 int main() {
     std::string project_folder = "projects/";
@@ -151,11 +171,8 @@ int main() {
     if(!initializeGitRepository(project_path)){return -1;}
     std::string background_path = findFileInDirectory(project_path, "map", {"png", "jpeg"});
 
-    gameEntity game_entity = gameEntity(25, sf::Color(0,0,139, 128), sf::Color(0,0, 200));
-    if(findFileInDirectory(project_path, "entities", {"json"}) != "")
-    {
-        game_entity = loadEntitiesFromFile(project_path + "/entities.json");
-    }
+    gameEntity game_entity = loadGameEntities(project_path);
+    gitListCommits(project_path);
     MouseEvent mouse_event;
     KeyboardEvent keyboard_event;
 
@@ -171,6 +188,7 @@ int main() {
     globals.window.setView(sf::View(globals.map_texture_size / 2.f, globals.map_texture_size));
     std::vector<bool> allow_deselect;
     int deselect_id = -1;
+    bool to_head = false;
 
     // Main loop
     while (globals.window.isOpen()) {
@@ -189,6 +207,7 @@ int main() {
         {
             deselect_id = game_entity.entities[intersect_id].is_selected ? intersect_id : -1;
             game_entity.entities[intersect_id].is_selected = true;
+            to_head = true;
         }
         if (mouse_event.released_this_frame && isWithinBoundary(mouse_event.position, globals.map_texture_size)) 
         {
@@ -196,27 +215,42 @@ int main() {
             {
                 if (anySelected(game_entity.entities)){game_entity.deselectAll();}
                 else{game_entity.addEntity(mouse_event.position);}
+                to_head = true;
             }
             else if (intersect_id >= 0 && !mouse_event.moved_while_pressed && deselect_id == intersect_id)
             {
                 game_entity.entities[intersect_id].is_selected = false;
                 deselect_id = -1;
+                to_head = true;
             }
         }
 
         if (mouse_event.pressed)
         {
             game_entity.moveSelected(mouse_event.cursor_movement);
+            to_head = true;
         }
         if (keyboard_event.keyboard.isKeyPressed(keyboard_event.del) && !mouse_event.pressed)
         {
             game_entity.deleteSelectedEntities();
+            to_head = true;
         }
         if (keyboard_event.keyboard.isKeyPressed(keyboard_event.esc) && !mouse_event.pressed)
         {
             game_entity.deselectAll();
+            to_head= true;
         }
-        if (keyboard_event.save){saveEntitiesToFile(project_path + "/entities.json", game_entity);}
+        if (keyboard_event.save){
+            saveEntitiesAndCommit(project_path, "entities.json", game_entity);
+            gitListCommits(project_path);
+            to_head = false;}
+        if (keyboard_event.undo)
+        {
+            gitUndo(project_path, to_head);
+            gitListCommits(project_path);
+            game_entity = loadGameEntities(project_path);
+            to_head = false;
+        }
 
         // Clear the window
         globals.window.clear(sf::Color::White);

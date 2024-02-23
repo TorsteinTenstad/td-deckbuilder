@@ -1,3 +1,4 @@
+#pragma once
 #include <fstream>
 #include <iostream>
 #include <filesystem>
@@ -8,6 +9,7 @@
 #include "nlohmann/adl_serializer.hpp"
 #include "nlohmann/detail/iterators/iteration_proxy.hpp"
 #include "nlohmann/json_fwd.hpp"
+#include "git.cpp"
 
 namespace fs = std::filesystem;
 using json = nlohmann::json;
@@ -159,6 +161,7 @@ std::string createNewProject(std::string project_folder) {
     return project_name;
 }
 
+
 void saveEntitiesToFile(std::string filename, const gameEntity& game_entity)
 {
     std::ofstream f;
@@ -166,6 +169,14 @@ void saveEntitiesToFile(std::string filename, const gameEntity& game_entity)
 
     json j = game_entity;
     f << j << std::endl;
+}
+
+bool saveEntitiesAndCommit(const std::string project_path, const std::string filename, const gameEntity& game_entity)
+{
+    saveEntitiesToFile(project_path +"/"+ filename, game_entity);
+    bool commited = gitStageAndCommit(project_path, filename);
+    std::cout<<commited<<"\n";
+    return commited;
 }
 
 gameEntity loadEntitiesFromFile(std::string filename)
