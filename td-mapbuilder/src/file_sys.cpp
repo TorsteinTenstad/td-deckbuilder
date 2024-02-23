@@ -175,7 +175,6 @@ bool saveEntitiesAndCommit(const std::string project_path, const std::string fil
 {
     saveEntitiesToFile(project_path +"/"+ filename, game_entity);
     bool commited = gitStageAndCommit(project_path, filename);
-    std::cout<<commited<<"\n";
     return commited;
 }
 

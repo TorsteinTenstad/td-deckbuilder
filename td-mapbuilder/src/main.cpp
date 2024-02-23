@@ -242,12 +242,10 @@ int main() {
         }
         if (keyboard_event.save){
             saveEntitiesAndCommit(project_path, "entities.json", game_entity);
-            gitListCommits(project_path);
             to_head = false;}
         if (keyboard_event.undo)
         {
             gitUndo(project_path, to_head);
-            gitListCommits(project_path);
             game_entity = loadGameEntities(project_path);
             to_head = false;
         }
