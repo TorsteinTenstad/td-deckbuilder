@@ -131,7 +131,7 @@ gameEntity loadGameEntities(std::string project_path)
         return loadEntitiesFromFile(project_path + "/entities.json");
     }
     else {
-        return gameEntity(25, sf::Color(0,0,139, 128), sf::Color(0,0, 200));
+        return {25, sf::Color(0,0,139, 128), sf::Color(0,0, 200)};
     }
 }
 
@@ -168,11 +168,10 @@ int main() {
     }
     
     std::string project_path = project_folder + project_name;
-    if(!initializeGitRepository(project_path)){return -1;}
+    gitHandler git_handler = gitHandler(project_path);
     std::string background_path = findFileInDirectory(project_path, "map", {"png", "jpeg"});
 
     gameEntity game_entity = loadGameEntities(project_path);
-    gitListCommits(project_path);
     MouseEvent mouse_event;
     KeyboardEvent keyboard_event;
 
@@ -241,11 +240,13 @@ int main() {
             to_head= true;
         }
         if (keyboard_event.save){
-            saveEntitiesAndCommit(project_path, "entities.json", game_entity);
+            saveEntitiesToFile(project_path + "/entities.json", game_entity);
+            git_handler.stageAndCommit({"entities.json"});
+            saveCommitIdToFile(project_path + "/oid.txt", git_handler.commit_ids.back());
             to_head = false;}
         if (keyboard_event.undo)
         {
-            gitUndo(project_path, to_head);
+            git_handler.Undo(to_head);
             game_entity = loadGameEntities(project_path);
             to_head = false;
         }

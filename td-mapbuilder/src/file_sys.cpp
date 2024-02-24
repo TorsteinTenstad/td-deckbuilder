@@ -5,11 +5,10 @@
 #include "SFML/Graphics/Color.hpp"
 #include "SFML/System/Vector2.hpp"
 #include "game_entity.hpp"
+#include "git2/oid.h"
 #include "json.hpp"
 #include "nlohmann/adl_serializer.hpp"
-#include "nlohmann/detail/iterators/iteration_proxy.hpp"
 #include "nlohmann/json_fwd.hpp"
-#include "git.cpp"
 
 namespace fs = std::filesystem;
 using json = nlohmann::json;
@@ -171,11 +170,13 @@ void saveEntitiesToFile(std::string filename, const gameEntity& game_entity)
     f << j << std::endl;
 }
 
-bool saveEntitiesAndCommit(const std::string project_path, const std::string filename, const gameEntity& game_entity)
+void saveCommitIdToFile(std::string filename, git_oid oid)
 {
-    saveEntitiesToFile(project_path +"/"+ filename, game_entity);
-    bool commited = gitStageAndCommit(project_path, filename);
-    return commited;
+    std::ofstream f;
+    f.open(filename);
+    char commit_id[GIT_OID_HEXSZ + 1];
+    git_oid_tostr(commit_id, sizeof(commit_id), &oid);
+    f << commit_id;
 }
 
 gameEntity loadEntitiesFromFile(std::string filename)
@@ -192,4 +193,15 @@ gameEntity loadEntitiesFromFile(std::string filename)
     game_entity.entities = j["entities"].template get<std::vector<entityBundle>>();
     game_entity.reconstructEntityShapes();
     return game_entity;
+}
+
+git_oid loadCommitIdFromFile(std::string filename)
+{
+    git_oid oid;
+    std::ifstream f;
+    f.open(filename);
+    char commit_id[GIT_OID_HEXSZ + 1];
+    f >> commit_id;
+    git_oid_fromstr(&oid, commit_id);
+    return oid;
 }
