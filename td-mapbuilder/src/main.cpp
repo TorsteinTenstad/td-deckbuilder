@@ -60,14 +60,17 @@ class KeyboardEvent{
     sf::Keyboard keyboard;
     sf::Keyboard::Key del = sf::Keyboard::Key::Backspace;
     sf::Keyboard::Key esc = sf::Keyboard::Key::Escape;
-    bool save;
+    bool save = false;
     bool saved;
-    bool undo;
+    bool undo = false;
     bool undid;
+    bool redo = false;
+    bool redid;
     void update()
     {
         save = false;
         undo = false;
+        redo = false;
         if (keyboard.isKeyPressed(sf::Keyboard::LControl) && keyboard.isKeyPressed(sf::Keyboard::S)){
             if(!saved){save = true;}
         saved = true;
@@ -81,6 +84,13 @@ class KeyboardEvent{
         }
         else{
             undid = false;
+        }
+        if (keyboard.isKeyPressed(sf::Keyboard::LControl) && keyboard.isKeyPressed(sf::Keyboard::Y)){
+            if(!redid){redo = true;}
+        redid = true;
+        }
+        else{
+            redid = false;
         }
     }
 };
@@ -247,6 +257,12 @@ int main() {
         if (keyboard_event.undo)
         {
             git_handler.Undo(to_head);
+            game_entity = loadGameEntities(project_path);
+            to_head = false;
+        }
+        if (keyboard_event.redo)
+        {
+            git_handler.Redo();
             game_entity = loadGameEntities(project_path);
             to_head = false;
         }

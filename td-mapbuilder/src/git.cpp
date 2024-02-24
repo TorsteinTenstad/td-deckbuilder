@@ -169,6 +169,11 @@ class gitHandler{
         const_parent = parent;
         if (git_commit_create(&commit_id, repo, "HEAD", sig, sig, NULL, "Update entities", tree, 1, &const_parent) != 0){return false;}
 
+        idx += 1;
+        for(int i = idx; i < commit_ids.size(); i ++)
+        {
+            commit_ids.erase(commit_ids.begin() + idx);
+        }
         commit_ids.push_back(commit_id);
         git_commit_free(parent);
         git_tree_free(tree);
@@ -214,48 +219,44 @@ class gitHandler{
         return 0;
     }
 
-    bool Undo(bool to_head)
+    bool LoadCommit(git_oid commit)
     {
         const char* path = repository_path.c_str();
         git_libgit2_init();
 
         git_repository* repo = nullptr;
-        git_signature* sig = nullptr;
-        git_index* index = nullptr;
-        git_oid tree_id, temp_id, parent_id;
-        git_commit* temp_commit = nullptr;
         git_object* commit_object = nullptr;
-        git_tree* tree = nullptr;
-        if (git_repository_open(&repo, path) != 0){return false;}
-        if (git_signature_default(&sig, repo) < 0){return false;}
-        if (git_repository_index(&index, repo) < 0) {return false;}
-        if (git_index_write_tree(&tree_id, index) < 0){return false;}
-
-        git_index_free(index);
-        if (git_tree_lookup(&tree, repo, &tree_id) < 0){return false;}
-        if (git_reference_name_to_id(&temp_id, repo, "HEAD") != 0){return false;}
-        if (to_head)
-        {
-            parent_id = temp_id;
-        }
-        else
-        {
-            if(git_commit_lookup(&temp_commit, repo, &temp_id) != 0){return false;}
-            if(git_commit_parentcount(temp_commit) == 0){return false;}
-            parent_id = *git_commit_parent_id(temp_commit, 0);
-        }
-        if(git_object_lookup(&commit_object, repo, &parent_id, GIT_OBJECT_COMMIT) != 0){return false;}
-        
         git_checkout_options options{GIT_CHECKOUT_OPTIONS_VERSION, GIT_CHECKOUT_SAFE};
+        if (git_repository_open(&repo, path) != 0){return false;}
+        if(git_object_lookup(&commit_object, repo, &commit, GIT_OBJECT_COMMIT) != 0){return false;}
+        
     
         if(git_reset(repo, commit_object, GIT_RESET_HARD, &options)!= 0){return false;}
 
-        git_commit_free(temp_commit);
         git_object_free(commit_object);
-        git_tree_free(tree);
-        git_signature_free(sig);
         git_repository_free(repo);
         git_libgit2_shutdown();
         return true;
+    }
+
+    bool Undo(bool to_head)
+    {
+        if (idx == 0){return false;}
+        if(LoadCommit(commit_ids[idx - !to_head]))
+        {
+            idx = idx - !to_head;
+            return true;
+        };
+        return false;
+    }
+
+    bool Redo()
+    {
+        if(idx >= commit_ids.size() - 1){return false;}
+        if(LoadCommit(commit_ids[idx + 1])){
+            idx = idx + 1;
+            return true;
+        }
+        return false;
     }
 };
