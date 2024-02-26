@@ -1,11 +1,8 @@
 #pragma once
 #include "SFML/Graphics/Color.hpp"
 #include "SFML/System/Vector2.hpp"
-#include "json.hpp"
 #include <SFML/Graphics.hpp>
 #include <cassert>
-#include <cstdint>
-using json = nlohmann::json;
 
 struct entityBundle
 {

@@ -16,42 +16,44 @@
 #include <cstddef>
 #include <iostream>
 #include <git2.h>
-#include <utility>
 #include <vector>
 #include "file_sys.cpp"
 
 class gitHandler{
+    private:
+    bool initializeRepository(git_repository* repo, int r_value) {
+    if (r_value != 0) {
+        // Directory is not a Git repository, initialize it
+        r_value = git_repository_init(&repo, repository_path.c_str(), false);
+        if (r_value != 0) {
+            // Handle initialization error
+            return false;
+        }
+        // Repository initialized successfully
+        // Create initial commit
+        if(!initialCommit(repo))
+            return false;
+    }
+    return true;
+    }
+    
     public:
     std::string repository_path;
     std::vector<git_oid> commit_ids;
     int idx;
 
-    gitHandler(std::string project_path) : repository_path(project_path)
+    gitHandler(std::string project_path) : repository_path(std::move(project_path))
     {
+        auto func = [this](git_repository* repo, int r_value){ 
         // Initialize and push initial commit if project_path is not an existing repo. Commit_ids and idx are set by iterating backwards either from HEAD or cached id at 'project_path/oid.txt'.
-        git_libgit2_init();
-        const char* path = repository_path.c_str();
-        git_repository* repo = nullptr;
-        int error = git_repository_open(&repo,  path);
-
-        if (error != 0) {
-            // Directory is not a Git repository, initialize it
-            error = git_repository_init(&repo, path, false);
-            if (error != 0) {
-                // Handle initialization error
-                git_libgit2_shutdown();
-                return;
-            }
-            // Create initial commit to new repository
-            if(!initialCommit(repo)){return;}
-        } 
+        if(!initializeRepository(repo, r_value)){return false;}
 
         // Fill commit_ids and set the index of head
         git_oid head_id, end_id;
-        if (git_reference_name_to_id(&head_id, repo, "HEAD") != 0){return;}
-        if (findFileInDirectory(project_path, "oid", {"txt"}) != "")
+        if (git_reference_name_to_id(&head_id, repo, "HEAD") != 0){return false;}
+        if (findFileInDirectory(repository_path, "oid", {"txt"}) != "")
         {
-            end_id = loadCommitIdFromFile(project_path + "/oid.txt");
+            end_id = loadCommitIdFromFile(repository_path + "/oid.txt");
             git_commit* commit = nullptr;
             if(git_commit_lookup(&commit, repo, &end_id) != 0){end_id = head_id;}
             git_commit_free(commit);
@@ -76,34 +78,38 @@ class gitHandler{
             if (git_oid_equal(&head_id, &end_id)){iterate= true;}
         }
         idx = i;
+        assert(iterate); // If iterate is false, the stored oid is a valid id, but head is not an ancestor. That will cause undefined behavior during editing.
 
         // Clean up
         git_revwalk_free(walker);
+        return true;};
+        gitInitWrapper(func);
+    }
+    
+    bool gitInitWrapper(std::function<bool(git_repository* repo, int r_value)> func)
+    {
+        git_libgit2_init();
+        git_repository* repo = nullptr;
+        int r = git_repository_open(&repo, repository_path.c_str());
+        bool t = func(repo, r);
         git_repository_free(repo);
         git_libgit2_shutdown();
-        return;
+        return t;
     }
+
     bool initialCommit(git_repository* repo){
         git_signature* sig = nullptr;
         git_index* index = nullptr;
         git_oid tree_id, commit_id;
         git_tree* tree = nullptr;
-        if(git_signature_default(&sig, repo) < 0){
-            assert(false);
-        }
-        if (git_repository_index(&index, repo) < 0)
-            assert(false);
-
-        if (git_index_write_tree(&tree_id, index) < 0)
-            assert(false);
+        if(git_signature_default(&sig, repo) < 0){assert(false);}
+        if (git_repository_index(&index, repo) < 0)assert(false);
+        if (git_index_write_tree(&tree_id, index) < 0)assert(false);
 
         git_index_free(index);
-        if (git_tree_lookup(&tree, repo, &tree_id) < 0)
-            assert(false);
-        
+        if (git_tree_lookup(&tree, repo, &tree_id) < 0)assert(false);
         if (git_commit_create( &commit_id, repo, "HEAD", sig, sig,
-                NULL, "Initial commit", tree, 0, NULL) < 0)
-            assert(false);
+                NULL, "Initial commit", tree, 0, NULL) < 0)assert(false);
 
         git_tree_free(tree);
         git_signature_free(sig);
@@ -111,49 +117,16 @@ class gitHandler{
         return true;
     }
 
-    bool initializeRepository() {
-        const char* path = repository_path.c_str();
-        git_libgit2_init();
-
-        git_repository* repo = nullptr;
-        int error = git_repository_open(&repo, path);
-
-        if (error != 0) {
-            // Directory is not a Git repository, initialize it
-            error = git_repository_init(&repo, path, false);
-            if (error != 0) {
-                // Handle initialization error
-                git_libgit2_shutdown();
-                return false;
-            }
-            // Repository initialized successfully
-
-            // Create initial commit
-            if(!initialCommit(repo))
-                return false;
-        }
-
-        //std::cout << git_repository_path(repo) << "\n";
-        
-        // Clean up
-        git_repository_free(repo);
-        git_libgit2_shutdown();
-        return true;
-    }
 
     bool stageAndCommit(const std::vector<std::string> stage_files)
     {
-        const char* path = repository_path.c_str();
-        git_libgit2_init();
+        auto func = [&stage_files, this](git_repository* repo, int r_value){
 
-        git_repository* repo = nullptr;
         git_signature* sig = nullptr;
         git_index* index = nullptr;
         git_oid tree_id, commit_id, parent_id;
-        git_commit* parent = nullptr;
-        const git_commit* const_parent = nullptr;
-        git_tree* tree = nullptr;
-        if (git_repository_open(&repo, path) != 0){return false;}
+        const git_oid* c_parent_id = nullptr;
+
         if (git_signature_default(&sig, repo) < 0){return false;}
         if (git_repository_index(&index, repo) < 0) {return false;}
         for(const std::string& file: stage_files)
@@ -163,11 +136,9 @@ class gitHandler{
         if (git_index_write_tree(&tree_id, index) < 0){return false;}
 
         git_index_free(index);
-        if (git_tree_lookup(&tree, repo, &tree_id) < 0){return false;}
         if (git_reference_name_to_id(&parent_id, repo, "HEAD") != 0){return false;}
-        if (git_commit_lookup(&parent, repo, &parent_id) != 0){return false;}
-        const_parent = parent;
-        if (git_commit_create(&commit_id, repo, "HEAD", sig, sig, NULL, "Update entities", tree, 1, &const_parent) != 0){return false;}
+        c_parent_id = &parent_id;
+        if (git_commit_create_from_ids(&commit_id, repo, "HEAD", sig, sig, NULL, "Update entities", &tree_id, 1, &c_parent_id) != 0){return false;}
 
         idx += 1;
         for(int i = idx; i < commit_ids.size(); i ++)
@@ -175,29 +146,18 @@ class gitHandler{
             commit_ids.erase(commit_ids.begin() + idx);
         }
         commit_ids.push_back(commit_id);
-        git_commit_free(parent);
-        git_tree_free(tree);
         git_signature_free(sig);
-        git_repository_free(repo);
-        git_libgit2_shutdown();
         return true;
+        };
+        return gitInitWrapper(func);
     }
 
     bool ListCommits()
     {
-        const char* path = repository_path.c_str();
-        git_libgit2_init();
-        // Open a repository
-        git_repository *repo = nullptr;
-        int error = git_repository_open(&repo, path);
-
-        if (error != 0) {
-            const git_error *e = giterr_last();
-            std::cerr << "Error: " << e->message << std::endl;
-            git_libgit2_shutdown();
-            return 1;
-        }
-
+        auto func = [](git_repository* repo, int r_value){ 
+            
+        if (r_value!= 0){return false;}
+        
         // List commits
         git_revwalk *walker = nullptr;
         git_revwalk_new(&walker, repo);
@@ -213,30 +173,26 @@ class gitHandler{
 
         // Cleanup
         git_revwalk_free(walker);
-        git_repository_free(repo);
-        git_libgit2_shutdown();
 
-        return 0;
+        return true;};
+        return gitInitWrapper(func);       
     }
 
     bool LoadCommit(git_oid commit)
     {
-        const char* path = repository_path.c_str();
-        git_libgit2_init();
+        auto func = [&commit](git_repository* repo, int r_value){
+        if(r_value != 0){return false;}
 
-        git_repository* repo = nullptr;
         git_object* commit_object = nullptr;
         git_checkout_options options{GIT_CHECKOUT_OPTIONS_VERSION, GIT_CHECKOUT_SAFE};
-        if (git_repository_open(&repo, path) != 0){return false;}
         if(git_object_lookup(&commit_object, repo, &commit, GIT_OBJECT_COMMIT) != 0){return false;}
         
-    
         if(git_reset(repo, commit_object, GIT_RESET_HARD, &options)!= 0){return false;}
 
         git_object_free(commit_object);
-        git_repository_free(repo);
-        git_libgit2_shutdown();
         return true;
+        };
+        return gitInitWrapper(func);
     }
 
     bool Undo(bool to_head)
