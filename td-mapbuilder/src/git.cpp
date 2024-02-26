@@ -75,7 +75,7 @@ class gitHandler{
         while (!git_revwalk_next(&oid, walker)) {
             if(iterate){i += 1;}
             commit_ids.insert(commit_ids.begin(), oid);
-            if (git_oid_equal(&head_id, &end_id)){iterate= true;}
+            if (git_oid_equal(&head_id, &oid)){iterate= true;}
         }
         idx = i;
         assert(iterate); // If iterate is false, the stored oid is a valid id, but head is not an ancestor. That will cause undefined behavior during editing.
