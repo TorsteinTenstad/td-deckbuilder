@@ -145,8 +145,8 @@ gameEntity loadGameEntities(std::string project_path)
     }
 }
 
-int main() {
-    std::string project_folder = "projects/";
+std::string initProject(std::string project_folder)
+{
     if (!fs::is_directory(project_folder))
     {
         fs::create_directory(project_folder);
@@ -160,11 +160,11 @@ int main() {
     std::cout << "Select a project or choose 'new' to create a new project: ";
     while(true){
         std::cin >> userInput;
-        if (userInput == "break"){return -1;}
+        if (userInput == "break"){return "";}
 
         else if (userInput == "new") {
             project_name = createNewProject(project_folder);
-            if (project_name == ""){return -1;};
+            if (project_name == ""){return "";};
             break;
         }
 
@@ -177,7 +177,16 @@ int main() {
         }
     }
     
-    std::string project_path = project_folder + project_name;
+    return project_folder + project_name;
+}
+
+
+
+int main() {
+    std::string project_folder = "projects/";
+    std::string project_path = initProject(project_folder);
+    if (project_path == ""){return -1;}
+
     gitHandler git_handler = gitHandler(project_path);
     std::string background_path = findFileInDirectory(project_path, "map", {"png", "jpeg"});
 
