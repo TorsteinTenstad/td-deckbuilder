@@ -3,6 +3,7 @@
 #include "SFML/System/Vector2.hpp"
 #include <SFML/Graphics.hpp>
 #include <iostream>
+#include <utility>
 #include <vector>
 #include "SFML/Window/Keyboard.hpp"
 #include "SFML/Window/Window.hpp"
@@ -55,43 +56,42 @@ class MouseEvent
     }
 };
 
+class oneFrameKey{
+    private:
+    bool pressed = false;
+    std::vector<sf::Keyboard::Key> keys; 
+    public:
+    bool this_frame = false;
+    oneFrameKey(std::vector<sf::Keyboard::Key> keys) : keys(std::move(keys)){};
+    void Update(sf::Keyboard& keyboard)
+    {
+        this_frame = false;
+        for(sf::Keyboard::Key& key: keys)
+        {
+            if(!keyboard.isKeyPressed(key))
+            {
+                pressed = false;
+                return;
+            }
+        }
+        if(!pressed){this_frame = true;}
+        pressed = true;
+    }
+};
+
 class KeyboardEvent{
     public:
     sf::Keyboard keyboard;
     sf::Keyboard::Key del = sf::Keyboard::Key::Backspace;
     sf::Keyboard::Key esc = sf::Keyboard::Key::Escape;
-    bool save = false;
-    bool saved;
-    bool undo = false;
-    bool undid;
-    bool redo = false;
-    bool redid;
+    oneFrameKey save = {{sf::Keyboard::Key::LControl, sf::Keyboard::Key::S}};
+    oneFrameKey undo = {{sf::Keyboard::Key::LControl, sf::Keyboard::Key::Z}};
+    oneFrameKey redo = {{sf::Keyboard::Key::LControl, sf::Keyboard::Key::Y}};
     void update()
     {
-        save = false;
-        undo = false;
-        redo = false;
-        if (keyboard.isKeyPressed(sf::Keyboard::LControl) && keyboard.isKeyPressed(sf::Keyboard::S)){
-            if(!saved){save = true;}
-        saved = true;
-        }
-        else{
-            saved = false;
-        }
-        if (keyboard.isKeyPressed(sf::Keyboard::LControl) && keyboard.isKeyPressed(sf::Keyboard::Z)){
-            if(!undid){undo = true;}
-        undid = true;
-        }
-        else{
-            undid = false;
-        }
-        if (keyboard.isKeyPressed(sf::Keyboard::LControl) && keyboard.isKeyPressed(sf::Keyboard::Y)){
-            if(!redid){redo = true;}
-        redid = true;
-        }
-        else{
-            redid = false;
-        }
+        save.Update(keyboard);
+        undo.Update(keyboard);
+        redo.Update(keyboard);
     }
 };
 
@@ -249,18 +249,18 @@ int main() {
             game_entity.deselectAll();
             to_head= true;
         }
-        if (keyboard_event.save){
+        if (keyboard_event.save.this_frame){
             saveEntitiesToFile(project_path + "/entities.json", game_entity);
             git_handler.stageAndCommit({"entities.json"});
             saveCommitIdToFile(project_path + "/oid.txt", git_handler.commit_ids.back());
             to_head = false;}
-        if (keyboard_event.undo)
+        if (keyboard_event.undo.this_frame)
         {
             git_handler.Undo(to_head);
             game_entity = loadGameEntities(project_path);
             to_head = false;
         }
-        if (keyboard_event.redo)
+        if (keyboard_event.redo.this_frame)
         {
             git_handler.Redo();
             game_entity = loadGameEntities(project_path);
