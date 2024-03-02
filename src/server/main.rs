@@ -10,6 +10,7 @@ use common::network::{hash_client_addr, ClientMessage, ServerMessage, ServerMess
 use common::server_player::ServerPlayer;
 use common::world::BuildingLocation;
 use common::*;
+use itertools::Itertools;
 use macroquad::math::Vec2;
 use std::collections::hash_map;
 use std::collections::HashMap;
@@ -179,8 +180,32 @@ fn main() -> std::io::Result<()> {
         }
 
         game_state.game_metadata.server_tick += 1;
-        for (_client_id, client) in game_state.dynamic_game_state.players.iter_mut() {
-            client.hand.step(dt)
+        for (client_id, client) in game_state.dynamic_game_state.players.iter_mut() {
+            let draw_speed_buffs = game_state
+                .dynamic_game_state
+                .entities
+                .iter()
+                .filter_map(|entity| {
+                    if entity.owner != *client_id {
+                        return None;
+                    }
+                    entity.draw_speed_buff.clone()
+                })
+                .collect_vec();
+            let energy_generation_buffs = game_state
+                .dynamic_game_state
+                .entities
+                .iter()
+                .filter_map(|entity| {
+                    if entity.owner != *client_id {
+                        return None;
+                    }
+                    entity.energy_generation_buff.clone()
+                })
+                .collect_vec();
+            client
+                .hand
+                .step(dt, &draw_speed_buffs, &energy_generation_buffs);
         }
 
         game_loop::update_game_state(&mut game_state, dt);

@@ -1,7 +1,7 @@
 use common::{
-    component_attack::Attack, component_buff_aura::BuffAura, component_health::Health,
-    component_movement::Movement, config::CLOSE_ENOUGH_TO_TARGET, entity::EntityState,
-    find_target::find_target_for_attack, game_state::ServerControledGameState,
+    buff::buff_update_timers, component_attack::Attack, component_buff_aura::BuffAura,
+    component_health::Health, component_movement::Movement, config::CLOSE_ENOUGH_TO_TARGET,
+    entity::EntityState, find_target::find_target_for_attack, game_state::ServerControledGameState,
     update_args::UpdateArgs, world::world_place_building,
 };
 
@@ -111,6 +111,7 @@ pub fn update_entity(update_args: &mut UpdateArgs) {
         EntityState::Passive | EntityState::Dead => {}
     }
 
+    buff_update_timers(update_args.entity, update_args.dt);
     BuffAura::update(update_args);
     Health::update(update_args);
 }

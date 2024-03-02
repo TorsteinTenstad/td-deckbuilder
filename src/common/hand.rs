@@ -1,7 +1,6 @@
+use crate::buff::{apply_arithmetic_buffs, ArithmeticBuff};
 use crate::card::{Card, CardInstance};
-use crate::gameplay_config::{
-    BASE_SECONDS_TO_DRAW_CARD, BASE_SECONDS_TO_GET_ENERGY, MAX_HAND_SIZE,
-};
+use crate::gameplay_config::{CARD_DRAW_PER_SECOND, ENERGY_PER_SECOND, MAX_HAND_SIZE};
 use crate::ids::CardInstanceId;
 use crate::vector::{pop_where, shuffle_vec};
 use itertools::Itertools;
@@ -51,9 +50,16 @@ impl Hand {
         Some(card)
     }
 
-    pub fn step(&mut self, dt: f32) {
-        self.card_draw_counter += dt / BASE_SECONDS_TO_DRAW_CARD;
-        self.energy_counter += dt / BASE_SECONDS_TO_GET_ENERGY;
+    pub fn step(
+        &mut self,
+        dt: f32,
+        draw_speed_buffs: &[ArithmeticBuff],
+        energy_generation_buffs: &[ArithmeticBuff],
+    ) {
+        self.card_draw_counter +=
+            dt * apply_arithmetic_buffs(CARD_DRAW_PER_SECOND, draw_speed_buffs);
+        self.energy_counter +=
+            dt * apply_arithmetic_buffs(ENERGY_PER_SECOND, energy_generation_buffs);
 
         if self.card_draw_counter >= 1.0 {
             self.draw();

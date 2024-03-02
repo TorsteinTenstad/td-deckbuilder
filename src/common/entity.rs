@@ -1,3 +1,4 @@
+use crate::buff::ArithmeticBuff;
 use crate::component_buff_aura::BuffAura;
 use crate::component_health::Health;
 use crate::component_movement::Movement;
@@ -49,6 +50,8 @@ pub struct Entity {
     pub movement: Option<Movement>,
     pub spy: Option<Spy>,
     pub buff_auras: Vec<BuffAura>,
+    pub draw_speed_buff: Option<ArithmeticBuff>,
+    pub energy_generation_buff: Option<ArithmeticBuff>,
     pub attacks: Vec<Attack>,
     pub usable_as_spawn_point: bool,
     pub seconds_left_to_live: Option<f32>,
@@ -71,6 +74,8 @@ impl Entity {
             movement: None,
             spy: None,
             buff_auras: Vec::new(),
+            draw_speed_buff: None,
+            energy_generation_buff: None,
             attacks: Vec::new(),
             usable_as_spawn_point: false,
             seconds_left_to_live: None,

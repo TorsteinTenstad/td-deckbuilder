@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::{
+    buff::ArithmeticBuff,
     component_attack::{Attack, AttackSpeed},
     component_health::Health,
     component_movement::{Movement, MovementSpeed},
@@ -195,10 +196,18 @@ impl EntityBlueprint {
             EntityBlueprint::Farm => {
                 entity.health = Health::new(200.0);
                 entity.sprite_id = SpriteId::BuildingTower;
+                entity.draw_speed_buff = Some(ArithmeticBuff {
+                    multiplier: 1.2,
+                    ..Default::default()
+                });
             }
             EntityBlueprint::TradingPlace => {
                 entity.health = Health::new(300.0);
                 entity.sprite_id = SpriteId::BuildingTower;
+                entity.energy_generation_buff = Some(ArithmeticBuff {
+                    additive_value: 0.1,
+                    ..Default::default()
+                });
             }
             EntityBlueprint::SpawnPoint => {
                 entity.health = Health::new(400.0);
