@@ -38,43 +38,48 @@ pub enum PlayTarget {
     Entity(EntityTarget),
 }
 
+pub struct SpecificPlayFn<T> {
+    pub play:
+        fn(T, PlayerId, &StaticGameState, &mut SemiStaticGameState, &mut DynamicGameState) -> bool,
+    pub target_is_invalid:
+        Option<fn(&T, PlayerId, &StaticGameState, &SemiStaticGameState, &DynamicGameState) -> bool>,
+}
+
+impl<T> SpecificPlayFn<T> {
+    pub const fn new(
+        play: fn(
+            T,
+            PlayerId,
+            &StaticGameState,
+            &mut SemiStaticGameState,
+            &mut DynamicGameState,
+        ) -> bool,
+    ) -> Self {
+        SpecificPlayFn {
+            play,
+            target_is_invalid: None,
+        }
+    }
+    pub const fn with_target_is_invalid(
+        mut self,
+        target_is_invalid: fn(
+            &T,
+            PlayerId,
+            &StaticGameState,
+            &SemiStaticGameState,
+            &DynamicGameState,
+        ) -> bool,
+    ) -> Self {
+        self.target_is_invalid = Some(target_is_invalid);
+        self
+    }
+}
+
 pub enum PlayFn {
-    WorldPos(
-        fn(
-            WorldPosTarget,
-            PlayerId,
-            &StaticGameState,
-            &mut SemiStaticGameState,
-            &mut DynamicGameState,
-        ) -> bool,
-    ),
-    UnitSpawnPoint(
-        fn(
-            UnitSpawnpointTarget,
-            PlayerId,
-            &StaticGameState,
-            &mut SemiStaticGameState,
-            &mut DynamicGameState,
-        ) -> bool,
-    ),
-    BuildingSpot(
-        fn(
-            BuildingSpotTarget,
-            PlayerId,
-            &StaticGameState,
-            &mut SemiStaticGameState,
-            &mut DynamicGameState,
-        ) -> bool,
-    ),
-    Entity(
-        fn(
-            EntityTarget,
-            PlayerId,
-            &StaticGameState,
-            &mut SemiStaticGameState,
-            &mut DynamicGameState,
-        ) -> bool,
-    ),
+    WorldPos(SpecificPlayFn<WorldPosTarget>),
+    UnitSpawnPoint(SpecificPlayFn<UnitSpawnpointTarget>),
+    BuildingSpot(SpecificPlayFn<BuildingSpotTarget>),
+    Entity(SpecificPlayFn<EntityTarget>),
 }
 
 impl PlayFn {
@@ -87,35 +92,90 @@ impl PlayFn {
         dynamic_game_state: &mut DynamicGameState,
     ) -> bool {
         match (self, target) {
-            (PlayFn::WorldPos(f), PlayTarget::WorldPos(target)) => f(
-                target,
-                owner,
-                static_game_state,
-                semi_static_game_state,
-                dynamic_game_state,
-            ),
-            (PlayFn::UnitSpawnPoint(f), PlayTarget::UnitSpawnPoint(target)) => f(
-                target,
-                owner,
-                static_game_state,
-                semi_static_game_state,
-                dynamic_game_state,
-            ),
-            (PlayFn::BuildingSpot(f), PlayTarget::BuildingSpot(target)) => f(
-                target,
-                owner,
-                static_game_state,
-                semi_static_game_state,
-                dynamic_game_state,
-            ),
-            (PlayFn::Entity(f), PlayTarget::Entity(target)) => f(
-                target,
-                owner,
-                static_game_state,
-                semi_static_game_state,
-                dynamic_game_state,
-            ),
-            _ => panic!("Invalid target for play fn"),
+            (PlayFn::WorldPos(specific_play_fn), PlayTarget::WorldPos(target)) => {
+                if specific_play_fn.target_is_invalid.is_some_and(|f| {
+                    f(
+                        &target,
+                        owner,
+                        static_game_state,
+                        semi_static_game_state,
+                        dynamic_game_state,
+                    )
+                }) {
+                    return false;
+                }
+                (specific_play_fn.play)(
+                    target,
+                    owner,
+                    static_game_state,
+                    semi_static_game_state,
+                    dynamic_game_state,
+                )
+            }
+            (PlayFn::UnitSpawnPoint(specific_play_fn), PlayTarget::UnitSpawnPoint(target)) => {
+                if specific_play_fn.target_is_invalid.is_some_and(|f| {
+                    f(
+                        &target,
+                        owner,
+                        static_game_state,
+                        semi_static_game_state,
+                        dynamic_game_state,
+                    )
+                }) {
+                    return false;
+                }
+                (specific_play_fn.play)(
+                    target,
+                    owner,
+                    static_game_state,
+                    semi_static_game_state,
+                    dynamic_game_state,
+                )
+            }
+            (PlayFn::BuildingSpot(specific_play_fn), PlayTarget::BuildingSpot(target)) => {
+                if specific_play_fn.target_is_invalid.is_some_and(|f| {
+                    f(
+                        &target,
+                        owner,
+                        static_game_state,
+                        semi_static_game_state,
+                        dynamic_game_state,
+                    )
+                }) {
+                    return false;
+                }
+                (specific_play_fn.play)(
+                    target,
+                    owner,
+                    static_game_state,
+                    semi_static_game_state,
+                    dynamic_game_state,
+                )
+            }
+            (PlayFn::Entity(specific_play_fn), PlayTarget::Entity(target)) => {
+                if specific_play_fn.target_is_invalid.is_some_and(|f| {
+                    f(
+                        &target,
+                        owner,
+                        static_game_state,
+                        semi_static_game_state,
+                        dynamic_game_state,
+                    )
+                }) {
+                    return false;
+                }
+                (specific_play_fn.play)(
+                    target,
+                    owner,
+                    static_game_state,
+                    semi_static_game_state,
+                    dynamic_game_state,
+                )
+            }
+            _ => {
+                println!("Invalid target for play fn");
+                false
+            }
         }
     }
 }

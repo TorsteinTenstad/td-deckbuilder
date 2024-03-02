@@ -31,7 +31,7 @@ fn main() -> std::io::Result<()> {
         );
     }
 
-    for (x, y) in BUILDING_LOCATIONS {
+    for (zoning, (x, y)) in BUILDING_LOCATIONS {
         game_state
             .semi_static_game_state
             .building_locations_mut()
@@ -43,6 +43,7 @@ fn main() -> std::io::Result<()> {
                         y: *y as f32,
                     },
                     entity_id: None,
+                    zoning: zoning.clone(),
                 },
             );
     }
@@ -68,21 +69,31 @@ fn main() -> std::io::Result<()> {
             let client_id = hash_client_addr(&client_addr);
             match client_message {
                 ClientMessage::PlayCard(card_id, target) => {
-                    if let Some(card_from_idx) = game_state
+                    if let Some(card_from_idx) = &mut game_state
                         .dynamic_game_state
                         .players
                         .get_mut(&client_id)
                         .unwrap()
                         .hand
-                        .try_play(card_id)
+                        .try_get(card_id)
                     {
-                        card_from_idx.get_card_data().play_fn.exec(
+                        let played = card_from_idx.get_card_data().play_fn.exec(
                             target,
                             client_id,
                             &game_state.static_game_state,
                             &mut game_state.semi_static_game_state,
                             &mut game_state.dynamic_game_state,
                         );
+
+                        if played {
+                            game_state
+                                .dynamic_game_state
+                                .players
+                                .get_mut(&client_id)
+                                .unwrap()
+                                .hand
+                                .play(card_id);
+                        }
                     }
                 }
                 ClientMessage::JoinGame(deck) => {

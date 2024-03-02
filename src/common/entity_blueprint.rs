@@ -23,6 +23,8 @@ pub enum EntityBlueprint {
     Spy,
     RecklessKnight,
     Tower,
+    Farm,
+    TradingPlace,
     SpawnPoint,
     Base,
     Dragon,
@@ -49,7 +51,10 @@ impl EntityBlueprint {
             EntityBlueprint::Dragon | EntityBlueprint::WarEagle | EntityBlueprint::AirBalloon => {
                 EntityTag::FlyingUnit
             }
-            EntityBlueprint::Tower | EntityBlueprint::SpawnPoint => EntityTag::Tower,
+            EntityBlueprint::Tower
+            | EntityBlueprint::Farm
+            | EntityBlueprint::TradingPlace
+            | EntityBlueprint::SpawnPoint => EntityTag::Tower,
             EntityBlueprint::Base => EntityTag::Base,
         };
         let state = match tag {
@@ -186,6 +191,14 @@ impl EntityBlueprint {
                     damage: 20.0,
                     ..Attack::default_ranged_tower()
                 });
+            }
+            EntityBlueprint::Farm => {
+                entity.health = Health::new(200.0);
+                entity.sprite_id = SpriteId::BuildingTower;
+            }
+            EntityBlueprint::TradingPlace => {
+                entity.health = Health::new(300.0);
+                entity.sprite_id = SpriteId::BuildingTower;
             }
             EntityBlueprint::SpawnPoint => {
                 entity.health = Health::new(400.0);

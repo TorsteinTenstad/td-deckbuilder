@@ -4,17 +4,16 @@ use common::component_movement::get_detection_range;
 use common::entity::EntityTag;
 use common::entity_blueprint::DEFAULT_UNIT_DETECTION_RADIUS;
 use common::network::ClientMessage;
-use common::play_target::{unit_spawnpoint_target_transform, PlayFn};
+use common::play_target::{unit_spawnpoint_target_transform, BuildingSpotTarget, PlayFn};
 use common::rect_transform::{point_inside, RectTransform};
 use common::textures::SpriteId;
-use common::world::find_entity;
-use common::*;
+use common::world::{find_entity, Zoning};
 use itertools::Itertools;
-use macroquad::color::{Color, BLACK, BLUE, GRAY, PINK, RED, WHITE, YELLOW};
+use macroquad::color::{Color, BLACK, BLUE, GRAY, LIGHTGRAY, PINK, RED, WHITE, YELLOW};
 use macroquad::input::is_key_pressed;
 use macroquad::math::Vec2;
 use macroquad::miniquad::KeyCode;
-use macroquad::shapes::{draw_circle, draw_circle_lines, draw_line};
+use macroquad::shapes::{draw_circle, draw_circle_lines, draw_line, draw_poly, draw_poly_lines};
 use macroquad::texture::{draw_texture_ex, DrawTextureParams};
 use macroquad::window::{clear_background, screen_height, screen_width};
 use macroquad::{window::next_frame, window::request_new_screen_size};
@@ -198,7 +197,11 @@ fn main_draw(state: &ClientGameState) {
     {
         let x = to_screen_x(loc.pos.x);
         let y = to_screen_y(loc.pos.y);
-        draw_circle(x, y, 20.0, WHITE);
+        let (poly_sides, color, radius) = match loc.zoning {
+            Zoning::Normal => (20, LIGHTGRAY, 16.0),
+            Zoning::Commerce => (6, WHITE, 20.0),
+        };
+        draw_poly(x, y, poly_sides, radius, 0., color);
     }
 
     // entities
@@ -341,42 +344,55 @@ fn main_draw(state: &ClientGameState) {
         );
     }
 
-    // hover building location
-    if state
-        .physical_hand
-        .card_idx_being_held
-        .filter(|idx| {
-            matches!(
-                state.physical_hand.cards[*idx]
+    // building location
+    for (id, loc) in state
+        .server_controlled_game_state
+        .semi_static_game_state
+        .building_locations()
+        .iter()
+    {
+        if state
+            .physical_hand
+            .card_idx_being_held
+            .filter(|idx| {
+                if let PlayFn::BuildingSpot(specific_play_fn) = &state
+                    .physical_hand
+                    .cards
+                    .get(*idx)
+                    .unwrap()
                     .card_instance
                     .card
                     .get_card_data()
-                    .play_fn,
-                PlayFn::BuildingSpot(_)
-            )
-        })
-        .is_some()
-    {
-        for (_id, loc) in state
-            .server_controlled_game_state
-            .semi_static_game_state
-            .building_locations()
-            .iter()
+                    .play_fn
+                {
+                    !specific_play_fn.target_is_invalid.is_some_and(|f| {
+                        f(
+                            &BuildingSpotTarget { id: *id },
+                            state.player_id,
+                            &state.server_controlled_game_state.static_game_state,
+                            &state.server_controlled_game_state.semi_static_game_state,
+                            &state.server_controlled_game_state.dynamic_game_state,
+                        )
+                    })
+                } else {
+                    false
+                }
+            })
+            .is_some()
         {
             let x = to_screen_x(loc.pos.x);
             let y = to_screen_y(loc.pos.y);
-            let r = 20.0;
-            let hovering = (mouse_screen_position() - Vec2 { x, y }).length() < r;
-            draw_circle_lines(
-                x,
-                y,
-                r,
-                3.0,
-                Color {
-                    a: if hovering { 0.8 } else { 0.5 },
-                    ..RED
-                },
-            );
+            let (poly_sides, radius) = match loc.zoning {
+                Zoning::Normal => (20, 15.0),
+                Zoning::Commerce => (6, 20.0),
+            };
+            let hovering = (mouse_screen_position() - Vec2 { x, y }).length() < radius;
+            let thickness = 3.0;
+            let color = Color {
+                a: if hovering { 0.8 } else { 0.5 },
+                ..RED
+            };
+            draw_poly_lines(x, y, poly_sides, radius, 0., thickness, color);
         }
     }
 

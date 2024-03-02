@@ -17,6 +17,13 @@ pub struct BuildingLocation {
     #[serde(with = "Vec2Def")]
     pub pos: Vec2,
     pub entity_id: Option<EntityId>,
+    pub zoning: Zoning,
+}
+
+#[derive(PartialEq, Eq, Debug, Clone, Serialize, Deserialize)]
+pub enum Zoning {
+    Normal,
+    Commerce,
 }
 
 #[derive(PartialEq, Eq, Debug, Clone, Serialize, Deserialize)]
@@ -203,7 +210,7 @@ pub fn world_place_path_entity(
     true
 }
 
-pub fn world_place_tower(
+pub fn world_place_builder(
     static_game_state: &StaticGameState,
     semi_static_game_state: &SemiStaticGameState,
     dynamic_game_state: &mut DynamicGameState,
@@ -263,7 +270,7 @@ pub fn world_place_building(
     mut entity: Entity,
     building_location_id: &BuildingLocationId,
 ) -> bool {
-    let BuildingLocation { pos, entity_id } = semi_static_game_state
+    let BuildingLocation { pos, entity_id, .. } = semi_static_game_state
         .building_locations_mut()
         .get_mut(building_location_id)
         .unwrap();

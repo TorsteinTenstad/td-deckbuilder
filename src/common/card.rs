@@ -1,8 +1,8 @@
 use crate::{
     entity_blueprint::EntityBlueprint,
     ids::CardInstanceId,
-    play_target::PlayFn,
-    world::{find_entity_mut, world_place_tower, world_place_unit},
+    play_target::{PlayFn, SpecificPlayFn},
+    world::{find_entity_mut, world_place_builder, world_place_unit, Zoning},
 };
 use serde::{Deserialize, Serialize};
 use strum::IntoEnumIterator;
@@ -11,6 +11,8 @@ use strum_macros::EnumIter;
 #[derive(Hash, EnumIter, Debug, Clone, Serialize, Deserialize, Eq, PartialEq)]
 pub enum Card {
     Tower,
+    Farm,
+    TradingPlace,
     SpawnPoint,
     HomesickWarrior,
     ElfWarrior,
@@ -51,34 +53,84 @@ pub struct CardData {
 const DEFAULT_CARD_DATA: CardData = CardData {
     name: "",
     energy_cost: 0,
-    play_fn: PlayFn::WorldPos(|_, _, _, _, _| false),
+    play_fn: PlayFn::WorldPos(SpecificPlayFn::new(|_, _, _, _, _| false)),
     card_art_path: "",
     description: "",
     attack: None,
     health: None,
 };
 
-macro_rules! play_building {
+macro_rules! play_normal_building {
     ($builder_blueprint:ident, $building_blueprint:ident) => {
         PlayFn::BuildingSpot(
-            |target, owner, static_game_state, semi_static_game_state, dynamic_game_state| {
-                world_place_tower(
-                    static_game_state,
-                    semi_static_game_state,
-                    dynamic_game_state,
-                    target,
-                    owner,
-                    EntityBlueprint::$builder_blueprint,
-                    EntityBlueprint::$building_blueprint,
-                )
-            },
+            SpecificPlayFn::new(
+                |target, owner, static_game_state, semi_static_game_state, dynamic_game_state| {
+                    world_place_builder(
+                        static_game_state,
+                        semi_static_game_state,
+                        dynamic_game_state,
+                        target,
+                        owner,
+                        EntityBlueprint::$builder_blueprint,
+                        EntityBlueprint::$building_blueprint,
+                    )
+                },
+            )
+            .with_target_is_invalid(
+                |target,
+                 _owner,
+                 _static_game_state,
+                 semi_static_game_state,
+                 _dynamic_game_state| {
+                    semi_static_game_state
+                        .building_locations()
+                        .get(&target.id)
+                        .unwrap()
+                        .zoning
+                        != Zoning::Normal
+                },
+            ),
+        )
+    };
+}
+
+macro_rules! play_commerce_builging {
+    ($builder_blueprint:ident, $building_blueprint:ident) => {
+        PlayFn::BuildingSpot(
+            SpecificPlayFn::new(
+                |target, owner, static_game_state, semi_static_game_state, dynamic_game_state| {
+                    world_place_builder(
+                        static_game_state,
+                        semi_static_game_state,
+                        dynamic_game_state,
+                        target,
+                        owner,
+                        EntityBlueprint::$builder_blueprint,
+                        EntityBlueprint::$building_blueprint,
+                    )
+                },
+            )
+            .with_target_is_invalid(
+                |target,
+                 _owner,
+                 _static_game_state,
+                 semi_static_game_state,
+                 _dynamic_game_state| {
+                    semi_static_game_state
+                        .building_locations()
+                        .get(&target.id)
+                        .unwrap()
+                        .zoning
+                        != Zoning::Commerce
+                },
+            ),
         )
     };
 }
 
 macro_rules! play_unit {
     ($unit_blueprint:ident) => {
-        PlayFn::UnitSpawnPoint(
+        PlayFn::UnitSpawnPoint(SpecificPlayFn::new(
             |target, owner, static_game_state, _semi_static_game_state, dynamic_game_state| {
                 world_place_unit(
                     static_game_state,
@@ -88,7 +140,7 @@ macro_rules! play_unit {
                     EntityBlueprint::$unit_blueprint,
                 )
             },
-        )
+        ))
     };
 }
 
@@ -96,16 +148,34 @@ const CARD_DATA: &[CardData] = &[
     CardData {
         name: "Tower",
         energy_cost: 3,
-        play_fn: play_building!(BasicBuilder, Tower),
+        play_fn: play_normal_building!(BasicBuilder, Tower),
         card_art_path: "tower.jpg",
         attack: Some(3),
         health: Some(500),
         description: "[Ranged]",
     },
     CardData {
+        name: "Farm",
+        energy_cost: 3,
+        play_fn: play_commerce_builging!(BasicBuilder, Farm),
+        card_art_path: "farm.jpg",
+        attack: None,
+        health: Some(200),
+        description: "Increases drawing speed by 20%",
+    },
+    CardData {
+        name: "Trading Place",
+        energy_cost: 5,
+        play_fn: play_commerce_builging!(BasicBuilder, TradingPlace),
+        card_art_path: "trading_place.jpg",
+        attack: None,
+        health: Some(300),
+        description: "Generate 1 gold every 10 sek ",
+    },
+    CardData {
         name: "Spawn Point",
         energy_cost: 3,
-        play_fn: play_building!(BasicBuilder, SpawnPoint),
+        play_fn: play_normal_building!(BasicBuilder, SpawnPoint),
         card_art_path: "spawn_point.jpg",
         attack: None,
         health: Some(400),
@@ -213,7 +283,7 @@ const CARD_DATA: &[CardData] = &[
     CardData {
         name: "Direct Damage",
         energy_cost: 1,
-        play_fn: PlayFn::Entity(
+        play_fn: PlayFn::Entity(SpecificPlayFn::new(
             |target, _owner, _static_game_state, _semi_static_game_state, dynamic_game_state| {
                 let Some(target_entity) =
                     find_entity_mut(&mut dynamic_game_state.entities, Some(target.id))
@@ -223,7 +293,7 @@ const CARD_DATA: &[CardData] = &[
                 target_entity.health.deal_damage(150.0);
                 true
             },
-        ),
+        )),
         card_art_path: "direct_damage.jpg",
         description: "Deal 150 damage\nto a unit or building",
         ..DEFAULT_CARD_DATA

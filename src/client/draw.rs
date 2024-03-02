@@ -1,4 +1,4 @@
-use crate::rect_transform::RectTransform;
+use common::rect_transform::RectTransform;
 use common::{card::Card, textures::SpriteId, world::Direction, *};
 use macroquad::{
     color::{Color, WHITE},
@@ -261,6 +261,8 @@ impl Sprites {
     }
 
     fn get_card_texture(&self, card: &Card) -> &Texture2D {
-        self.card_textures.get(card).unwrap()
+        self.card_textures
+            .get(card)
+            .expect("Card texture not found")
     }
 }
