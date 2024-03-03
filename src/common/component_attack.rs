@@ -32,18 +32,23 @@ impl AttackRange {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum AttackSpeed {
+    VerySlow,
     Slow,
     Default,
     Fast,
+    VeryFast,
     Custom(f32),
 }
 
 impl AttackSpeed {
     pub fn as_f32(&self) -> f32 {
+        let default_speed = 0.5;
         match self {
-            AttackSpeed::Slow => 1.0,
-            AttackSpeed::Default => 0.5,
-            AttackSpeed::Fast => 0.25,
+            AttackSpeed::VerySlow => default_speed / 2.0,
+            AttackSpeed::Slow => default_speed / 1.5,
+            AttackSpeed::Default => default_speed,
+            AttackSpeed::Fast => default_speed * 1.5,
+            AttackSpeed::VeryFast => default_speed * 2.0,
             AttackSpeed::Custom(speed) => *speed,
         }
     }

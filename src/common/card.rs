@@ -156,12 +156,12 @@ const CARD_DATA: &[CardData] = &[
     },
     CardData {
         name: "Farm",
-        energy_cost: 3,
+        energy_cost: 4,
         play_fn: play_commerce_builging!(BasicBuilder, Farm),
         card_art_path: "farm.jpg",
         attack: None,
         health: Some(200),
-        description: "Increases drawing speed by 20%",
+        description: "Increases drawing speed by 40%",
     },
     CardData {
         name: "Trading Place",
@@ -169,8 +169,8 @@ const CARD_DATA: &[CardData] = &[
         play_fn: play_commerce_builging!(BasicBuilder, TradingPlace),
         card_art_path: "trading_place.jpg",
         attack: None,
-        health: Some(300),
-        description: "Generate 1 gold every 10 sek ",
+        health: Some(200),
+        description: "Increases energy generation by 40%",
     },
     CardData {
         name: "Spawn Point",

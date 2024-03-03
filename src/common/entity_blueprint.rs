@@ -197,15 +197,15 @@ impl EntityBlueprint {
                 entity.health = Health::new(200.0);
                 entity.sprite_id = SpriteId::BuildingFarm;
                 entity.draw_speed_buff = Some(ArithmeticBuff {
-                    multiplier: 1.2,
+                    multiplier: 1.4,
                     ..Default::default()
                 });
             }
             EntityBlueprint::TradingPlace => {
-                entity.health = Health::new(300.0);
+                entity.health = Health::new(200.0);
                 entity.sprite_id = SpriteId::BuildingTradingPlace;
                 entity.energy_generation_buff = Some(ArithmeticBuff {
-                    additive_value: 0.1,
+                    multiplier: 1.4,
                     ..Default::default()
                 });
             }
