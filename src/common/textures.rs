@@ -10,6 +10,9 @@ pub enum SpriteId {
     BuildingBase,
     BuildingTower,
     BuildingSpawnpoint,
+    BuildingHut,
+    BuildingTradingPlace,
+    BuildingFarm,
     UnitBuilder,
     UnitPriest,
     UnitDemonPig,
@@ -50,6 +53,9 @@ impl SpriteId {
             SpriteId::BuildingBase => "building_base.png",
             SpriteId::BuildingTower => "building_tower.png",
             SpriteId::BuildingSpawnpoint => "building_spawnpoint.png",
+            SpriteId::BuildingHut => "building_hut.png",
+            SpriteId::BuildingTradingPlace => "building_trading_place.png",
+            SpriteId::BuildingFarm => "building_farm.png",
         }
     }
 }

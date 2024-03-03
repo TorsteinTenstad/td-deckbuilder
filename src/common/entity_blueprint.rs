@@ -195,7 +195,7 @@ impl EntityBlueprint {
             }
             EntityBlueprint::Farm => {
                 entity.health = Health::new(200.0);
-                entity.sprite_id = SpriteId::BuildingTower;
+                entity.sprite_id = SpriteId::BuildingFarm;
                 entity.draw_speed_buff = Some(ArithmeticBuff {
                     multiplier: 1.2,
                     ..Default::default()
@@ -203,7 +203,7 @@ impl EntityBlueprint {
             }
             EntityBlueprint::TradingPlace => {
                 entity.health = Health::new(300.0);
-                entity.sprite_id = SpriteId::BuildingTower;
+                entity.sprite_id = SpriteId::BuildingTradingPlace;
                 entity.energy_generation_buff = Some(ArithmeticBuff {
                     additive_value: 0.1,
                     ..Default::default()
@@ -211,7 +211,7 @@ impl EntityBlueprint {
             }
             EntityBlueprint::SpawnPoint => {
                 entity.health = Health::new(400.0);
-                entity.sprite_id = SpriteId::BuildingSpawnpoint;
+                entity.sprite_id = SpriteId::BuildingHut;
                 entity.usable_as_spawn_point = true;
             }
             EntityBlueprint::Base => {
