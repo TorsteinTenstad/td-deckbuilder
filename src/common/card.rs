@@ -165,7 +165,7 @@ const CARD_DATA: &[CardData] = &[
     },
     CardData {
         name: "Trading Place",
-        energy_cost: 5,
+        energy_cost: 4,
         play_fn: play_commerce_builging!(BasicBuilder, TradingPlace),
         card_art_path: "trading_place.jpg",
         attack: None,
@@ -267,7 +267,7 @@ const CARD_DATA: &[CardData] = &[
         energy_cost: 5,
         play_fn: play_unit!(AirBalloon),
         card_art_path: "air_balloon.jpg",
-        attack: Some(40),
+        attack: Some(20),
         health: Some(400),
         description: "[Flying]",
     },

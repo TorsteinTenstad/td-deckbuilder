@@ -158,7 +158,7 @@ impl MovementSpeed {
             MovementSpeed::Default => default_speed,
             MovementSpeed::Fast => default_speed * 1.5,
             MovementSpeed::VeryFast => default_speed * 2.0,
-            MovementSpeed::Projectile => default_speed * 2.0,
+            MovementSpeed::Projectile => default_speed * 4.0,
             MovementSpeed::Custom(speed) => *speed,
         }
     }

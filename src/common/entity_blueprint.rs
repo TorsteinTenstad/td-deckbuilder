@@ -172,7 +172,7 @@ impl EntityBlueprint {
                 entity.movement = Some(Movement::new(MovementSpeed::Slow));
                 entity.sprite_id = SpriteId::UnitAirBalloon;
                 entity.attacks.push(Attack {
-                    damage: 40.0,
+                    damage: 20.0,
                     ..Attack::default_flying()
                 });
             }
