@@ -16,7 +16,6 @@ use std::collections::hash_map;
 use std::collections::HashMap;
 use std::net::{SocketAddr, UdpSocket};
 use std::time::{Duration, SystemTime};
-mod game_loop;
 
 fn main() -> std::io::Result<()> {
     let mut game_state = ServerControledGameState::default();
@@ -209,30 +208,5 @@ fn main() -> std::io::Result<()> {
         }
 
         game_loop::update_game_state(&mut game_state, dt);
-
-        let mut i = 0;
-        while i < game_state.dynamic_game_state.entities.len() {
-            let entity = &game_state.dynamic_game_state.entities.get(i).unwrap();
-            if entity.state == EntityState::Dead {
-                cleanup_entity(entity.id, &mut game_state);
-                game_state.dynamic_game_state.entities.swap_remove(i);
-            } else {
-                i += 1;
-            }
-        }
-    }
-}
-
-fn cleanup_entity(
-    entity_id: EntityId,
-    server_controlled_game_state: &mut ServerControledGameState,
-) {
-    if let Some((_id, building_location)) = server_controlled_game_state
-        .semi_static_game_state
-        .building_locations_mut()
-        .iter_mut()
-        .find(|(_id, building_location)| building_location.entity_id == Some(entity_id))
-    {
-        building_location.entity_id = None;
     }
 }

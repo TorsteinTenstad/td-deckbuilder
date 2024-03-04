@@ -1,9 +1,23 @@
-use common::{
+use crate::{
     buff::buff_update_timers, component_attack::Attack, component_buff_aura::BuffAura,
     component_health::Health, component_movement::Movement, config::CLOSE_ENOUGH_TO_TARGET,
     entity::EntityState, find_target::find_target_for_attack, game_state::ServerControledGameState,
-    update_args::UpdateArgs, world::world_place_building,
+    ids::EntityId, update_args::UpdateArgs, world::world_place_building,
 };
+
+fn cleanup_entity(
+    entity_id: EntityId,
+    server_controlled_game_state: &mut ServerControledGameState,
+) {
+    if let Some((_id, building_location)) = server_controlled_game_state
+        .semi_static_game_state
+        .building_locations_mut()
+        .iter_mut()
+        .find(|(_id, building_location)| building_location.entity_id == Some(entity_id))
+    {
+        building_location.entity_id = None;
+    }
+}
 
 pub fn update_game_state(server_controlled_game_state: &mut ServerControledGameState, dt: f32) {
     //TODO: This implementation may cause entities to not be updated if the update_entities directly removes entities.
@@ -31,6 +45,28 @@ pub fn update_game_state(server_controlled_game_state: &mut ServerControledGameS
             .entities
             .insert(i, entity);
         i += 1;
+    }
+
+    let mut i = 0;
+    while i < server_controlled_game_state
+        .dynamic_game_state
+        .entities
+        .len()
+    {
+        let entity = &server_controlled_game_state
+            .dynamic_game_state
+            .entities
+            .get(i)
+            .unwrap();
+        if entity.state == EntityState::Dead {
+            cleanup_entity(entity.id, server_controlled_game_state);
+            server_controlled_game_state
+                .dynamic_game_state
+                .entities
+                .swap_remove(i);
+        } else {
+            i += 1;
+        }
     }
 }
 

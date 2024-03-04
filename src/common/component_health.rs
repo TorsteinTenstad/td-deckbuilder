@@ -29,7 +29,7 @@ impl Health {
             buff.health -= damage_to_take;
         }
         self.health -= damage;
-        self.damage_animation = 0.1;
+                self.damage_animation = 0.1;
     }
 
     pub fn heal(&mut self, damage: f32) {
