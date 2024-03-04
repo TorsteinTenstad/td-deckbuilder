@@ -20,11 +20,12 @@ pub enum AttackRange {
 
 impl AttackRange {
     pub fn to_f32(&self, radius: f32) -> f32 {
+        let default_range = 100.0;
         match self {
             AttackRange::Melee => radius,
-            AttackRange::Short => 75.0,
-            AttackRange::Default => 150.0,
-            AttackRange::Long => 225.0,
+            AttackRange::Short => default_range / 1.5,
+            AttackRange::Default => default_range,
+            AttackRange::Long => default_range * 1.5,
             AttackRange::Custom(range) => *range,
         }
     }
