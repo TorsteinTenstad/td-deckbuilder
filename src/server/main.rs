@@ -3,7 +3,7 @@ use common::entity::EntityState;
 use common::entity_blueprint::EntityBlueprint;
 use common::game_state::ServerControledGameState;
 use common::gameplay_config::{STARTING_ENERGY, STARTING_HAND_SIZE};
-use common::ids::{BuildingLocationId, EntityId, PathId, PlayerId};
+use common::ids::{BuildingLocationId, PathId, PlayerId};
 use common::level_config::BUILDING_LOCATIONS;
 use common::message_acknowledgement::AckUdpSocket;
 use common::network::{hash_client_addr, ClientMessage, ServerMessage, ServerMessageData};
@@ -121,7 +121,9 @@ fn main() -> std::io::Result<()> {
                             for _ in 0..STARTING_HAND_SIZE {
                                 server_player.hand.draw();
                             }
-                            let mut base_entity = EntityBlueprint::Base.create(client_id);
+                            let mut base_entity = EntityBlueprint::Base
+                                .create()
+                                .instantiate(client_id, EntityState::Passive);
                             base_entity.pos = *base_pos;
                             game_state.dynamic_game_state.entities.push(base_entity);
                         }
@@ -184,22 +186,22 @@ fn main() -> std::io::Result<()> {
                 .dynamic_game_state
                 .entities
                 .iter()
-                .filter_map(|entity| {
-                    if entity.owner != *client_id {
+                .filter_map(|entity_instance| {
+                    if entity_instance.owner != *client_id {
                         return None;
                     }
-                    entity.draw_speed_buff.clone()
+                    entity_instance.entity.draw_speed_buff.clone()
                 })
                 .collect_vec();
             let energy_generation_buffs = game_state
                 .dynamic_game_state
                 .entities
                 .iter()
-                .filter_map(|entity| {
-                    if entity.owner != *client_id {
+                .filter_map(|entity_instance| {
+                    if entity_instance.owner != *client_id {
                         return None;
                     }
-                    entity.energy_generation_buff.clone()
+                    entity_instance.entity.energy_generation_buff.clone()
                 })
                 .collect_vec();
             client

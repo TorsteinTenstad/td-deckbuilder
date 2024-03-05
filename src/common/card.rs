@@ -285,12 +285,12 @@ const CARD_DATA: &[CardData] = &[
         energy_cost: 1,
         play_fn: PlayFn::Entity(SpecificPlayFn::new(
             |target, _owner, _static_game_state, _semi_static_game_state, dynamic_game_state| {
-                let Some(target_entity) =
+                let Some(target_entity_instance) =
                     find_entity_mut(&mut dynamic_game_state.entities, Some(target.id))
                 else {
                     return false;
                 };
-                target_entity.health.deal_damage(150.0);
+                target_entity_instance.entity.health.deal_damage(150.0);
                 true
             },
         )),

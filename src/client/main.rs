@@ -205,7 +205,7 @@ fn main_draw(state: &ClientGameState) {
     }
 
     // entities
-    for entity in state
+    for entity_instance in state
         .server_controlled_game_state
         .dynamic_game_state
         .entities
@@ -215,22 +215,28 @@ fn main_draw(state: &ClientGameState) {
             .server_controlled_game_state
             .dynamic_game_state
             .players
-            .get(&entity.owner)
+            .get(&entity_instance.owner)
         else {
             continue;
         };
-        let damage_animation_color = (entity.health.damage_animation > 0.0).then_some(RED);
-        let pos_x = to_screen_x(entity.pos.x);
-        let pos_y = to_screen_y(entity.pos.y);
-        let radius = to_screen_size(entity.radius);
+        let damage_animation_color =
+            (entity_instance.entity.health.damage_animation > 0.0).then_some(RED);
+        let pos_x = to_screen_x(entity_instance.pos.x);
+        let pos_y = to_screen_y(entity_instance.pos.y);
+        let radius = to_screen_size(entity_instance.entity.radius);
 
-        match entity.tag {
+        match entity_instance.entity.tag {
+            EntityTag::None => {
+                debug_assert!(false);
+            }
             EntityTag::Tower | EntityTag::Base | EntityTag::Unit | EntityTag::FlyingUnit => {
-                let texture = state
-                    .sprites
-                    .get_team_texture(&entity.sprite_id, Some(player.direction.clone()));
+                let texture = state.sprites.get_team_texture(
+                    &entity_instance.entity.sprite_id,
+                    Some(player.direction.clone()),
+                );
 
-                let flip_x = entity
+                let flip_x = entity_instance
+                    .entity
                     .movement
                     .as_ref()
                     .is_some_and(|movement| movement.movement_towards_target.velocity.x < 0.0);
@@ -261,31 +267,42 @@ fn main_draw(state: &ClientGameState) {
 
     // range_circle_preview
     let mut range_circle_preview: Vec<(f32, f32, f32, Color)> = Vec::new();
-    if let Some(entity) = find_entity(
+    if let Some(entity_instance) = find_entity(
         &state
             .server_controlled_game_state
             .dynamic_game_state
             .entities,
         state.selected_entity_id,
     ) {
-        if let Some(Attack { range, .. }) = entity
+        if let Some(Attack { range, .. }) = entity_instance
+            .entity
             .attacks
             .iter()
             .find(|attack| attack.variant == AttackVariant::RangedAttack)
         {
             range_circle_preview.push((
-                entity.pos.x,
-                entity.pos.y,
-                range.to_f32(entity.radius),
+                entity_instance.pos.x,
+                entity_instance.pos.y,
+                range.to_f32(entity_instance.entity.radius),
                 BLUE,
             ));
         }
 
-        if let Some(detection_range) = get_detection_range(entity) {
-            range_circle_preview.push((entity.pos.x, entity.pos.y, detection_range, YELLOW));
+        if let Some(detection_range) = get_detection_range(&entity_instance.entity) {
+            range_circle_preview.push((
+                entity_instance.pos.x,
+                entity_instance.pos.y,
+                detection_range,
+                YELLOW,
+            ));
         }
 
-        range_circle_preview.push((entity.pos.x, entity.pos.y, entity.hitbox_radius, RED));
+        range_circle_preview.push((
+            entity_instance.pos.x,
+            entity_instance.pos.y,
+            entity_instance.entity.hitbox_radius,
+            RED,
+        ));
     }
     for (x, y, range, color) in range_circle_preview {
         let x = to_screen_x(x);

@@ -28,7 +28,7 @@ pub fn update_game_state(server_controlled_game_state: &mut ServerControledGameS
         .entities
         .len()
     {
-        let mut entity = server_controlled_game_state
+        let mut entity_instance = server_controlled_game_state
             .dynamic_game_state
             .entities
             .swap_remove(i);
@@ -36,14 +36,14 @@ pub fn update_game_state(server_controlled_game_state: &mut ServerControledGameS
             static_game_state: &server_controlled_game_state.static_game_state,
             semi_static_game_state: &mut server_controlled_game_state.semi_static_game_state,
             dynamic_game_state: &mut server_controlled_game_state.dynamic_game_state,
-            entity: &mut entity,
+            entity_instance: &mut entity_instance,
             dt,
         });
         // TODO: Inserting at i causes a lot of memory movement, this can be optimized using a better swap routine for updating.
         server_controlled_game_state
             .dynamic_game_state
             .entities
-            .insert(i, entity);
+            .insert(i, entity_instance);
         i += 1;
     }
 
@@ -71,21 +71,29 @@ pub fn update_game_state(server_controlled_game_state: &mut ServerControledGameS
 }
 
 pub fn update_entity(update_args: &mut UpdateArgs) {
-    let can_attack = update_args.entity.attacks.iter().any(|attack| {
-        find_target_for_attack(
-            update_args.entity.id,
-            update_args.entity.tag.clone(),
-            update_args.entity.pos,
-            update_args.entity.owner,
-            update_args.entity.spy.as_ref(),
-            attack.range.to_f32(update_args.entity.radius),
-            attack,
-            &mut update_args.dynamic_game_state.entities,
-        )
-        .is_some()
-    });
+    let can_attack = update_args
+        .entity_instance
+        .entity
+        .attacks
+        .iter()
+        .any(|attack| {
+            find_target_for_attack(
+                update_args.entity_instance.id,
+                update_args.entity_instance.entity.tag.clone(),
+                update_args.entity_instance.pos,
+                update_args.entity_instance.owner,
+                update_args.entity_instance.entity.spy.as_ref(),
+                attack
+                    .range
+                    .to_f32(update_args.entity_instance.entity.radius),
+                attack,
+                &mut update_args.dynamic_game_state.entities,
+            )
+            .is_some()
+        });
 
     let can_build = update_args
+        .entity_instance
         .entity
         .building_to_construct
         .clone()
@@ -96,20 +104,20 @@ pub fn update_entity(update_args: &mut UpdateArgs) {
                 .get(&building_spot_target.id)
                 .unwrap()
                 .pos
-                - update_args.entity.pos)
+                - update_args.entity_instance.pos)
                 .length()
                 < CLOSE_ENOUGH_TO_TARGET
         });
 
     if can_attack {
-        update_args.entity.state = EntityState::Attacking;
+        update_args.entity_instance.state = EntityState::Attacking;
     } else if can_build {
-        update_args.entity.state = EntityState::Building;
+        update_args.entity_instance.state = EntityState::Building;
     } else {
-        update_args.entity.state = EntityState::Moving;
+        update_args.entity_instance.state = EntityState::Moving;
     }
 
-    match update_args.entity.state {
+    match update_args.entity_instance.state {
         EntityState::Moving => {
             Movement::update(update_args);
         }
@@ -119,8 +127,11 @@ pub fn update_entity(update_args: &mut UpdateArgs) {
         }
 
         EntityState::Building => {
-            if let Some((building_spot_target, entity_blueprint)) =
-                update_args.entity.building_to_construct.clone()
+            if let Some((building_spot_target, entity_blueprint)) = update_args
+                .entity_instance
+                .entity
+                .building_to_construct
+                .clone()
             {
                 let building_to_construct_pos = update_args
                     .semi_static_game_state
@@ -128,16 +139,18 @@ pub fn update_entity(update_args: &mut UpdateArgs) {
                     .get(&building_spot_target.id)
                     .unwrap()
                     .pos;
-                if (building_to_construct_pos - update_args.entity.pos).length()
+                if (building_to_construct_pos - update_args.entity_instance.pos).length()
                     < CLOSE_ENOUGH_TO_TARGET
                 {
                     world_place_building(
                         update_args.semi_static_game_state,
                         update_args.dynamic_game_state,
-                        entity_blueprint.create(update_args.entity.owner),
+                        entity_blueprint
+                            .create()
+                            .instantiate(update_args.entity_instance.owner, EntityState::Passive),
                         &building_spot_target.id,
                     );
-                    update_args.entity.state = EntityState::Dead;
+                    update_args.entity_instance.state = EntityState::Dead;
                 }
             } else {
                 debug_assert!(false);
@@ -147,7 +160,7 @@ pub fn update_entity(update_args: &mut UpdateArgs) {
         EntityState::Passive | EntityState::Dead => {}
     }
 
-    buff_update_timers(update_args.entity, update_args.dt);
+    buff_update_timers(&mut update_args.entity_instance.entity, update_args.dt);
     BuffAura::update(update_args);
     Health::update(update_args);
 }
