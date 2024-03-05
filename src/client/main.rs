@@ -1,4 +1,5 @@
 use client_game_state::ClientGameState;
+use common::card::Card;
 use common::component_attack::{Attack, AttackVariant};
 use common::component_movement::get_detection_range;
 use common::entity::EntityTag;
@@ -35,6 +36,7 @@ mod deck_builder;
 
 #[macroquad::main("Client")]
 async fn main() {
+    Card::validate_card_data();
     request_new_screen_size(1280.0, 720.0);
 
     let mut state = ClientGameState::new().await;

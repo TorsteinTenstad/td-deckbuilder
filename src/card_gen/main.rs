@@ -14,6 +14,7 @@ use macroquad::{
 
 #[macroquad::main("Card Generator")]
 async fn main() {
+    Card::validate_card_data();
     let template_texture = load_texture("assets/textures/card_template.png")
         .await
         .unwrap();

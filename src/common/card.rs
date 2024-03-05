@@ -41,6 +41,7 @@ pub struct CardInstance {
 }
 
 pub struct CardData {
+    pub enum_variant: Option<Card>,
     pub name: &'static str,
     pub energy_cost: i32,
     pub play_fn: PlayFn,
@@ -51,6 +52,7 @@ pub struct CardData {
 }
 
 const DEFAULT_CARD_DATA: CardData = CardData {
+    enum_variant: None,
     name: "",
     energy_cost: 0,
     play_fn: PlayFn::WorldPos(SpecificPlayFn::new(|_, _, _, _, _| false)),
@@ -146,6 +148,7 @@ macro_rules! play_unit {
 
 const CARD_DATA: &[CardData] = &[
     CardData {
+        enum_variant: Some(Card::Tower),
         name: "Tower",
         energy_cost: 3,
         play_fn: play_normal_building!(BasicBuilder, Tower),
@@ -155,6 +158,7 @@ const CARD_DATA: &[CardData] = &[
         description: "[Ranged]",
     },
     CardData {
+        enum_variant: Some(Card::Farm),
         name: "Farm",
         energy_cost: 4,
         play_fn: play_commerce_builging!(BasicBuilder, Farm),
@@ -164,6 +168,7 @@ const CARD_DATA: &[CardData] = &[
         description: "Increases drawing speed by 40%",
     },
     CardData {
+        enum_variant: Some(Card::TradingPlace),
         name: "Trading Place",
         energy_cost: 4,
         play_fn: play_commerce_builging!(BasicBuilder, TradingPlace),
@@ -173,6 +178,7 @@ const CARD_DATA: &[CardData] = &[
         description: "Increases energy generation by 40%",
     },
     CardData {
+        enum_variant: Some(Card::SpawnPoint),
         name: "Spawn Point",
         energy_cost: 3,
         play_fn: play_normal_building!(BasicBuilder, SpawnPoint),
@@ -182,6 +188,7 @@ const CARD_DATA: &[CardData] = &[
         description: "You may spawn units\nfrom this building",
     },
     CardData {
+        enum_variant: Some(Card::HomesickWarrior),
         name: "Homesick Warrior",
         energy_cost: 3,
         play_fn: play_unit!(HomesickWarrior),
@@ -191,6 +198,7 @@ const CARD_DATA: &[CardData] = &[
         description: "[Protector]",
     },
     CardData {
+        enum_variant: Some(Card::ElfWarrior),
         name: "Elf Warrior",
         energy_cost: 2,
         play_fn: play_unit!(ElfWarrior),
@@ -200,6 +208,7 @@ const CARD_DATA: &[CardData] = &[
         description: "[Fast attacking], [Ranged]",
     },
     CardData {
+        enum_variant: Some(Card::OldSwordMaster),
         name: "Old Sword Master",
         energy_cost: 4,
         play_fn: play_unit!(OldSwordMaster),
@@ -209,6 +218,7 @@ const CARD_DATA: &[CardData] = &[
         description: "[Very slow moving]",
     },
     CardData {
+        enum_variant: Some(Card::DemonWolf),
         name: "Demon Wolf",
         energy_cost: 3,
         play_fn: play_unit!(DemonWolf),
@@ -218,6 +228,7 @@ const CARD_DATA: &[CardData] = &[
         description: "[Fast moving]",
     },
     CardData {
+        enum_variant: Some(Card::SmallCriminal),
         name: "Small Criminal",
         energy_cost: 1,
         play_fn: play_unit!(SmallCriminal),
@@ -227,6 +238,7 @@ const CARD_DATA: &[CardData] = &[
         description: "[Fast moving]",
     },
     CardData {
+        enum_variant: Some(Card::StreetCriminal),
         name: "Street Criminal",
         energy_cost: 2,
         play_fn: play_unit!(StreetCriminal),
@@ -236,6 +248,7 @@ const CARD_DATA: &[CardData] = &[
         description: "[Fast attacking]",
     },
     CardData {
+        enum_variant: Some(Card::Spy),
         name: "Spy",
         energy_cost: 3,
         play_fn: play_unit!(Spy),
@@ -245,6 +258,7 @@ const CARD_DATA: &[CardData] = &[
         description: "Will not be seen\nby the first\n2 enimes it passes",
     },
     CardData {
+        enum_variant: Some(Card::RecklessKnight),
         name: "Reckless Knight",
         energy_cost: 2,
         play_fn: play_unit!(RecklessKnight),
@@ -254,6 +268,7 @@ const CARD_DATA: &[CardData] = &[
         description: "[Fast moving]",
     },
     CardData {
+        enum_variant: Some(Card::WarEagle),
         name: "War Eagle",
         energy_cost: 3,
         play_fn: play_unit!(WarEagle),
@@ -263,6 +278,7 @@ const CARD_DATA: &[CardData] = &[
         description: "[Flying]",
     },
     CardData {
+        enum_variant: Some(Card::AirBalloon),
         name: "Air Balloon",
         energy_cost: 5,
         play_fn: play_unit!(AirBalloon),
@@ -272,6 +288,7 @@ const CARD_DATA: &[CardData] = &[
         description: "[Flying]",
     },
     CardData {
+        enum_variant: Some(Card::Dragon),
         name: "Dragon",
         energy_cost: 7,
         play_fn: play_unit!(Dragon),
@@ -281,6 +298,7 @@ const CARD_DATA: &[CardData] = &[
         description: "[Flying]",
     },
     CardData {
+        enum_variant: Some(Card::DirectDamage),
         name: "Direct Damage",
         energy_cost: 1,
         play_fn: PlayFn::Entity(SpecificPlayFn::new(
@@ -301,6 +319,12 @@ const CARD_DATA: &[CardData] = &[
 ];
 
 impl Card {
+    pub fn validate_card_data() {
+        for card in Card::iter() {
+            let card_data = CARD_DATA.get(card.clone() as usize).unwrap();
+            assert_eq!(card_data.enum_variant, Some(card));
+        }
+    }
     pub fn get_card_data(&self) -> &CardData {
         CARD_DATA.get(self.clone() as usize).unwrap()
     }

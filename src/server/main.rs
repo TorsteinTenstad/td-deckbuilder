@@ -1,3 +1,4 @@
+use common::card::Card;
 use common::config::SERVER_PORT;
 use common::entity::EntityState;
 use common::entity_blueprint::EntityBlueprint;
@@ -18,6 +19,7 @@ use std::net::{SocketAddr, UdpSocket};
 use std::time::{Duration, SystemTime};
 
 fn main() -> std::io::Result<()> {
+    Card::validate_card_data();
     let mut game_state = ServerControledGameState::default();
     let mut client_addresses = HashMap::<PlayerId, SocketAddr>::new();
 
