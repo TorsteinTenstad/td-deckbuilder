@@ -2,7 +2,7 @@ use crate::{
     entity_blueprint::EntityBlueprint,
     ids::CardInstanceId,
     play_target::{PlayFn, SpecificPlayFn},
-    world::{find_entity_mut, world_place_builder, world_place_unit, Zoning},
+    world::{find_entity_mut, world_place_builder, world_place_path_entity, Zoning},
 };
 use serde::{Deserialize, Serialize};
 use strum::IntoEnumIterator;
@@ -72,9 +72,9 @@ macro_rules! play_normal_building {
                         semi_static_game_state,
                         dynamic_game_state,
                         target,
-                        owner,
-                        EntityBlueprint::$builder_blueprint,
+                        EntityBlueprint::$builder_blueprint.create(),
                         EntityBlueprint::$building_blueprint,
+                        owner,
                     )
                 },
             )
@@ -106,9 +106,9 @@ macro_rules! play_commerce_builging {
                         semi_static_game_state,
                         dynamic_game_state,
                         target,
-                        owner,
-                        EntityBlueprint::$builder_blueprint,
+                        EntityBlueprint::$builder_blueprint.create(),
                         EntityBlueprint::$building_blueprint,
+                        owner,
                     )
                 },
             )
@@ -134,12 +134,12 @@ macro_rules! play_unit {
     ($unit_blueprint:ident) => {
         PlayFn::UnitSpawnPoint(SpecificPlayFn::new(
             |target, owner, static_game_state, _semi_static_game_state, dynamic_game_state| {
-                world_place_unit(
+                world_place_path_entity(
                     static_game_state,
                     dynamic_game_state,
                     target,
+                    EntityBlueprint::$unit_blueprint.create(),
                     owner,
-                    EntityBlueprint::$unit_blueprint,
                 )
             },
         ))

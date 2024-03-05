@@ -1,6 +1,5 @@
 use common::card::Card;
 use common::config::SERVER_PORT;
-use common::entity::EntityState;
 use common::entity_blueprint::EntityBlueprint;
 use common::game_state::ServerControledGameState;
 use common::gameplay_config::{STARTING_ENERGY, STARTING_HAND_SIZE};
@@ -123,10 +122,9 @@ fn main() -> std::io::Result<()> {
                             for _ in 0..STARTING_HAND_SIZE {
                                 server_player.hand.draw();
                             }
-                            let mut base_entity = EntityBlueprint::Base
+                            let base_entity = EntityBlueprint::Base
                                 .create()
-                                .instantiate(client_id, EntityState::Passive);
-                            base_entity.pos = *base_pos;
+                                .instantiate(client_id, *base_pos);
                             game_state.dynamic_game_state.entities.push(base_entity);
                         }
                     }

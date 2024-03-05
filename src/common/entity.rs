@@ -66,12 +66,12 @@ pub struct Entity {
 }
 
 impl Entity {
-    pub fn instantiate(self, owner: PlayerId, state: EntityState) -> EntityInstance {
+    pub fn instantiate(self, owner: PlayerId, pos: Vec2) -> EntityInstance {
         EntityInstance {
             id: EntityId::new(),
             owner,
-            state,
-            pos: Vec2::ZERO,
+            state: EntityState::Moving,
+            pos,
             entity: self,
         }
     }

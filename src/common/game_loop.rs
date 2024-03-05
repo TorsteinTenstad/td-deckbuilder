@@ -145,10 +145,9 @@ pub fn update_entity(update_args: &mut UpdateArgs) {
                     world_place_building(
                         update_args.semi_static_game_state,
                         update_args.dynamic_game_state,
-                        entity_blueprint
-                            .create()
-                            .instantiate(update_args.entity_instance.owner, EntityState::Passive),
+                        entity_blueprint.create(),
                         &building_spot_target.id,
+                        update_args.entity_instance.owner,
                     );
                     update_args.entity_instance.state = EntityState::Dead;
                 }

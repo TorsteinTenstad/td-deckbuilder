@@ -1,6 +1,6 @@
 use crate::{
     component_movement::{get_detection_range, PathTargetSetter},
-    entity::{EntityInstance, EntityState},
+    entity::{Entity, EntityInstance},
     entity_blueprint::EntityBlueprint,
     game_state::{DynamicGameState, SemiStaticGameState, StaticGameState},
     get_unit_spawnpoints::get_unit_spawnpoints,
@@ -182,37 +182,22 @@ pub fn find_entity(entities: &[EntityInstance], id: Option<EntityId>) -> Option<
     return id.and_then(|id| entities.iter().find(|entity| entity.id == id));
 }
 
-pub fn world_place_unit(
+pub fn world_place_path_entity(
     static_game_state: &StaticGameState,
     dynamic_game_state: &mut DynamicGameState,
     target: UnitSpawnpointTarget,
+    mut entity: Entity,
     owner: PlayerId,
-    entity_blueprint: EntityBlueprint,
 ) -> bool {
-    world_place_path_entity_instance(
-        static_game_state,
-        dynamic_game_state,
-        target,
-        entity_blueprint
-            .create()
-            .instantiate(owner, EntityState::Moving),
-    )
-}
-
-pub fn world_place_path_entity_instance(
-    static_game_state: &StaticGameState,
-    dynamic_game_state: &mut DynamicGameState,
-    target: UnitSpawnpointTarget,
-    mut entity_instance: EntityInstance,
-) -> bool {
-    let Some(movement) = &mut entity_instance.entity.movement else {
+    let Some(movement) = &mut entity.movement else {
         debug_assert!(false);
         return false;
     };
-    entity_instance.pos = get_path_pos(static_game_state, target.path_id, target.path_idx);
+    let pos = get_path_pos(static_game_state, target.path_id, target.path_idx);
     movement.path_target_setter = Some(PathTargetSetter {
         path_state: Some(target.into()),
     });
+    let entity_instance = entity.instantiate(owner, pos);
     dynamic_game_state.entities.push(entity_instance);
     true
 }
@@ -222,24 +207,22 @@ pub fn world_place_builder(
     semi_static_game_state: &SemiStaticGameState,
     dynamic_game_state: &mut DynamicGameState,
     target: BuildingSpotTarget,
-    owner: PlayerId,
-    builder_blueprint: EntityBlueprint,
+    builder_entity: Entity,
     building_blueprint: EntityBlueprint,
+    owner: PlayerId,
 ) -> bool {
+    let mut builder_entity = builder_entity;
     let building_pos = semi_static_game_state
         .building_locations()
         .get(&target.id)
         .unwrap()
         .pos;
-    let mut entity_instance = builder_blueprint
-        .create()
-        .instantiate(owner, EntityState::Moving);
-    let Some(detection_range) = get_detection_range(&entity_instance.entity) else {
+    let Some(detection_range) = get_detection_range(&builder_entity) else {
         debug_assert!(false);
         return false;
     };
 
-    entity_instance.entity.building_to_construct = Some((target, building_blueprint.clone()));
+    builder_entity.building_to_construct = Some((target, building_blueprint.clone()));
 
     let Some((target_path_idx, mut spawnpoint_target)) =
         get_unit_spawnpoints(owner, static_game_state, dynamic_game_state)
@@ -264,11 +247,12 @@ pub fn world_place_builder(
     } else {
         Direction::Positive
     };
-    world_place_path_entity_instance(
+    world_place_path_entity(
         static_game_state,
         dynamic_game_state,
         spawnpoint_target,
-        entity_instance,
+        builder_entity,
+        owner,
     );
     true
 }
@@ -276,8 +260,9 @@ pub fn world_place_builder(
 pub fn world_place_building(
     semi_static_game_state: &mut SemiStaticGameState,
     dynamic_game_state: &mut DynamicGameState,
-    mut entity_instance: EntityInstance,
+    entity: Entity,
     building_location_id: &BuildingLocationId,
+    owner: PlayerId,
 ) -> bool {
     let BuildingLocation { pos, entity_id, .. } = semi_static_game_state
         .building_locations_mut()
@@ -286,7 +271,7 @@ pub fn world_place_building(
     if entity_id.is_some() {
         return false;
     }
-    entity_instance.pos = *pos;
+    let entity_instance = entity.instantiate(owner, *pos);
     *entity_id = Some(entity_instance.id);
     dynamic_game_state.entities.push(entity_instance);
     true

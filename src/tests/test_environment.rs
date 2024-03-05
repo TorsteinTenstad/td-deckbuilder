@@ -1,7 +1,7 @@
 pub mod test {
     use common::{
         card::Card,
-        entity::{EntityState, EntityTag},
+        entity::EntityTag,
         entity_blueprint::EntityBlueprint,
         game_loop,
         game_state::ServerControledGameState,
@@ -47,10 +47,9 @@ pub mod test {
                     PlayerId(*player_id),
                     ServerPlayer::new(direction.clone(), *color, Vec::new()),
                 );
-                let mut base_entity = EntityBlueprint::Base
+                let base_entity = EntityBlueprint::Base
                     .create()
-                    .instantiate(PlayerId(*player_id), EntityState::Passive);
-                base_entity.pos = *base_pos;
+                    .instantiate(PlayerId(*player_id), *base_pos);
                 state.dynamic_game_state.entities.push(base_entity);
             }
             state
