@@ -1,3 +1,4 @@
+use crate::buff::ArithmeticBuff;
 use crate::component_buff_aura::BuffAura;
 use crate::component_health::Health;
 use crate::component_movement::Movement;
@@ -10,8 +11,10 @@ use crate::{component_attack::Attack, ids::PlayerId, textures::SpriteId};
 use macroquad::math::Vec2;
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum EntityTag {
+    #[default]
+    None,
     Base,
     Tower,
     Unit,
@@ -34,14 +37,19 @@ pub enum AbilityFlag {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Entity {
+pub struct EntityInstance {
     pub id: EntityId,
-    pub tag: EntityTag,
     pub owner: PlayerId,
     pub state: EntityState,
-    pub sprite_id: SpriteId,
     #[serde(with = "Vec2Def")]
     pub pos: Vec2,
+    pub entity: Entity,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct Entity {
+    pub tag: EntityTag,
+    pub sprite_id: SpriteId,
     pub radius: f32,
     pub hitbox_radius: f32,
     pub ability_flags: Vec<AbilityFlag>,
@@ -49,6 +57,8 @@ pub struct Entity {
     pub movement: Option<Movement>,
     pub spy: Option<Spy>,
     pub buff_auras: Vec<BuffAura>,
+    pub draw_speed_buff: Option<ArithmeticBuff>,
+    pub energy_generation_buff: Option<ArithmeticBuff>,
     pub attacks: Vec<Attack>,
     pub usable_as_spawn_point: bool,
     pub seconds_left_to_live: Option<f32>,
@@ -56,25 +66,13 @@ pub struct Entity {
 }
 
 impl Entity {
-    pub fn new(tag: EntityTag, owner: PlayerId, state: EntityState) -> Self {
-        Self {
+    pub fn instantiate(self, owner: PlayerId, pos: Vec2) -> EntityInstance {
+        EntityInstance {
             id: EntityId::new(),
-            tag,
             owner,
-            state,
-            sprite_id: SpriteId::Empty,
-            pos: Vec2::ZERO,
-            radius: 0.0,
-            hitbox_radius: 0.0,
-            ability_flags: Vec::new(),
-            health: Health::default(),
-            movement: None,
-            spy: None,
-            buff_auras: Vec::new(),
-            attacks: Vec::new(),
-            usable_as_spawn_point: false,
-            seconds_left_to_live: None,
-            building_to_construct: None,
+            state: EntityState::Moving,
+            pos,
+            entity: self,
         }
     }
 }

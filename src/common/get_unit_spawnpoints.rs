@@ -21,8 +21,9 @@ pub fn get_unit_spawnpoints(
     dynamic_game_state
         .entities
         .iter()
-        .filter_map(|entity| {
-            (entity.owner == player_id && entity.usable_as_spawn_point).then_some(entity.pos)
+        .filter_map(|entity_instance| {
+            (entity_instance.owner == player_id && entity_instance.entity.usable_as_spawn_point)
+                .then_some(entity_instance.pos)
         })
         .flat_map(|pos| {
             static_game_state

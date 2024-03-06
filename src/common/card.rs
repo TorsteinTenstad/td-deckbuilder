@@ -1,8 +1,8 @@
 use crate::{
     entity_blueprint::EntityBlueprint,
     ids::CardInstanceId,
-    play_target::PlayFn,
-    world::{find_entity_mut, world_place_tower, world_place_unit},
+    play_target::{PlayFn, SpecificPlayFn},
+    world::{find_entity_mut, world_place_builder, world_place_path_entity, Zoning},
 };
 use serde::{Deserialize, Serialize};
 use strum::IntoEnumIterator;
@@ -11,6 +11,8 @@ use strum_macros::EnumIter;
 #[derive(Hash, EnumIter, Debug, Clone, Serialize, Deserialize, Eq, PartialEq)]
 pub enum Card {
     Tower,
+    Farm,
+    TradingPlace,
     SpawnPoint,
     HomesickWarrior,
     ElfWarrior,
@@ -39,6 +41,7 @@ pub struct CardInstance {
 }
 
 pub struct CardData {
+    pub enum_variant: Option<Card>,
     pub name: &'static str,
     pub energy_cost: i32,
     pub play_fn: PlayFn,
@@ -49,69 +52,143 @@ pub struct CardData {
 }
 
 const DEFAULT_CARD_DATA: CardData = CardData {
+    enum_variant: None,
     name: "",
     energy_cost: 0,
-    play_fn: PlayFn::WorldPos(|_, _, _, _, _| false),
+    play_fn: PlayFn::WorldPos(SpecificPlayFn::new(|_, _, _, _, _| false)),
     card_art_path: "",
     description: "",
     attack: None,
     health: None,
 };
 
-macro_rules! play_building {
+macro_rules! play_normal_building {
     ($builder_blueprint:ident, $building_blueprint:ident) => {
         PlayFn::BuildingSpot(
-            |target, owner, static_game_state, semi_static_game_state, dynamic_game_state| {
-                world_place_tower(
-                    static_game_state,
-                    semi_static_game_state,
-                    dynamic_game_state,
-                    target,
-                    owner,
-                    EntityBlueprint::$builder_blueprint,
-                    EntityBlueprint::$building_blueprint,
-                )
-            },
+            SpecificPlayFn::new(
+                |target, owner, static_game_state, semi_static_game_state, dynamic_game_state| {
+                    world_place_builder(
+                        static_game_state,
+                        semi_static_game_state,
+                        dynamic_game_state,
+                        target,
+                        EntityBlueprint::$builder_blueprint.create(),
+                        EntityBlueprint::$building_blueprint,
+                        owner,
+                    )
+                },
+            )
+            .with_target_is_invalid(
+                |target,
+                 _owner,
+                 _static_game_state,
+                 semi_static_game_state,
+                 _dynamic_game_state| {
+                    semi_static_game_state
+                        .building_locations()
+                        .get(&target.id)
+                        .unwrap()
+                        .zoning
+                        != Zoning::Normal
+                },
+            ),
+        )
+    };
+}
+
+macro_rules! play_commerce_builging {
+    ($builder_blueprint:ident, $building_blueprint:ident) => {
+        PlayFn::BuildingSpot(
+            SpecificPlayFn::new(
+                |target, owner, static_game_state, semi_static_game_state, dynamic_game_state| {
+                    world_place_builder(
+                        static_game_state,
+                        semi_static_game_state,
+                        dynamic_game_state,
+                        target,
+                        EntityBlueprint::$builder_blueprint.create(),
+                        EntityBlueprint::$building_blueprint,
+                        owner,
+                    )
+                },
+            )
+            .with_target_is_invalid(
+                |target,
+                 _owner,
+                 _static_game_state,
+                 semi_static_game_state,
+                 _dynamic_game_state| {
+                    semi_static_game_state
+                        .building_locations()
+                        .get(&target.id)
+                        .unwrap()
+                        .zoning
+                        != Zoning::Commerce
+                },
+            ),
         )
     };
 }
 
 macro_rules! play_unit {
     ($unit_blueprint:ident) => {
-        PlayFn::UnitSpawnPoint(
+        PlayFn::UnitSpawnPoint(SpecificPlayFn::new(
             |target, owner, static_game_state, _semi_static_game_state, dynamic_game_state| {
-                world_place_unit(
+                world_place_path_entity(
                     static_game_state,
                     dynamic_game_state,
                     target,
+                    EntityBlueprint::$unit_blueprint.create(),
                     owner,
-                    EntityBlueprint::$unit_blueprint,
                 )
             },
-        )
+        ))
     };
 }
 
 const CARD_DATA: &[CardData] = &[
     CardData {
+        enum_variant: Some(Card::Tower),
         name: "Tower",
         energy_cost: 3,
-        play_fn: play_building!(BasicBuilder, Tower),
+        play_fn: play_normal_building!(BasicBuilder, Tower),
         card_art_path: "tower.jpg",
         attack: Some(3),
         health: Some(500),
         description: "[Ranged]",
     },
     CardData {
+        enum_variant: Some(Card::Farm),
+        name: "Farm",
+        energy_cost: 4,
+        play_fn: play_commerce_builging!(BasicBuilder, Farm),
+        card_art_path: "farm.jpg",
+        attack: None,
+        health: Some(200),
+        description: "Increases drawing speed by 40%",
+    },
+    CardData {
+        enum_variant: Some(Card::TradingPlace),
+        name: "Trading Place",
+        energy_cost: 4,
+        play_fn: play_commerce_builging!(BasicBuilder, TradingPlace),
+        card_art_path: "trading_place.jpg",
+        attack: None,
+        health: Some(200),
+        description: "Increases energy generation by 40%",
+    },
+    CardData {
+        enum_variant: Some(Card::SpawnPoint),
         name: "Spawn Point",
         energy_cost: 3,
-        play_fn: play_building!(BasicBuilder, SpawnPoint),
+        play_fn: play_normal_building!(BasicBuilder, SpawnPoint),
         card_art_path: "spawn_point.jpg",
         attack: None,
         health: Some(400),
         description: "You may spawn units\nfrom this building",
     },
     CardData {
+        enum_variant: Some(Card::HomesickWarrior),
         name: "Homesick Warrior",
         energy_cost: 3,
         play_fn: play_unit!(HomesickWarrior),
@@ -121,6 +198,7 @@ const CARD_DATA: &[CardData] = &[
         description: "[Protector]",
     },
     CardData {
+        enum_variant: Some(Card::ElfWarrior),
         name: "Elf Warrior",
         energy_cost: 2,
         play_fn: play_unit!(ElfWarrior),
@@ -130,6 +208,7 @@ const CARD_DATA: &[CardData] = &[
         description: "[Fast attacking], [Ranged]",
     },
     CardData {
+        enum_variant: Some(Card::OldSwordMaster),
         name: "Old Sword Master",
         energy_cost: 4,
         play_fn: play_unit!(OldSwordMaster),
@@ -139,6 +218,7 @@ const CARD_DATA: &[CardData] = &[
         description: "[Very slow moving]",
     },
     CardData {
+        enum_variant: Some(Card::DemonWolf),
         name: "Demon Wolf",
         energy_cost: 3,
         play_fn: play_unit!(DemonWolf),
@@ -148,6 +228,7 @@ const CARD_DATA: &[CardData] = &[
         description: "[Fast moving]",
     },
     CardData {
+        enum_variant: Some(Card::SmallCriminal),
         name: "Small Criminal",
         energy_cost: 1,
         play_fn: play_unit!(SmallCriminal),
@@ -157,6 +238,7 @@ const CARD_DATA: &[CardData] = &[
         description: "[Fast moving]",
     },
     CardData {
+        enum_variant: Some(Card::StreetCriminal),
         name: "Street Criminal",
         energy_cost: 2,
         play_fn: play_unit!(StreetCriminal),
@@ -166,6 +248,7 @@ const CARD_DATA: &[CardData] = &[
         description: "[Fast attacking]",
     },
     CardData {
+        enum_variant: Some(Card::Spy),
         name: "Spy",
         energy_cost: 3,
         play_fn: play_unit!(Spy),
@@ -175,6 +258,7 @@ const CARD_DATA: &[CardData] = &[
         description: "Will not be seen\nby the first\n2 enimes it passes",
     },
     CardData {
+        enum_variant: Some(Card::RecklessKnight),
         name: "Reckless Knight",
         energy_cost: 2,
         play_fn: play_unit!(RecklessKnight),
@@ -184,6 +268,7 @@ const CARD_DATA: &[CardData] = &[
         description: "[Fast moving]",
     },
     CardData {
+        enum_variant: Some(Card::WarEagle),
         name: "War Eagle",
         energy_cost: 3,
         play_fn: play_unit!(WarEagle),
@@ -193,15 +278,17 @@ const CARD_DATA: &[CardData] = &[
         description: "[Flying]",
     },
     CardData {
+        enum_variant: Some(Card::AirBalloon),
         name: "Air Balloon",
         energy_cost: 5,
         play_fn: play_unit!(AirBalloon),
         card_art_path: "air_balloon.jpg",
-        attack: Some(40),
+        attack: Some(20),
         health: Some(400),
         description: "[Flying]",
     },
     CardData {
+        enum_variant: Some(Card::Dragon),
         name: "Dragon",
         energy_cost: 7,
         play_fn: play_unit!(Dragon),
@@ -211,19 +298,20 @@ const CARD_DATA: &[CardData] = &[
         description: "[Flying]",
     },
     CardData {
+        enum_variant: Some(Card::DirectDamage),
         name: "Direct Damage",
         energy_cost: 1,
-        play_fn: PlayFn::Entity(
+        play_fn: PlayFn::Entity(SpecificPlayFn::new(
             |target, _owner, _static_game_state, _semi_static_game_state, dynamic_game_state| {
-                let Some(target_entity) =
+                let Some(target_entity_instance) =
                     find_entity_mut(&mut dynamic_game_state.entities, Some(target.id))
                 else {
                     return false;
                 };
-                target_entity.health.deal_damage(150.0);
+                target_entity_instance.entity.health.deal_damage(150.0);
                 true
             },
-        ),
+        )),
         card_art_path: "direct_damage.jpg",
         description: "Deal 150 damage\nto a unit or building",
         ..DEFAULT_CARD_DATA
@@ -231,6 +319,12 @@ const CARD_DATA: &[CardData] = &[
 ];
 
 impl Card {
+    pub fn validate_card_data() {
+        for card in Card::iter() {
+            let card_data = CARD_DATA.get(card.clone() as usize).unwrap();
+            assert_eq!(card_data.enum_variant, Some(card));
+        }
+    }
     pub fn get_card_data(&self) -> &CardData {
         CARD_DATA.get(self.clone() as usize).unwrap()
     }

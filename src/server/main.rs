@@ -1,23 +1,24 @@
+use common::card::Card;
 use common::config::SERVER_PORT;
-use common::entity::EntityState;
 use common::entity_blueprint::EntityBlueprint;
 use common::game_state::ServerControledGameState;
 use common::gameplay_config::{STARTING_ENERGY, STARTING_HAND_SIZE};
-use common::ids::{BuildingLocationId, EntityId, PathId, PlayerId};
+use common::ids::{BuildingLocationId, PathId, PlayerId};
 use common::level_config::BUILDING_LOCATIONS;
 use common::message_acknowledgement::AckUdpSocket;
 use common::network::{hash_client_addr, ClientMessage, ServerMessage, ServerMessageData};
 use common::server_player::ServerPlayer;
 use common::world::BuildingLocation;
 use common::*;
+use itertools::Itertools;
 use macroquad::math::Vec2;
 use std::collections::hash_map;
 use std::collections::HashMap;
 use std::net::{SocketAddr, UdpSocket};
 use std::time::{Duration, SystemTime};
-mod game_loop;
 
 fn main() -> std::io::Result<()> {
+    Card::validate_card_data();
     let mut game_state = ServerControledGameState::default();
     let mut client_addresses = HashMap::<PlayerId, SocketAddr>::new();
 
@@ -31,7 +32,7 @@ fn main() -> std::io::Result<()> {
         );
     }
 
-    for (x, y) in BUILDING_LOCATIONS {
+    for (zoning, (x, y)) in BUILDING_LOCATIONS {
         game_state
             .semi_static_game_state
             .building_locations_mut()
@@ -43,6 +44,7 @@ fn main() -> std::io::Result<()> {
                         y: *y as f32,
                     },
                     entity_id: None,
+                    zoning: zoning.clone(),
                 },
             );
     }
@@ -68,21 +70,31 @@ fn main() -> std::io::Result<()> {
             let client_id = hash_client_addr(&client_addr);
             match client_message {
                 ClientMessage::PlayCard(card_id, target) => {
-                    if let Some(card_from_idx) = game_state
+                    if let Some(card_from_idx) = &mut game_state
                         .dynamic_game_state
                         .players
                         .get_mut(&client_id)
                         .unwrap()
                         .hand
-                        .try_play(card_id)
+                        .try_get(card_id)
                     {
-                        card_from_idx.get_card_data().play_fn.exec(
+                        let played = card_from_idx.get_card_data().play_fn.exec(
                             target,
                             client_id,
                             &game_state.static_game_state,
                             &mut game_state.semi_static_game_state,
                             &mut game_state.dynamic_game_state,
                         );
+
+                        if played {
+                            game_state
+                                .dynamic_game_state
+                                .players
+                                .get_mut(&client_id)
+                                .unwrap()
+                                .hand
+                                .play(card_id);
+                        }
                     }
                 }
                 ClientMessage::JoinGame(deck) => {
@@ -110,8 +122,9 @@ fn main() -> std::io::Result<()> {
                             for _ in 0..STARTING_HAND_SIZE {
                                 server_player.hand.draw();
                             }
-                            let mut base_entity = EntityBlueprint::Base.create(client_id);
-                            base_entity.pos = *base_pos;
+                            let base_entity = EntityBlueprint::Base
+                                .create()
+                                .instantiate(client_id, *base_pos);
                             game_state.dynamic_game_state.entities.push(base_entity);
                         }
                     }
@@ -168,35 +181,34 @@ fn main() -> std::io::Result<()> {
         }
 
         game_state.game_metadata.server_tick += 1;
-        for (_client_id, client) in game_state.dynamic_game_state.players.iter_mut() {
-            client.hand.step(dt)
+        for (client_id, client) in game_state.dynamic_game_state.players.iter_mut() {
+            let draw_speed_buffs = game_state
+                .dynamic_game_state
+                .entities
+                .iter()
+                .filter_map(|entity_instance| {
+                    if entity_instance.owner != *client_id {
+                        return None;
+                    }
+                    entity_instance.entity.draw_speed_buff.clone()
+                })
+                .collect_vec();
+            let energy_generation_buffs = game_state
+                .dynamic_game_state
+                .entities
+                .iter()
+                .filter_map(|entity_instance| {
+                    if entity_instance.owner != *client_id {
+                        return None;
+                    }
+                    entity_instance.entity.energy_generation_buff.clone()
+                })
+                .collect_vec();
+            client
+                .hand
+                .step(dt, &draw_speed_buffs, &energy_generation_buffs);
         }
 
         game_loop::update_game_state(&mut game_state, dt);
-
-        let mut i = 0;
-        while i < game_state.dynamic_game_state.entities.len() {
-            let entity = &game_state.dynamic_game_state.entities.get(i).unwrap();
-            if entity.state == EntityState::Dead {
-                cleanup_entity(entity.id, &mut game_state);
-                game_state.dynamic_game_state.entities.swap_remove(i);
-            } else {
-                i += 1;
-            }
-        }
-    }
-}
-
-fn cleanup_entity(
-    entity_id: EntityId,
-    server_controlled_game_state: &mut ServerControledGameState,
-) {
-    if let Some((_id, building_location)) = server_controlled_game_state
-        .semi_static_game_state
-        .building_locations_mut()
-        .iter_mut()
-        .find(|(_id, building_location)| building_location.entity_id == Some(entity_id))
-    {
-        building_location.entity_id = None;
     }
 }

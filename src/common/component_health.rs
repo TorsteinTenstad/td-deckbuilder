@@ -40,17 +40,19 @@ impl Health {
 
 impl Health {
     pub fn update(update_args: &mut UpdateArgs) {
-        update_args.entity.health.damage_animation -= update_args.dt;
-        if let Some(seconds_left_to_live) = &mut update_args.entity.seconds_left_to_live {
+        update_args.entity_instance.entity.health.damage_animation -= update_args.dt;
+        if let Some(seconds_left_to_live) =
+            &mut update_args.entity_instance.entity.seconds_left_to_live
+        {
             *seconds_left_to_live -= update_args.dt;
             if seconds_left_to_live < &mut 0.0 {
-                update_args.entity.state = EntityState::Dead;
+                update_args.entity_instance.state = EntityState::Dead;
             }
         }
-        if update_args.entity.health.health <= 0.0
-            && update_args.entity.health.damage_animation < 0.0
+        if update_args.entity_instance.entity.health.health <= 0.0
+            && update_args.entity_instance.entity.health.damage_animation < 0.0
         {
-            update_args.entity.state = EntityState::Dead;
+            update_args.entity_instance.state = EntityState::Dead;
         }
     }
 }

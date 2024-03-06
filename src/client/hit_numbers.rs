@@ -1,6 +1,6 @@
 use std::{collections::HashMap, time::SystemTime};
 
-use common::{entity::Entity, ids::EntityId};
+use common::{entity::EntityInstance, ids::EntityId};
 use macroquad::{
     color::{Color, GREEN, RED},
     math::Vec2,
@@ -31,14 +31,14 @@ impl HitNumbers {
             entity_healths: HashMap::new(),
         }
     }
-    pub fn step(&mut self, entities: &[Entity], dt: f32) {
-        for entity in entities.iter() {
-            if let Some(old_health) = self.entity_healths.get(&entity.id) {
-                let health_diff = entity.health.health - old_health;
+    pub fn step(&mut self, entities: &[EntityInstance], dt: f32) {
+        for entity_instance in entities.iter() {
+            if let Some(old_health) = self.entity_healths.get(&entity_instance.id) {
+                let health_diff = entity_instance.entity.health.health - old_health;
                 if health_diff.abs() > 1.0 {
                     self.physical_hit_numbers.push(PhysicalHitNumber {
                         number: health_diff as i32,
-                        pos: entity.pos,
+                        pos: entity_instance.pos,
                         vel: Vec2::NEG_Y * Self::SPEED,
                         creation_time: SystemTime::now(),
                     });
@@ -47,7 +47,7 @@ impl HitNumbers {
         }
         self.entity_healths = entities
             .iter()
-            .map(|entity| (entity.id, entity.health.health))
+            .map(|entity_instance| (entity_instance.id, entity_instance.entity.health.health))
             .collect();
 
         let time = SystemTime::now();

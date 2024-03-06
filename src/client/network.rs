@@ -43,7 +43,7 @@ impl ClientNetworkState {
         }
         self.last_server_com = Some(SystemTime::now());
         self.ack_udp_socket
-            .send_to(join_message, &self.server_addr, true);
+            .send_to(join_message, &self.server_addr, false); // No ack needed: If the server doesn't respond, we'll just try again
     }
 
     pub fn push_command(&mut self, client_message: ClientMessage) {

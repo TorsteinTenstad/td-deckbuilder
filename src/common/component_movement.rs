@@ -158,7 +158,7 @@ impl MovementSpeed {
             MovementSpeed::Default => default_speed,
             MovementSpeed::Fast => default_speed * 1.5,
             MovementSpeed::VeryFast => default_speed * 2.0,
-            MovementSpeed::Projectile => default_speed * 2.0,
+            MovementSpeed::Projectile => default_speed * 4.0,
             MovementSpeed::Custom(speed) => *speed,
         }
     }
@@ -181,29 +181,30 @@ impl Movement {
 
 impl MovementTowardsTarget {
     pub fn update(update_args: &mut UpdateArgs) {
-        let Some(movement) = &mut update_args.entity.movement else {
+        let Some(movement) = &mut update_args.entity_instance.entity.movement else {
             return;
         };
         let movement_towards_target = &mut movement.movement_towards_target;
         if let Some(target_pos) = movement_towards_target.target_pos {
-            let diff = target_pos - update_args.entity.pos;
+            let diff = target_pos - update_args.entity_instance.pos;
             if diff.length() < movement_towards_target.velocity.length() * update_args.dt {
-                update_args.entity.pos = target_pos;
+                update_args.entity_instance.pos = target_pos;
                 movement_towards_target.target_pos = None;
             } else {
                 movement_towards_target.velocity =
                     diff.normalize_or_zero() * movement_towards_target.get_speed();
-                update_args.entity.pos += movement_towards_target.velocity * update_args.dt;
+                update_args.entity_instance.pos +=
+                    movement_towards_target.velocity * update_args.dt;
             }
         } else if movement_towards_target.keep_moving_on_loss_of_target {
-            update_args.entity.pos += movement_towards_target.velocity * update_args.dt;
+            update_args.entity_instance.pos += movement_towards_target.velocity * update_args.dt;
         }
     }
 }
 
 impl PathTargetSetter {
     pub fn update(update_args: &mut UpdateArgs) {
-        let Some(movement) = update_args.entity.movement.as_mut() else {
+        let Some(movement) = update_args.entity_instance.entity.movement.as_mut() else {
             return;
         };
         let Some(path_target_setter) = &mut movement.path_target_setter else {
@@ -214,6 +215,7 @@ impl PathTargetSetter {
         };
 
         if update_args
+            .entity_instance
             .entity
             .ability_flags
             .contains(&AbilityFlag::Protector)
@@ -221,7 +223,7 @@ impl PathTargetSetter {
             if let Some((_, _, building_location_closest_path_idx)) =
                 world_get_furthest_planned_or_existing_building(
                     path_state.path_id,
-                    update_args.entity.owner,
+                    update_args.entity_instance.owner,
                     DEFAULT_UNIT_DETECTION_RADIUS, //TODO: Maybe not hardcode?
                     update_args.static_game_state,
                     update_args.semi_static_game_state,
@@ -232,7 +234,7 @@ impl PathTargetSetter {
                     update_args.static_game_state,
                     path_state.path_id,
                     building_location_closest_path_idx,
-                ) - update_args.entity.pos)
+                ) - update_args.entity_instance.pos)
                     .length()
                     < CLOSE_ENOUGH_TO_TARGET
                 {
@@ -252,7 +254,7 @@ impl PathTargetSetter {
                     update_args
                         .dynamic_game_state
                         .players
-                        .get(&update_args.entity.owner)
+                        .get(&update_args.entity_instance.owner)
                         .unwrap()
                         .direction
                         .flipped(),
@@ -265,7 +267,7 @@ impl PathTargetSetter {
             path_state.path_id,
             path_state.target_path_idx,
         );
-        let pos_diff = target_pos - update_args.entity.pos;
+        let pos_diff = target_pos - update_args.entity_instance.pos;
 
         if pos_diff.length() < CLOSE_ENOUGH_TO_TARGET {
             path_state.incr(update_args.static_game_state);
@@ -282,8 +284,8 @@ impl PathTargetSetter {
 
 impl DetectionBasedTargetSetter {
     pub fn update(update_args: &mut UpdateArgs) {
-        let entity_path_id = get_path_id(update_args.entity);
-        let Some(movement) = update_args.entity.movement.as_mut() else {
+        let entity_path_id = get_path_id(&update_args.entity_instance.entity);
+        let Some(movement) = update_args.entity_instance.entity.movement.as_mut() else {
             return;
         };
         let Some(detection_based_target_setter) = &mut movement.detection_based_target_setter
@@ -293,35 +295,44 @@ impl DetectionBasedTargetSetter {
 
         let detection_range = detection_based_target_setter.detection_range;
 
-        if let Some((building_spot_target, _)) = update_args.entity.building_to_construct.clone() {
+        if let Some((building_spot_target, _)) = update_args
+            .entity_instance
+            .entity
+            .building_to_construct
+            .clone()
+        {
             let building_to_construct_pos = update_args
                 .semi_static_game_state
                 .building_locations()
                 .get(&building_spot_target.id)
                 .unwrap()
                 .pos;
-            if (building_to_construct_pos - update_args.entity.pos).length() < detection_range {
+            if (building_to_construct_pos - update_args.entity_instance.pos).length()
+                < detection_range
+            {
                 movement.movement_towards_target.target_pos = Some(building_to_construct_pos);
                 return;
             }
         }
-        for attack in &update_args.entity.attacks {
-            if let Some(target_entity_to_attack) = find_target_for_attack(
-                update_args.entity.id,
-                update_args.entity.tag.clone(),
-                update_args.entity.pos,
-                update_args.entity.owner,
-                update_args.entity.spy.as_ref(),
+        for attack in &update_args.entity_instance.entity.attacks {
+            if let Some(target_entity_instance_to_attack) = find_target_for_attack(
+                update_args.entity_instance.id,
+                update_args.entity_instance.entity.tag.clone(),
+                update_args.entity_instance.pos,
+                update_args.entity_instance.owner,
+                update_args.entity_instance.entity.spy.as_ref(),
                 detection_range,
                 attack,
                 &mut update_args.dynamic_game_state.entities,
             ) {
                 if entity_path_id.is_some_and(|id| {
-                    get_path_id(target_entity_to_attack).is_some_and(|other_id| id != other_id)
+                    get_path_id(&target_entity_instance_to_attack.entity)
+                        .is_some_and(|other_id| id != other_id)
                 }) {
                     continue;
                 }
-                movement.movement_towards_target.target_pos = Some(target_entity_to_attack.pos);
+                movement.movement_towards_target.target_pos =
+                    Some(target_entity_instance_to_attack.pos);
                 return;
             }
         }
@@ -330,7 +341,7 @@ impl DetectionBasedTargetSetter {
 
 impl EntityTargetSetter {
     pub fn update(update_args: &mut UpdateArgs) {
-        let Some(movement) = update_args.entity.movement.as_mut() else {
+        let Some(movement) = update_args.entity_instance.entity.movement.as_mut() else {
             return;
         };
         let Some(entity_target_setter) = &mut movement.entity_target_setter else {

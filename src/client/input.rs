@@ -31,9 +31,10 @@ pub fn main_input(state: &mut ClientGameState) {
             .dynamic_game_state
             .entities
             .iter()
-            .find_map(|entity| {
-                ((entity.pos - mouse_world_position()).length() < entity.radius)
-                    .then_some(entity.id)
+            .find_map(|entity_instance| {
+                ((entity_instance.pos - mouse_world_position()).length()
+                    < entity_instance.entity.radius)
+                    .then_some(entity_instance.id)
             });
     }
 

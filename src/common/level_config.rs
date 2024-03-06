@@ -3,29 +3,32 @@ use macroquad::{
     math::Vec2,
 };
 
-use crate::world::Direction;
+use crate::world::{Direction, Zoning};
 
 pub const LEVEL_WIDTH: i32 = 2048;
 pub const LEVEL_HEIGHT: i32 = 1152;
 
-pub const BUILDING_LOCATIONS: &[(i32, i32)] = &[
-    (331, 214),
-    (512, 243),
-    (803, 119),
-    (996, 64),
-    (1545, 151),
-    (1940, 484),
-    (1946, 774),
-    (473, 492),
-    (1102, 267),
-    (1687, 375),
-    (1727, 769),
-    (1558, 832),
-    (1336, 848),
-    (1062, 666),
-    (272, 735),
-    (193, 966),
-    (1505, 1051),
+pub const BUILDING_LOCATIONS: &[(Zoning, (i32, i32))] = &[
+    (Zoning::Commerce, (213, 376)),
+    (Zoning::Commerce, (1727, 769)),
+    (Zoning::Commerce, (760, 700)),
+    (Zoning::Commerce, (1050, 480)),
+    (Zoning::Normal, (331, 214)),
+    (Zoning::Normal, (512, 243)),
+    (Zoning::Normal, (803, 119)),
+    (Zoning::Normal, (996, 64)),
+    (Zoning::Normal, (1545, 151)),
+    (Zoning::Normal, (1940, 484)),
+    (Zoning::Normal, (1946, 774)),
+    (Zoning::Normal, (473, 492)),
+    (Zoning::Normal, (1102, 267)),
+    (Zoning::Normal, (1687, 375)),
+    (Zoning::Normal, (1558, 832)),
+    (Zoning::Normal, (1336, 848)),
+    (Zoning::Normal, (1062, 666)),
+    (Zoning::Normal, (272, 735)),
+    (Zoning::Normal, (193, 966)),
+    (Zoning::Normal, (1505, 1051)),
 ];
 
 pub const PATHS: &[&[(i32, i32)]] = &[

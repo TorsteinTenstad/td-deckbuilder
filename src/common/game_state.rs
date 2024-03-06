@@ -1,5 +1,5 @@
 use crate::{
-    entity::Entity,
+    entity::EntityInstance,
     ids::{BuildingLocationId, GameId, PathId, PlayerId},
     server_player::ServerPlayer,
     world::BuildingLocation,
@@ -30,7 +30,7 @@ impl SemiStaticGameState {
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct DynamicGameState {
-    pub entities: Vec<Entity>,
+    pub entities: Vec<EntityInstance>,
     pub players: HashMap<PlayerId, ServerPlayer>,
 }
 

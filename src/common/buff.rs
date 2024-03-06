@@ -6,7 +6,17 @@ use crate::entity::Entity;
 pub struct ArithmeticBuff {
     pub additive_value: f32,
     pub multiplier: f32,
-    pub seconds_left: f32,
+    pub seconds_left: Option<f32>,
+}
+
+impl Default for ArithmeticBuff {
+    fn default() -> Self {
+        ArithmeticBuff {
+            additive_value: 0.0,
+            multiplier: 1.0,
+            seconds_left: None,
+        }
+    }
 }
 
 pub fn apply_arithmetic_buffs(base_value: f32, buffs: &[ArithmeticBuff]) -> f32 {
@@ -22,7 +32,7 @@ pub fn apply_arithmetic_buffs(base_value: f32, buffs: &[ArithmeticBuff]) -> f32 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ExtraHealthBuff {
     pub health: f32,
-    pub seconds_left: f32,
+    pub seconds_left: Option<f32>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -62,32 +72,30 @@ pub fn buff_add_to_entity(entity: &mut Entity, buff: Buff) {
     }
 }
 
+fn non_zero_after_update(seconds_left: &mut Option<f32>, dt: f32) -> bool {
+    if let Some(ref mut seconds_left) = seconds_left {
+        *seconds_left -= dt;
+        *seconds_left > 0.0
+    } else {
+        false
+    }
+}
+
+fn update_arithmetic_buffs(buffs: &mut Vec<ArithmeticBuff>, dt: f32) {
+    buffs.retain_mut(|buff| non_zero_after_update(&mut buff.seconds_left, dt));
+}
+
 pub fn buff_update_timers(entity: &mut Entity, dt: f32) {
     for attack in &mut entity.attacks {
-        attack.damage_buffs.retain_mut(|buff| {
-            buff.seconds_left -= dt;
-            buff.seconds_left > 0.0
-        });
-        attack.attack_speed_buffs.retain_mut(|buff| {
-            buff.seconds_left -= dt;
-            buff.seconds_left > 0.0
-        });
-        attack.range_buffs.retain_mut(|buff| {
-            buff.seconds_left -= dt;
-            buff.seconds_left > 0.0
-        });
+        update_arithmetic_buffs(&mut attack.damage_buffs, dt);
+        update_arithmetic_buffs(&mut attack.attack_speed_buffs, dt);
+        update_arithmetic_buffs(&mut attack.range_buffs, dt);
     }
     if let Some(ref mut movement) = entity.movement {
-        movement
-            .movement_towards_target
-            .speed_buffs
-            .retain_mut(|buff| {
-                buff.seconds_left -= dt;
-                buff.seconds_left > 0.0
-            });
+        update_arithmetic_buffs(&mut movement.movement_towards_target.speed_buffs, dt);
     }
-    entity.health.extra_health_buffs.retain_mut(|buff| {
-        buff.seconds_left -= dt;
-        buff.seconds_left > 0.0
-    });
+    entity
+        .health
+        .extra_health_buffs
+        .retain_mut(|buff| non_zero_after_update(&mut buff.seconds_left, dt));
 }

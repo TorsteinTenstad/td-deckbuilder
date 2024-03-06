@@ -1,20 +1,20 @@
 use client_game_state::ClientGameState;
+use common::card::Card;
 use common::component_attack::{Attack, AttackVariant};
 use common::component_movement::get_detection_range;
 use common::entity::EntityTag;
 use common::entity_blueprint::DEFAULT_UNIT_DETECTION_RADIUS;
 use common::network::ClientMessage;
-use common::play_target::{unit_spawnpoint_target_transform, PlayFn};
+use common::play_target::{unit_spawnpoint_target_transform, BuildingSpotTarget, PlayFn};
 use common::rect_transform::{point_inside, RectTransform};
 use common::textures::SpriteId;
-use common::world::find_entity;
-use common::*;
+use common::world::{find_entity, Zoning};
 use itertools::Itertools;
-use macroquad::color::{Color, BLACK, BLUE, GRAY, PINK, RED, WHITE, YELLOW};
+use macroquad::color::{Color, BLACK, BLUE, GRAY, LIGHTGRAY, PINK, RED, WHITE, YELLOW};
 use macroquad::input::is_key_pressed;
 use macroquad::math::Vec2;
 use macroquad::miniquad::KeyCode;
-use macroquad::shapes::{draw_circle, draw_circle_lines, draw_line};
+use macroquad::shapes::{draw_circle, draw_circle_lines, draw_line, draw_poly, draw_poly_lines};
 use macroquad::texture::{draw_texture_ex, DrawTextureParams};
 use macroquad::window::{clear_background, screen_height, screen_width};
 use macroquad::{window::next_frame, window::request_new_screen_size};
@@ -36,6 +36,7 @@ mod deck_builder;
 
 #[macroquad::main("Client")]
 async fn main() {
+    Card::validate_card_data();
     request_new_screen_size(1280.0, 720.0);
 
     let mut state = ClientGameState::new().await;
@@ -198,11 +199,15 @@ fn main_draw(state: &ClientGameState) {
     {
         let x = to_screen_x(loc.pos.x);
         let y = to_screen_y(loc.pos.y);
-        draw_circle(x, y, 20.0, WHITE);
+        let (poly_sides, color, radius) = match loc.zoning {
+            Zoning::Normal => (20, LIGHTGRAY, 16.0),
+            Zoning::Commerce => (6, WHITE, 20.0),
+        };
+        draw_poly(x, y, poly_sides, radius, 0., color);
     }
 
     // entities
-    for entity in state
+    for entity_instance in state
         .server_controlled_game_state
         .dynamic_game_state
         .entities
@@ -212,22 +217,28 @@ fn main_draw(state: &ClientGameState) {
             .server_controlled_game_state
             .dynamic_game_state
             .players
-            .get(&entity.owner)
+            .get(&entity_instance.owner)
         else {
             continue;
         };
-        let damage_animation_color = (entity.health.damage_animation > 0.0).then_some(RED);
-        let pos_x = to_screen_x(entity.pos.x);
-        let pos_y = to_screen_y(entity.pos.y);
-        let radius = to_screen_size(entity.radius);
+        let damage_animation_color =
+            (entity_instance.entity.health.damage_animation > 0.0).then_some(RED);
+        let pos_x = to_screen_x(entity_instance.pos.x);
+        let pos_y = to_screen_y(entity_instance.pos.y);
+        let radius = to_screen_size(entity_instance.entity.radius);
 
-        match entity.tag {
+        match entity_instance.entity.tag {
+            EntityTag::None => {
+                debug_assert!(false);
+            }
             EntityTag::Tower | EntityTag::Base | EntityTag::Unit | EntityTag::FlyingUnit => {
-                let texture = state
-                    .sprites
-                    .get_team_texture(&entity.sprite_id, Some(player.direction.clone()));
+                let texture = state.sprites.get_team_texture(
+                    &entity_instance.entity.sprite_id,
+                    Some(player.direction.clone()),
+                );
 
-                let flip_x = entity
+                let flip_x = entity_instance
+                    .entity
                     .movement
                     .as_ref()
                     .is_some_and(|movement| movement.movement_towards_target.velocity.x < 0.0);
@@ -258,31 +269,42 @@ fn main_draw(state: &ClientGameState) {
 
     // range_circle_preview
     let mut range_circle_preview: Vec<(f32, f32, f32, Color)> = Vec::new();
-    if let Some(entity) = find_entity(
+    if let Some(entity_instance) = find_entity(
         &state
             .server_controlled_game_state
             .dynamic_game_state
             .entities,
         state.selected_entity_id,
     ) {
-        if let Some(Attack { range, .. }) = entity
+        if let Some(Attack { range, .. }) = entity_instance
+            .entity
             .attacks
             .iter()
             .find(|attack| attack.variant == AttackVariant::RangedAttack)
         {
             range_circle_preview.push((
-                entity.pos.x,
-                entity.pos.y,
-                range.to_f32(entity.radius),
+                entity_instance.pos.x,
+                entity_instance.pos.y,
+                range.to_f32(entity_instance.entity.radius),
                 BLUE,
             ));
         }
 
-        if let Some(detection_range) = get_detection_range(entity) {
-            range_circle_preview.push((entity.pos.x, entity.pos.y, detection_range, YELLOW));
+        if let Some(detection_range) = get_detection_range(&entity_instance.entity) {
+            range_circle_preview.push((
+                entity_instance.pos.x,
+                entity_instance.pos.y,
+                detection_range,
+                YELLOW,
+            ));
         }
 
-        range_circle_preview.push((entity.pos.x, entity.pos.y, entity.hitbox_radius, RED));
+        range_circle_preview.push((
+            entity_instance.pos.x,
+            entity_instance.pos.y,
+            entity_instance.entity.hitbox_radius,
+            RED,
+        ));
     }
     for (x, y, range, color) in range_circle_preview {
         let x = to_screen_x(x);
@@ -341,42 +363,55 @@ fn main_draw(state: &ClientGameState) {
         );
     }
 
-    // hover building location
-    if state
-        .physical_hand
-        .card_idx_being_held
-        .filter(|idx| {
-            matches!(
-                state.physical_hand.cards[*idx]
+    // building location
+    for (id, loc) in state
+        .server_controlled_game_state
+        .semi_static_game_state
+        .building_locations()
+        .iter()
+    {
+        if state
+            .physical_hand
+            .card_idx_being_held
+            .filter(|idx| {
+                if let PlayFn::BuildingSpot(specific_play_fn) = &state
+                    .physical_hand
+                    .cards
+                    .get(*idx)
+                    .unwrap()
                     .card_instance
                     .card
                     .get_card_data()
-                    .play_fn,
-                PlayFn::BuildingSpot(_)
-            )
-        })
-        .is_some()
-    {
-        for (_id, loc) in state
-            .server_controlled_game_state
-            .semi_static_game_state
-            .building_locations()
-            .iter()
+                    .play_fn
+                {
+                    !specific_play_fn.target_is_invalid.is_some_and(|f| {
+                        f(
+                            &BuildingSpotTarget { id: *id },
+                            state.player_id,
+                            &state.server_controlled_game_state.static_game_state,
+                            &state.server_controlled_game_state.semi_static_game_state,
+                            &state.server_controlled_game_state.dynamic_game_state,
+                        )
+                    })
+                } else {
+                    false
+                }
+            })
+            .is_some()
         {
             let x = to_screen_x(loc.pos.x);
             let y = to_screen_y(loc.pos.y);
-            let r = 20.0;
-            let hovering = (mouse_screen_position() - Vec2 { x, y }).length() < r;
-            draw_circle_lines(
-                x,
-                y,
-                r,
-                3.0,
-                Color {
-                    a: if hovering { 0.8 } else { 0.5 },
-                    ..RED
-                },
-            );
+            let (poly_sides, radius) = match loc.zoning {
+                Zoning::Normal => (20, 15.0),
+                Zoning::Commerce => (6, 20.0),
+            };
+            let hovering = (mouse_screen_position() - Vec2 { x, y }).length() < radius;
+            let thickness = 3.0;
+            let color = Color {
+                a: if hovering { 0.8 } else { 0.5 },
+                ..RED
+            };
+            draw_poly_lines(x, y, poly_sides, radius, 0., thickness, color);
         }
     }
 

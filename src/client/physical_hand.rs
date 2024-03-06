@@ -168,8 +168,9 @@ pub fn hand_step(state: &mut ClientGameState) {
                         .dynamic_game_state
                         .entities
                         .iter()
-                        .find(|entity| {
-                            (entity.pos - mouse_world_position()).length() < entity.radius
+                        .find(|entity_instance| {
+                            (entity_instance.pos - mouse_world_position()).length()
+                                < entity_instance.entity.radius
                         })
                     {
                         if let Some(card_instance) = hand_try_play(state) {
