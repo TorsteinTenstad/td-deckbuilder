@@ -1,1 +1,1 @@
-Checks: 'clang-diagnostic-*,clang-analyzer-*,cppcoreguidelines-*, -cppcoreguidelines-narrowing-conversions, -cppcoreguidelines-avoid-magic-numbers, modernize-*,-modernize-use-trailing-return-type'
+Checks: 'clang-diagnostic-*,clang-analyzer-*,cppcoreguidelines-*, -cppcoreguidelines-narrowing-conversions, -cppcoreguidelines-non-private-member-variables-in-classes, -cppcoreguidelines-avoid-magic-numbers, modernize-*,-modernize-use-trailing-return-type'

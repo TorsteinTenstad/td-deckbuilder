@@ -3,6 +3,7 @@
 #include "SFML/System/Vector2.hpp"
 #include <SFML/Graphics.hpp>
 #include <iostream>
+#include <optional>
 #include <utility>
 #include <vector>
 #include "SFML/Window/Keyboard.hpp"
@@ -10,20 +11,15 @@
 #include "file_sys.cpp"
 #include "git.cpp"
 #include "game_entity.hpp"
+#include "vector.cpp"
+
+
 
 struct Globals{
     sf::RenderWindow window;
     sf::Vector2f map_texture_size;
 } globals;
 
-
-
-sf::Vector2f vectorRescaler(sf::Vector2f pos, sf::Vector2f from_scale, sf::Vector2f to_scale)
-{
-    float x = pos.x / from_scale.x * to_scale.x;
-    float y = pos.y / from_scale.y * to_scale.y;
-    return {x, y};
-}
 
 class MouseEvent
 {          
@@ -80,56 +76,187 @@ class oneFrameKey{
 };
 
 class KeyboardEvent{
-    public:
+    private:
     sf::Keyboard keyboard;
+    public:
     sf::Keyboard::Key del = sf::Keyboard::Key::Backspace;
     sf::Keyboard::Key esc = sf::Keyboard::Key::Escape;
-    oneFrameKey save = {{sf::Keyboard::Key::LControl, sf::Keyboard::Key::S}};
-    oneFrameKey undo = {{sf::Keyboard::Key::LControl, sf::Keyboard::Key::Z}};
-    oneFrameKey redo = {{sf::Keyboard::Key::LControl, sf::Keyboard::Key::Y}};
+    sf::Keyboard::Key ctrl = sf::Keyboard::Key::LControl;
+    sf::Keyboard::Key shift = sf::Keyboard::Key::LShift;
+    bool shift_down = false;
+    bool ctrl_down = false;
+    bool esc_down = false;
+    bool del_down = false;
+    oneFrameKey save = {{ctrl, sf::Keyboard::Key::S}};
+    oneFrameKey undo = {{ctrl, sf::Keyboard::Key::Z}};
+    oneFrameKey redo = {{ctrl, sf::Keyboard::Key::Y}};
     void update()
     {
         save.Update(keyboard);
         undo.Update(keyboard);
         redo.Update(keyboard);
+        ctrl_down = keyboard.isKeyPressed(ctrl);
+        shift_down = keyboard.isKeyPressed(shift);
+        esc_down = keyboard.isKeyPressed(esc);
+        del_down = keyboard.isKeyPressed(del);
     }
 };
 
-bool isWithinBoundary(sf::Vector2f relative_pos, sf::Vector2f size)
+int numSelected(const std::vector<entityBundle> entities)
 {
-    return relative_pos.x > 0 && relative_pos.y > 0 && relative_pos.x < size.x && relative_pos.y < size.y; 
-}
-
-bool intersectCircle(sf::Vector2f pos, sf::Vector2f origin, float radius)
-{
-    float x = pos.x - origin.x;
-    float y = pos.y - origin.y;
-    return x*x + y*y < radius*radius;
-}
-
-int mouseEntitiesIntersection(sf::Vector2f pos, std::vector<entityBundle> entities, float radius)
-{
-
-    for(int i = 0; i < entities.size(); i ++)
+    int num = 0;
+    for (auto entity: entities)
     {
-        if (intersectCircle(pos, entities[i].position, radius)){return i;}
+        if(entity.is_selected){num += 1;}
     }
-    return -1;
+    return num;
 }
+
+enum Action {select, move, add, del, none};
+
+class ActionSystem
+{
+    public:
+    Action action = none;
+    bool move_eligible = true;
+    bool will_deselect_all = false;
+    bool pressed_with_control = false;
+    int select_id = -1;
+    int intersect_id = -1;
+    int num_selected = 0;
+
+    void update(gameEntity& game_entity, const KeyboardEvent& kb_event, const MouseEvent& m_event)
+    {
+        num_selected = numSelected(game_entity.entities);
+        intersect_id = mouseEntitiesIntersection(m_event.position, game_entity.entities, game_entity.radius);
+        setAction(game_entity, kb_event, m_event);
+        act(game_entity, kb_event, m_event);
+    }
+
+    void setAction(const gameEntity& game_entity, const KeyboardEvent& kb_event, const MouseEvent& m_event)
+    {
+        will_deselect_all = false;
+        
+        // 1. If mouse left click and control is pressed, game will be in add mode for duration of press. 
+        // Nothing will change until release, when a new entity will be added. Release will always cause commit.
+        if(kb_event.ctrl_down && m_event.pressed_this_frame)
+        {
+            pressed_with_control = true;
+        }
+        if(pressed_with_control)
+        {
+            action = add;
+            if(m_event.released_this_frame)
+            {
+                if(!kb_event.shift_down){will_deselect_all = true;}
+                pressed_with_control = false;
+            }
+            return;
+        }
+         
+        // 2. Implicit: control is not pressed. When pressed this frame, 
+        // if and only if the mouse is hovering an unselected entity will this yield 
+        // a definite action: selecting said entity. Will not always lead to commit.
+        if(m_event.pressed_this_frame && intersect_id >= 0 && !game_entity.entities[intersect_id].is_selected)
+        {
+            action = select;
+            select_id = intersect_id;
+            return;
+        }
+
+        // 3. Moving while pressed will always give a definite action. If something is selected, enter move mode, if not,
+        // add. This clause will be true on the frame of release. Assumes that changing num_selected is impossible during pressed.
+        // (TODO: make a minimal movement amount (>> 0) so this isn't activated spuriously)
+        if(m_event.moved_while_pressed)
+        {
+            if(num_selected > 0)
+            {
+                action = move;
+            }
+            else
+            {
+                action = add;
+            }
+            return;
+        }
+
+        // 4. Implicit: Did not move while pressed, and is now released. Intersection will determine whether to add or toggle select,
+        // and not pressing shift will deselect everything else.
+        if(m_event.released_this_frame)
+        {
+            if(!kb_event.shift_down){will_deselect_all = true;}
+            if(intersect_id >= 0 || num_selected > 0)
+            {
+                action = select;
+            }
+            else 
+            {
+                action = add;
+            }
+            return;
+        }
+
+        // 5. Keyboard shortcuts. Nothing happens if mouse button is pressed (to avoid deleting or unselecting during other actions).
+        // Apart from that, this should be pretty straight forward (?).
+        if(!m_event.pressed)
+        {
+            if(kb_event.del_down)
+            {
+                action = del;
+            }
+            else if(kb_event.esc_down)
+            {
+                will_deselect_all = true;
+                action = select;
+            }
+            return;
+        }
+        return;
+    }
+
+    void act(gameEntity& game_entity, const KeyboardEvent& kb_event, const MouseEvent& m_event)
+    {
+        std::cout << action << "\n";
+        if(will_deselect_all){game_entity.deselectAll();}
+        if (action == move)
+        {
+            if (m_event.pressed)
+            {
+            game_entity.moveSelected(m_event.cursor_movement);
+            }
+        }
+        if (action == add)
+        {
+            if (m_event.released_this_frame)
+            {
+                game_entity.addEntity(m_event.position);
+            }
+        }
+        if (action == del)
+        {
+            game_entity.deleteSelectedEntities();
+        }
+        if (action == select)
+        {
+            if((m_event.pressed_this_frame || m_event.released_this_frame) && intersect_id >= 0)
+            {
+                game_entity.entities[intersect_id].is_selected = true;
+            }
+            if(m_event.released_this_frame && intersect_id >= 0 && intersect_id != select_id)
+            {
+                game_entity.entities[intersect_id].is_selected = false;
+            }
+        }
+        if(m_event.released_this_frame){select_id = -1;}
+    }
+};
+
 
 bool any(const std::vector<bool> b)
 {
     for (auto && i : b)
     {
         if (i){return true;}
-    }
-    return false;
-}
-bool anySelected(const std::vector<entityBundle> entities)
-{
-    for (auto entity: entities)
-    {
-        if(entity.is_selected){return true;}
     }
     return false;
 }
@@ -181,7 +308,6 @@ std::string initProject(std::string project_folder)
 }
 
 
-
 int main() {
     std::string project_folder = "projects/";
     std::string project_path = initProject(project_folder);
@@ -192,6 +318,7 @@ int main() {
 
     gameEntity game_entity = loadGameEntities(project_path);
     MouseEvent mouse_event;
+    ActionSystem actions;
     KeyboardEvent keyboard_event;
 
 
@@ -205,7 +332,7 @@ int main() {
     globals.map_texture_size = sf::Vector2f(map.getSize());
     globals.window.setView(sf::View(globals.map_texture_size / 2.f, globals.map_texture_size));
     std::vector<bool> allow_deselect;
-    int deselect_id = -1;
+    // int deselect_id = -1;
     bool to_head = false;
 
     // Main loop
@@ -219,45 +346,46 @@ int main() {
 
         mouse_event.update();
         keyboard_event.update();
-        
-        int intersect_id = mouseEntitiesIntersection(mouse_event.position, game_entity.entities, game_entity.radius);
-        if (mouse_event.pressed_this_frame && intersect_id >= 0)
-        {
-            deselect_id = game_entity.entities[intersect_id].is_selected ? intersect_id : -1;
-            game_entity.entities[intersect_id].is_selected = true;
-            to_head = true;
-        }
-        if (mouse_event.released_this_frame && isWithinBoundary(mouse_event.position, globals.map_texture_size)) 
-        {
-            if (intersect_id < 0 && !mouse_event.moved_while_pressed)
-            {
-                if (anySelected(game_entity.entities)){game_entity.deselectAll();}
-                else{game_entity.addEntity(mouse_event.position);}
-                to_head = true;
-            }
-            else if (intersect_id >= 0 && !mouse_event.moved_while_pressed && deselect_id == intersect_id)
-            {
-                game_entity.entities[intersect_id].is_selected = false;
-                deselect_id = -1;
-                to_head = true;
-            }
-        }
+        actions.update(game_entity, keyboard_event, mouse_event);
 
-        if (mouse_event.pressed)
-        {
-            game_entity.moveSelected(mouse_event.cursor_movement);
-            to_head = true;
-        }
-        if (keyboard_event.keyboard.isKeyPressed(keyboard_event.del) && !mouse_event.pressed)
-        {
-            game_entity.deleteSelectedEntities();
-            to_head = true;
-        }
-        if (keyboard_event.keyboard.isKeyPressed(keyboard_event.esc) && !mouse_event.pressed)
-        {
-            game_entity.deselectAll();
-            to_head= true;
-        }
+        // int intersect_id = mouseEntitiesIntersection(mouse_event.position, game_entity.entities, game_entity.radius);
+        // if (mouse_event.pressed_this_frame && intersect_id >= 0)
+        // {
+        //     deselect_id = game_entity.entities[intersect_id].is_selected ? intersect_id : -1;
+        //     game_entity.entities[intersect_id].is_selected = true;
+        //     to_head = true;
+        // }
+        // if (mouse_event.released_this_frame && isWithinBoundary(mouse_event.position, globals.map_texture_size)) 
+        // {
+        //     if (intersect_id < 0 && !mouse_event.moved_while_pressed)
+        //     {
+        //         if (numSelected(game_entity.entities) > 0){game_entity.deselectAll();}
+        //         else{game_entity.addEntity(mouse_event.position);}
+        //         to_head = true;
+        //     }
+        //     else if (intersect_id >= 0 && !mouse_event.moved_while_pressed && deselect_id == intersect_id)
+        //     {
+        //         game_entity.entities[intersect_id].is_selected = false;
+        //         deselect_id = -1;
+        //         to_head = true;
+        //     }
+        // }
+
+        // if (mouse_event.pressed)
+        // {
+        //     game_entity.moveSelected(mouse_event.cursor_movement);
+        //     to_head = true;
+        // }
+        // if (keyboard_event.del_down && !mouse_event.pressed)
+        // {
+        //     game_entity.deleteSelectedEntities();
+        //     to_head = true;
+        // }
+        // if (keyboard_event.esc_down && !mouse_event.pressed)
+        // {
+        //     game_entity.deselectAll();
+        //     to_head= true;
+        // }
         if (keyboard_event.save.this_frame){
             saveEntitiesToFile(project_path + "/entities.json", game_entity);
             git_handler.stageAndCommit({"entities.json"});
