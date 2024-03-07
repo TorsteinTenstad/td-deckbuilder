@@ -29,8 +29,9 @@ class MouseEvent
     bool released_this_frame = false;
     bool pressed_this_frame = true;
     bool moved_while_pressed = false;
-    sf::Vector2f position = sf::Vector2f(0,0);
-    sf::Vector2f cursor_movement = sf::Vector2f(0,0);
+    sf::Vector2f position = {0,0};
+    sf::Vector2f click_pos = {0,0};
+    sf::Vector2f cursor_movement = {0,0};
     void update()
     {
         sf::Vector2f new_pos = vectorRescaler(sf::Vector2f(mouse.getPosition(globals.window)),sf::Vector2f(globals.window.getSize()), globals.map_texture_size);
@@ -41,7 +42,11 @@ class MouseEvent
         moved_while_pressed = pressed && (cursor_movement != sf::Vector2f(0,0) || moved_while_pressed);
         if (mouse.isButtonPressed(mouse.Left))
         {
-            if(!pressed){pressed_this_frame = true;}
+            if(!pressed)
+            {
+                pressed_this_frame = true;
+                click_pos = position;    
+            }
             pressed = true;
         }
         else
@@ -118,8 +123,9 @@ class ActionSystem
 {
     public:
     Action action = none;
-    bool move_eligible = true;
-    bool will_deselect_all = false;
+    bool mass_select = true;
+    std::vector<bool> mass_selected;
+    bool attempt_global_deselect = false;
     bool pressed_with_control = false;
     int select_id = -1;
     int intersect_id = -1;
@@ -135,7 +141,7 @@ class ActionSystem
 
     void setAction(const gameEntity& game_entity, const KeyboardEvent& kb_event, const MouseEvent& m_event)
     {
-        will_deselect_all = false;
+        attempt_global_deselect = false;
         
         // 1. If mouse left click and control is pressed, game will be in add mode for duration of press. 
         // Nothing will change until release, when a new entity will be added. Release will always cause commit.
@@ -148,7 +154,7 @@ class ActionSystem
             action = add;
             if(m_event.released_this_frame)
             {
-                if(!kb_event.shift_down){will_deselect_all = true;}
+                attempt_global_deselect = true;
                 pressed_with_control = false;
             }
             return;
@@ -160,6 +166,7 @@ class ActionSystem
         if(m_event.pressed_this_frame && intersect_id >= 0 && !game_entity.entities[intersect_id].is_selected)
         {
             action = select;
+            attempt_global_deselect = true;
             select_id = intersect_id;
             return;
         }
@@ -169,22 +176,37 @@ class ActionSystem
         // (TODO: make a minimal movement amount (>> 0) so this isn't activated spuriously)
         if(m_event.moved_while_pressed)
         {
-            if(num_selected > 0)
+            if(intersect_id < 0 || num_selected == 0 || kb_event.shift_down || mass_select)
             {
-                action = move;
+                action = select;
+                if(!mass_select)
+                {
+                    for (auto entity: game_entity.entities)
+                    {
+                        mass_selected.push_back(false);
+                    }
+                }
+                mass_select = true;
             }
             else
             {
-                action = add;
+                action = move;
             }
             return;
+        }
+
+        // 3.5 Cleanup after 3. This might be prone to bugs, because 3 will also be true in the release frame. 
+        if(mass_select)
+        {
+            mass_selected.clear();
+            mass_select = false;
         }
 
         // 4. Implicit: Did not move while pressed, and is now released. Intersection will determine whether to add or toggle select,
         // and not pressing shift will deselect everything else.
         if(m_event.released_this_frame)
         {
-            if(!kb_event.shift_down){will_deselect_all = true;}
+            attempt_global_deselect = true;
             if(intersect_id >= 0 || num_selected > 0)
             {
                 action = select;
@@ -206,18 +228,20 @@ class ActionSystem
             }
             else if(kb_event.esc_down)
             {
-                will_deselect_all = true;
+                attempt_global_deselect = true;
                 action = select;
             }
             return;
         }
+
+        // 6. Either not sufficient input or no input at all, and the system will remain in it's previous action.
         return;
     }
 
     void act(gameEntity& game_entity, const KeyboardEvent& kb_event, const MouseEvent& m_event)
     {
-        std::cout << action << "\n";
-        if(will_deselect_all){game_entity.deselectAll();}
+        //std::cout << action << "\n";
+        if(attempt_global_deselect && (!kb_event.shift_down || kb_event.esc_down)){game_entity.deselectAll();}
         if (action == move)
         {
             if (m_event.pressed)
@@ -238,13 +262,28 @@ class ActionSystem
         }
         if (action == select)
         {
-            if((m_event.pressed_this_frame || m_event.released_this_frame) && intersect_id >= 0)
+            if(m_event.moved_while_pressed)
             {
-                game_entity.entities[intersect_id].is_selected = true;
+                sf::Vector2f upper_left = sf::Vector2f(std::min(m_event.position.x, m_event.click_pos.x), std::min(m_event.position.y, m_event.click_pos.y));
+                sf::Vector2f lower_right = sf::Vector2f(std::max(m_event.position.x, m_event.click_pos.x), std::max(m_event.position.y, m_event.click_pos.y));
+                for(int i = 0; i < game_entity.entities.size(); i ++)
+                {
+                    entityBundle& entity = game_entity.entities[i];
+                    bool intersect = intersectRectangle(entity.position, upper_left, lower_right);
+                    if (intersect){mass_selected[i] = true;}
+                    if (mass_selected[i]){entity.is_selected = intersect;}
+                }
             }
-            if(m_event.released_this_frame && intersect_id >= 0 && intersect_id != select_id)
+            else
             {
-                game_entity.entities[intersect_id].is_selected = false;
+                if((m_event.pressed_this_frame || m_event.released_this_frame) && intersect_id >= 0)
+                {
+                    game_entity.entities[intersect_id].is_selected = true;
+                }
+                if(m_event.released_this_frame && intersect_id >= 0 && intersect_id != select_id)
+                {
+                    game_entity.entities[intersect_id].is_selected = false;
+                }
             }
         }
         if(m_event.released_this_frame){select_id = -1;}
@@ -348,44 +387,6 @@ int main() {
         keyboard_event.update();
         actions.update(game_entity, keyboard_event, mouse_event);
 
-        // int intersect_id = mouseEntitiesIntersection(mouse_event.position, game_entity.entities, game_entity.radius);
-        // if (mouse_event.pressed_this_frame && intersect_id >= 0)
-        // {
-        //     deselect_id = game_entity.entities[intersect_id].is_selected ? intersect_id : -1;
-        //     game_entity.entities[intersect_id].is_selected = true;
-        //     to_head = true;
-        // }
-        // if (mouse_event.released_this_frame && isWithinBoundary(mouse_event.position, globals.map_texture_size)) 
-        // {
-        //     if (intersect_id < 0 && !mouse_event.moved_while_pressed)
-        //     {
-        //         if (numSelected(game_entity.entities) > 0){game_entity.deselectAll();}
-        //         else{game_entity.addEntity(mouse_event.position);}
-        //         to_head = true;
-        //     }
-        //     else if (intersect_id >= 0 && !mouse_event.moved_while_pressed && deselect_id == intersect_id)
-        //     {
-        //         game_entity.entities[intersect_id].is_selected = false;
-        //         deselect_id = -1;
-        //         to_head = true;
-        //     }
-        // }
-
-        // if (mouse_event.pressed)
-        // {
-        //     game_entity.moveSelected(mouse_event.cursor_movement);
-        //     to_head = true;
-        // }
-        // if (keyboard_event.del_down && !mouse_event.pressed)
-        // {
-        //     game_entity.deleteSelectedEntities();
-        //     to_head = true;
-        // }
-        // if (keyboard_event.esc_down && !mouse_event.pressed)
-        // {
-        //     game_entity.deselectAll();
-        //     to_head= true;
-        // }
         if (keyboard_event.save.this_frame){
             saveEntitiesToFile(project_path + "/entities.json", game_entity);
             git_handler.stageAndCommit({"entities.json"});

@@ -13,6 +13,17 @@ bool intersectCircle(sf::Vector2f pos, sf::Vector2f origin, float radius)
     return x*x + y*y < radius*radius;
 }
 
+bool intersectRectangle(sf::Vector2f pos, sf::Vector2f upper_left, sf::Vector2f lower_right)
+{
+    if(pos.x < upper_left.x){return false;}
+    if(pos.x > lower_right.x){return false;}
+    if(pos.y < upper_left.y){return false;}
+    if(pos.y > lower_right.y){return false;}
+    return true;
+}
+
+    
+
 int mouseEntitiesIntersection(const sf::Vector2f& pos, const std::vector<entityBundle>& entities, const float& radius)
 {
 
