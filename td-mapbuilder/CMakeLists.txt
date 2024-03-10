@@ -54,3 +54,6 @@ add_custom_command(TARGET mapbuilder POST_BUILD
     "${CMAKE_BINARY_DIR}/_deps/libgit2-build/git2.dll"
     $<TARGET_FILE_DIR:mapbuilder>
 )
+
+enable_testing()
+add_subdirectory(tests)
