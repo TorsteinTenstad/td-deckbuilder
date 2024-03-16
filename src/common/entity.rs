@@ -3,6 +3,7 @@ use crate::component_buff_aura::BuffAura;
 use crate::component_health::Health;
 use crate::component_movement::Movement;
 use crate::component_spy::Spy;
+use crate::config;
 use crate::entity_blueprint::EntityBlueprint;
 use crate::ids::EntityId;
 use crate::play_target::BuildingSpotTarget;
@@ -20,6 +21,12 @@ pub enum EntityTag {
     Unit,
     FlyingUnit,
     Bullet,
+}
+
+impl From<EntityTag> for usize {
+    fn from(val: EntityTag) -> Self {
+        val as usize
+    }
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
@@ -73,6 +80,42 @@ impl Entity {
             state: EntityState::Moving,
             pos,
             entity: self,
+        }
+    }
+
+    pub fn default_unit() -> Self {
+        Self {
+            tag: EntityTag::Unit,
+            radius: config::UNIT_RADIUS,
+            hitbox_radius: config::UNIT_RADIUS,
+            ..Default::default()
+        }
+    }
+
+    pub fn default_flying_unit() -> Self {
+        Self {
+            tag: EntityTag::FlyingUnit,
+            radius: config::UNIT_RADIUS,
+            hitbox_radius: config::UNIT_RADIUS,
+            ..Default::default()
+        }
+    }
+
+    pub fn default_tower() -> Self {
+        Self {
+            tag: EntityTag::Tower,
+            radius: config::BUILDING_RADIUS,
+            hitbox_radius: config::BUILDING_RADIUS,
+            ..Default::default()
+        }
+    }
+
+    pub fn default_base() -> Self {
+        Self {
+            tag: EntityTag::Base,
+            radius: config::BUILDING_RADIUS,
+            hitbox_radius: config::BUILDING_RADIUS,
+            ..Default::default()
         }
     }
 }

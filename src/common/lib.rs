@@ -8,6 +8,7 @@ pub mod component_spy;
 pub mod config;
 pub mod entity;
 pub mod entity_blueprint;
+pub mod enum_flags;
 pub mod find_target;
 pub mod game_loop;
 pub mod game_state;

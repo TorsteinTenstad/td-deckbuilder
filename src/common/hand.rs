@@ -75,27 +75,30 @@ impl Hand {
         self.cards
             .iter()
             .find(|card_instance| {
-                card_instance.id == card_id && card_instance.card.energy_cost() <= self.energy
+                card_instance.id == card_id
+                    && card_instance.card.get_card_data().energy_cost <= self.energy
             })
             .map(|card_instance| card_instance.card.clone())
     }
 
     pub fn play(&mut self, card_id: CardInstanceId) -> Card {
         let card_instance = pop_where(&mut self.cards, |card_instance| {
-            card_instance.id == card_id && card_instance.card.energy_cost() <= self.energy
+            card_instance.id == card_id
+                && card_instance.card.get_card_data().energy_cost <= self.energy
         })
         .unwrap();
         self.played.push(card_instance.clone());
-        self.energy -= card_instance.card.energy_cost();
+        self.energy -= card_instance.card.get_card_data().energy_cost;
         card_instance.card
     }
 
     pub fn try_play(&mut self, card_id: CardInstanceId) -> Option<Card> {
         let card_instance = pop_where(&mut self.cards, |card_instance| {
-            card_instance.id == card_id && card_instance.card.energy_cost() <= self.energy
+            card_instance.id == card_id
+                && card_instance.card.get_card_data().energy_cost <= self.energy
         })?;
         self.played.push(card_instance.clone());
-        self.energy -= card_instance.card.energy_cost();
+        self.energy -= card_instance.card.get_card_data().energy_cost;
         Some(card_instance.card)
     }
 }

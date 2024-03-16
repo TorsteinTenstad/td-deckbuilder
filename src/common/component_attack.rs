@@ -4,6 +4,7 @@ use crate::{
     component_movement::Movement,
     config::PROJECTILE_RADIUS,
     entity::{Entity, EntityInstance, EntityState, EntityTag},
+    enum_flags::{flags, EnumFlags},
     find_target::find_target_for_attack,
     ids::EntityId,
     update_args::UpdateArgs,
@@ -70,7 +71,7 @@ pub struct Attack {
     pub range: AttackRange,
     pub variant: AttackVariant,
     pub target_pool: TargetPool,
-    pub can_target: Vec<EntityTag>,
+    pub can_target: EnumFlags<EntityTag>,
     pub cooldown_timer: f32,
     pub self_destruct: bool,
     pub damage_buffs: Vec<ArithmeticBuff>,
@@ -86,7 +87,7 @@ impl Default for Attack {
             range: AttackRange::Melee,
             variant: AttackVariant::MeleeAttack,
             target_pool: TargetPool::Enemies,
-            can_target: vec![EntityTag::Base, EntityTag::Tower, EntityTag::Unit],
+            can_target: flags![EntityTag::Base, EntityTag::Tower, EntityTag::Unit],
             cooldown_timer: 0.0,
             self_destruct: false,
             damage_buffs: Vec::new(),
@@ -101,7 +102,7 @@ impl Attack {
         Self {
             variant: AttackVariant::RangedAttack,
             range: AttackRange::Default,
-            can_target: vec![
+            can_target: flags![
                 EntityTag::Base,
                 EntityTag::Tower,
                 EntityTag::Unit,
@@ -112,13 +113,13 @@ impl Attack {
     }
     pub fn default_flying() -> Self {
         Self {
-            can_target: vec![EntityTag::Base, EntityTag::Tower, EntityTag::FlyingUnit],
+            can_target: flags![EntityTag::Base, EntityTag::Tower, EntityTag::FlyingUnit],
             ..Attack::default()
         }
     }
     pub fn default_ranged_tower() -> Self {
         Self {
-            can_target: vec![EntityTag::Unit, EntityTag::FlyingUnit],
+            can_target: flags![EntityTag::Unit, EntityTag::FlyingUnit],
             ..Attack::default_ranged()
         }
     }

@@ -65,7 +65,7 @@ pub fn hand_try_play(state: &ClientGameState) -> Option<CardInstance> {
         .unwrap()
         .card_instance
         .clone();
-    if state.get_player().hand.energy < card_instance.card.energy_cost() {
+    if state.get_player().hand.energy < card_instance.card.get_card_data().energy_cost {
         return None;
     }
     Some(card_instance)

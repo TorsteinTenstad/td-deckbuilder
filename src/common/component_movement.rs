@@ -1,8 +1,7 @@
 use crate::{
     buff::{apply_arithmetic_buffs, ArithmeticBuff},
-    config::CLOSE_ENOUGH_TO_TARGET,
+    config::{CLOSE_ENOUGH_TO_TARGET, DEFAULT_UNIT_DETECTION_RADIUS},
     entity::{AbilityFlag, Entity},
-    entity_blueprint::DEFAULT_UNIT_DETECTION_RADIUS,
     find_target::find_target_for_attack,
     game_state::StaticGameState,
     ids::{EntityId, PathId},

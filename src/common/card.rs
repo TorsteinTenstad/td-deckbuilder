@@ -320,20 +320,12 @@ const CARD_DATA: &[CardData] = &[
 
 impl Card {
     pub fn validate_card_data() {
-        for card in Card::iter() {
-            let card_data = CARD_DATA.get(card.clone() as usize).unwrap();
-            assert_eq!(card_data.enum_variant, Some(card));
+        for card in Self::iter() {
+            assert_eq!(card.get_card_data().enum_variant, Some(card.clone()));
         }
     }
     pub fn get_card_data(&self) -> &CardData {
         CARD_DATA.get(self.clone() as usize).unwrap()
-    }
-
-    pub fn name(&self) -> &'static str {
-        self.get_card_data().name
-    }
-    pub fn energy_cost(&self) -> i32 {
-        self.get_card_data().energy_cost
     }
     pub fn get_texture_path(&self) -> String {
         format!("assets/cards/{}.png", self.get_card_data().name)

@@ -4,6 +4,7 @@ use crate::{
     component_attack::{Attack, TargetPool},
     component_spy::Spy,
     entity::{EntityInstance, EntityTag},
+    enum_flags::EnumFlags,
     ids::{EntityId, PlayerId},
 };
 
@@ -71,13 +72,13 @@ pub fn can_find_target(
 pub fn find_entity_in_range<'a>(
     entity_pos: Vec2,
     range: f32,
-    can_target: &[EntityTag],
+    can_target: &EnumFlags<EntityTag>,
     other_entities: &'a mut [EntityInstance],
     filter_predicate: impl Fn(&mut EntityInstance) -> bool,
 ) -> Option<&'a mut EntityInstance> {
     other_entities
         .iter_mut()
-        .filter(|other_entity_instance| can_target.contains(&other_entity_instance.entity.tag))
+        .filter(|other_entity_instance| can_target.is_set(&other_entity_instance.entity.tag))
         .filter(|other_entity_instance| {
             (other_entity_instance.pos - entity_pos).length_squared()
                 < (range + other_entity_instance.entity.hitbox_radius).powi(2)
