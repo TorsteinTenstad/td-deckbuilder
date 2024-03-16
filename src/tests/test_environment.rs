@@ -16,7 +16,6 @@ pub mod test {
         math::Vec2,
     };
 
-    #[derive(Default)]
     pub struct TestEnvironment {
         pub state: ServerControlledGameState,
         pub player_a: PlayerId,
@@ -25,9 +24,15 @@ pub mod test {
         pub timeout_s: f32,
     }
 
-    impl TestEnvironment {
-        pub fn single_path_no_buildings() -> TestEnvironment {
-            let mut test_environment = TestEnvironment::default();
+    impl Default for TestEnvironment {
+        fn default() -> Self {
+            let mut test_environment = Self {
+                state: ServerControlledGameState::default(),
+                player_a: PlayerId::new(),
+                player_b: PlayerId::new(),
+                sim_time_s: 0.0,
+                timeout_s: 1000.0,
+            };
 
             let path = vec![(0.0, 0.0), (1000.0, 0.0)];
 
@@ -46,12 +51,12 @@ pub mod test {
                 ),
             ] {
                 test_environment.state.dynamic_game_state.players.insert(
-                    player_id.clone(),
+                    *player_id,
                     ServerPlayer::new(direction.clone(), *color, Vec::new()),
                 );
                 let base_entity = EntityBlueprint::Base
                     .create()
-                    .instantiate(player_id.clone(), *base_pos);
+                    .instantiate(*player_id, *base_pos);
                 test_environment
                     .state
                     .dynamic_game_state
