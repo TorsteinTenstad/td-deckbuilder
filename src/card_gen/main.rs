@@ -14,7 +14,6 @@ use macroquad::{
 
 #[macroquad::main("Card Generator")]
 async fn main() {
-    Card::validate_card_data();
     let template_texture = load_texture("assets/textures/card_template.png")
         .await
         .unwrap();
@@ -26,7 +25,7 @@ async fn main() {
     next_frame().await;
     for card in Card::iter() {
         clear_background(Color::new(0., 0., 0., 0.));
-        draw_card(&template_texture, &font, card.get_card_data()).await;
+        draw_card(&template_texture, &font, &card.get_card_data()).await;
         get_screen_data().export_png(card.get_texture_path().as_str());
         next_frame().await;
     }

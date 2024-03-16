@@ -1,7 +1,6 @@
-use common::card::Card;
 use common::config::SERVER_PORT;
 use common::entity_blueprint::EntityBlueprint;
-use common::game_state::ServerControledGameState;
+use common::game_state::ServerControlledGameState;
 use common::gameplay_config::{STARTING_ENERGY, STARTING_HAND_SIZE};
 use common::ids::{BuildingLocationId, PathId, PlayerId};
 use common::level_config::BUILDING_LOCATIONS;
@@ -18,8 +17,7 @@ use std::net::{SocketAddr, UdpSocket};
 use std::time::{Duration, SystemTime};
 
 fn main() -> std::io::Result<()> {
-    Card::validate_card_data();
-    let mut game_state = ServerControledGameState::default();
+    let mut game_state = ServerControlledGameState::default();
     let mut client_addresses = HashMap::<PlayerId, SocketAddr>::new();
 
     for path in level_config::PATHS {

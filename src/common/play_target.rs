@@ -46,7 +46,7 @@ pub struct SpecificPlayFn<T> {
 }
 
 impl<T> SpecificPlayFn<T> {
-    pub const fn new(
+    pub fn new(
         play: fn(
             T,
             PlayerId,
@@ -60,7 +60,7 @@ impl<T> SpecificPlayFn<T> {
             target_is_invalid: None,
         }
     }
-    pub const fn with_target_is_invalid(
+    pub fn with_target_is_invalid(
         mut self,
         target_is_invalid: fn(
             &T,

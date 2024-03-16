@@ -1,5 +1,4 @@
 use client_game_state::ClientGameState;
-use common::card::Card;
 use common::component_attack::{Attack, AttackVariant};
 use common::component_movement::get_detection_range;
 use common::config::DEFAULT_UNIT_DETECTION_RADIUS;
@@ -36,7 +35,6 @@ mod deck_builder;
 
 #[macroquad::main("Client")]
 async fn main() {
-    Card::validate_card_data();
     request_new_screen_size(1280.0, 720.0);
 
     let mut state = ClientGameState::new().await;
@@ -79,7 +77,7 @@ async fn main() {
                         .collect_vec(),
                 ));
             while let Some(server_message) = state.client_network_state.receive() {
-                state.update_server_controled_game_state_with_server_message(server_message);
+                state.update_server_controlled_game_state_with_server_message(server_message);
             }
             main_step(&mut state);
             state.client_network_state.send_queued();

@@ -6,7 +6,7 @@ use crate::{
     ClientNetworkState,
 };
 use common::{
-    game_state::ServerControledGameState,
+    game_state::ServerControlledGameState,
     ids::{EntityId, PlayerId},
     network::{ServerMessage, ServerMessageData},
     play_target::UnitSpawnpointTarget,
@@ -17,7 +17,7 @@ use std::time::SystemTime;
 
 pub struct ClientGameState {
     time: SystemTime,
-    pub server_controlled_game_state: ServerControledGameState,
+    pub server_controlled_game_state: ServerControlledGameState,
     pub client_network_state: ClientNetworkState,
     pub in_deck_builder: bool,
     pub selected_entity_id: Option<EntityId>,
@@ -80,7 +80,7 @@ impl ClientGameState {
         self.dt = self.time.duration_since(old_time).unwrap().as_secs_f32();
     }
 
-    pub fn update_server_controled_game_state_with_server_message(
+    pub fn update_server_controlled_game_state_with_server_message(
         &mut self,
         server_message: ServerMessage,
     ) {

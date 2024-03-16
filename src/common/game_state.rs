@@ -41,7 +41,7 @@ pub struct GameMetadata {
 }
 
 #[derive(Default, Serialize, Deserialize)]
-pub struct ServerControledGameState {
+pub struct ServerControlledGameState {
     pub game_metadata: GameMetadata,
     pub static_game_state: StaticGameState,
     pub semi_static_game_state: SemiStaticGameState,

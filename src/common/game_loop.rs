@@ -1,13 +1,14 @@
 use crate::{
     buff::buff_update_timers, component_attack::Attack, component_buff_aura::BuffAura,
     component_health::Health, component_movement::Movement, config::CLOSE_ENOUGH_TO_TARGET,
-    entity::EntityState, find_target::find_target_for_attack, game_state::ServerControledGameState,
-    ids::EntityId, update_args::UpdateArgs, world::world_place_building,
+    entity::EntityState, find_target::find_target_for_attack,
+    game_state::ServerControlledGameState, ids::EntityId, update_args::UpdateArgs,
+    world::world_place_building,
 };
 
 fn cleanup_entity(
     entity_id: EntityId,
-    server_controlled_game_state: &mut ServerControledGameState,
+    server_controlled_game_state: &mut ServerControlledGameState,
 ) {
     if let Some((_id, building_location)) = server_controlled_game_state
         .semi_static_game_state
@@ -19,7 +20,7 @@ fn cleanup_entity(
     }
 }
 
-pub fn update_game_state(server_controlled_game_state: &mut ServerControledGameState, dt: f32) {
+pub fn update_game_state(server_controlled_game_state: &mut ServerControlledGameState, dt: f32) {
     //TODO: This implementation may cause entities to not be updated if the update_entities directly removes entities.
     // This could be solved by cashing the update state of all entities, or by only killing entities by setting their state to dead.
     let mut i = 0;

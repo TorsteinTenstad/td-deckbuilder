@@ -4,7 +4,7 @@ pub mod test {
         entity::EntityTag,
         entity_blueprint::EntityBlueprint,
         game_loop,
-        game_state::ServerControledGameState,
+        game_state::ServerControlledGameState,
         get_unit_spawnpoints::get_unit_spawnpoints,
         ids::{PathId, PlayerId},
         play_target::PlayFn,
@@ -16,60 +16,54 @@ pub mod test {
         math::Vec2,
     };
 
-    pub struct TestEnvironmentPlayer {
-        player_id: PlayerId,
-        played_cards: Vec<Card>,
-    }
-
-    impl TestEnvironmentPlayer {
-        pub fn plays(&mut self, card: Card) {
-            self.played_cards.push(card);
-        }
-    }
-
+    #[derive(Default)]
     pub struct TestEnvironment {
-        pub state: ServerControledGameState,
-        pub player_a: TestEnvironmentPlayer,
-        pub player_b: TestEnvironmentPlayer,
+        pub state: ServerControlledGameState,
+        pub player_a: PlayerId,
+        pub player_b: PlayerId,
         pub sim_time_s: f32,
         pub timeout_s: f32,
     }
 
-    impl Default for TestEnvironment {
-        fn default() -> TestEnvironment {
-            let mut state = ServerControledGameState::default();
+    impl TestEnvironment {
+        pub fn single_path_no_buildings() -> TestEnvironment {
+            let mut test_environment = TestEnvironment::default();
+
+            let path = vec![(0.0, 0.0), (1000.0, 0.0)];
 
             for (player_id, base_pos, direction, color) in &[
-                (0u64, Vec2::new(0.0, 0.0), Direction::Positive, RED),
-                (1u64, Vec2::new(1000.0, 0.0), Direction::Negative, BLUE),
+                (
+                    test_environment.player_a,
+                    Vec2::new(path[0].0, path[0].1),
+                    Direction::Positive,
+                    RED,
+                ),
+                (
+                    test_environment.player_b,
+                    Vec2::new(path[1].0, path[1].1),
+                    Direction::Negative,
+                    BLUE,
+                ),
             ] {
-                state.dynamic_game_state.players.insert(
-                    PlayerId(*player_id),
+                test_environment.state.dynamic_game_state.players.insert(
+                    player_id.clone(),
                     ServerPlayer::new(direction.clone(), *color, Vec::new()),
                 );
                 let base_entity = EntityBlueprint::Base
                     .create()
-                    .instantiate(PlayerId(*player_id), *base_pos);
-                state.dynamic_game_state.entities.push(base_entity);
+                    .instantiate(player_id.clone(), *base_pos);
+                test_environment
+                    .state
+                    .dynamic_game_state
+                    .entities
+                    .push(base_entity);
             }
-            state
+            test_environment
+                .state
                 .static_game_state
                 .paths
-                .insert(PathId::new(), vec![(0.0, 0.0), (1000.0, 0.0)]);
-
-            TestEnvironment {
-                state,
-                player_a: TestEnvironmentPlayer {
-                    player_id: PlayerId(0),
-                    played_cards: Vec::new(),
-                },
-                player_b: TestEnvironmentPlayer {
-                    player_id: PlayerId(1),
-                    played_cards: Vec::new(),
-                },
-                sim_time_s: 0.0,
-                timeout_s: 600.0,
-            }
+                .insert(PathId::new(), path);
+            test_environment
         }
     }
 
@@ -101,7 +95,6 @@ pub mod test {
 
     impl TestEnvironment {
         pub fn simulate_until(&mut self, condition: Condition) -> Result<(), Timeout> {
-            self.exec_played_cards();
             while !condition.is_met(self) {
                 self.simulate_step();
                 if self.sim_time_s > self.timeout_s {
@@ -115,45 +108,41 @@ pub mod test {
             self.sim_time_s += dt;
             game_loop::update_game_state(&mut self.state, dt);
         }
-        fn exec_played_cards(&mut self) {
-            for player in [&mut self.player_a, &mut self.player_b].iter_mut() {
-                for card in player.played_cards.drain(..) {
-                    match &card.get_card_data().play_fn {
-                        PlayFn::UnitSpawnPoint(specific_play_fn) => {
-                            let spawnpoints = get_unit_spawnpoints(
-                                player.player_id,
-                                &self.state.static_game_state,
-                                &self.state.dynamic_game_state,
-                            );
-                            let target = spawnpoints.first().unwrap();
-                            let in_valid = specific_play_fn.target_is_invalid.is_some_and(|f| {
-                                f(
-                                    target,
-                                    player.player_id,
-                                    &self.state.static_game_state,
-                                    &self.state.semi_static_game_state,
-                                    &self.state.dynamic_game_state,
-                                )
-                            });
-                            assert!(!in_valid);
-                            (specific_play_fn.play)(
-                                target.clone(),
-                                player.player_id,
-                                &self.state.static_game_state,
-                                &mut self.state.semi_static_game_state,
-                                &mut self.state.dynamic_game_state,
-                            );
-                        }
-                        PlayFn::BuildingSpot(_) => {
-                            todo!()
-                        }
-                        PlayFn::WorldPos(_) => {
-                            todo!()
-                        }
-                        PlayFn::Entity(_) => {
-                            todo!()
-                        }
-                    }
+        pub fn play(&mut self, player_id: PlayerId, card: Card) {
+            match &card.get_card_data().play_fn {
+                PlayFn::UnitSpawnPoint(specific_play_fn) => {
+                    let spawnpoints = get_unit_spawnpoints(
+                        player_id,
+                        &self.state.static_game_state,
+                        &self.state.dynamic_game_state,
+                    );
+                    let target = spawnpoints.first().unwrap();
+                    let in_valid = specific_play_fn.target_is_invalid.is_some_and(|f| {
+                        f(
+                            target,
+                            player_id,
+                            &self.state.static_game_state,
+                            &self.state.semi_static_game_state,
+                            &self.state.dynamic_game_state,
+                        )
+                    });
+                    assert!(!in_valid);
+                    (specific_play_fn.play)(
+                        target.clone(),
+                        player_id,
+                        &self.state.static_game_state,
+                        &mut self.state.semi_static_game_state,
+                        &mut self.state.dynamic_game_state,
+                    );
+                }
+                PlayFn::BuildingSpot(_) => {
+                    todo!()
+                }
+                PlayFn::WorldPos(_) => {
+                    todo!()
+                }
+                PlayFn::Entity(_) => {
+                    todo!()
                 }
             }
         }
