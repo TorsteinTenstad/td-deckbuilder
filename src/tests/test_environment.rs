@@ -1,15 +1,15 @@
 pub mod test {
     use common::{
         card::Card,
-        entity::EntityTag,
+        entity::{Entity, EntityTag},
         entity_blueprint::EntityBlueprint,
         game_loop,
         game_state::ServerControlledGameState,
         get_unit_spawnpoints::get_unit_spawnpoints,
-        ids::{PathId, PlayerId},
+        ids::{EntityId, PathId, PlayerId},
         play_target::PlayFn,
         server_player::ServerPlayer,
-        world::Direction,
+        world::{world_place_path_entity, Direction},
     };
     use macroquad::{
         color::{BLUE, RED},
@@ -74,6 +74,7 @@ pub mod test {
 
     pub enum Condition {
         NoUnitsAlive,
+        SingleUnitAlive(EntityId),
     }
 
     impl Condition {
@@ -89,6 +90,19 @@ pub mod test {
                             entity_instance.entity.tag,
                             EntityTag::Unit | EntityTag::FlyingUnit
                         )
+                    })
+                    .count()
+                    .eq(&0),
+                Condition::SingleUnitAlive(entity_id) => env
+                    .state
+                    .dynamic_game_state
+                    .entities
+                    .iter()
+                    .filter(|entity_instance| {
+                        matches!(
+                            entity_instance.entity.tag,
+                            EntityTag::Unit | EntityTag::FlyingUnit
+                        ) && entity_instance.id != *entity_id
                     })
                     .count()
                     .eq(&0),
@@ -113,7 +127,24 @@ pub mod test {
             self.sim_time_s += dt;
             game_loop::update_game_state(&mut self.state, dt);
         }
-        pub fn play(&mut self, player_id: PlayerId, card: Card) {
+        pub fn play_entity(&mut self, player_id: PlayerId, entity: Entity) -> Option<EntityId> {
+            let spawnpoint = get_unit_spawnpoints(
+                player_id,
+                &self.state.static_game_state,
+                &self.state.dynamic_game_state,
+            )
+            .first()
+            .unwrap()
+            .clone();
+            world_place_path_entity(
+                &self.state.static_game_state,
+                &mut self.state.dynamic_game_state,
+                spawnpoint,
+                entity,
+                player_id,
+            )
+        }
+        pub fn play_card(&mut self, player_id: PlayerId, card: Card) {
             match &card.get_card_data().play_fn {
                 PlayFn::UnitSpawnPoint(specific_play_fn) => {
                     let spawnpoints = get_unit_spawnpoints(

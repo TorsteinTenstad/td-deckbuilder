@@ -188,18 +188,19 @@ pub fn world_place_path_entity(
     target: UnitSpawnpointTarget,
     mut entity: Entity,
     owner: PlayerId,
-) -> bool {
+) -> Option<EntityId> {
     let Some(movement) = &mut entity.movement else {
         debug_assert!(false);
-        return false;
+        return None;
     };
     let pos = get_path_pos(static_game_state, target.path_id, target.path_idx);
     movement.path_target_setter = Some(PathTargetSetter {
         path_state: Some(target.into()),
     });
     let entity_instance = entity.instantiate(owner, pos);
+    let entity_id = entity_instance.id;
     dynamic_game_state.entities.push(entity_instance);
-    true
+    Some(entity_id)
 }
 
 pub fn world_place_builder(

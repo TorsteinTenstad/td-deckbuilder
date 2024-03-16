@@ -129,6 +129,7 @@ macro_rules! play_unit {
                     EntityBlueprint::$unit_blueprint.create(),
                     owner,
                 )
+                .is_some()
             },
         ))
     };
