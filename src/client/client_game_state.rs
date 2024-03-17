@@ -1,11 +1,9 @@
-use crate::{
-    deck_builder::DeckBuilder, hit_numbers::HitNumbers, network::ClientNetworkState,
-    physical_hand::PhysicalHand,
-};
+use crate::{deck_builder::DeckBuilder, network::ClientNetworkState, physical_hand::PhysicalHand};
 use common::{
     debug_draw_config::DebugDrawConfig,
     draw::Sprites,
     game_state::ServerControlledGameState,
+    hit_numbers::HitNumbers,
     ids::{EntityId, PlayerId},
     server_player::ServerPlayer,
 };

@@ -17,14 +17,14 @@ pub fn draw_server_controlled_game_state(
     sprites: &Sprites,
     debug_draw_config: &DebugDrawConfig,
 ) {
-    draw_building_locations(&server_controlled_game_state.semi_static_game_state);
-    draw_entities(&server_controlled_game_state.dynamic_game_state, &sprites);
     if debug_draw_config.draw_paths {
         draw_debug_paths(
             &server_controlled_game_state.static_game_state,
             &server_controlled_game_state.semi_static_game_state,
         );
     }
+    draw_building_locations(&server_controlled_game_state.semi_static_game_state);
+    draw_entities(&server_controlled_game_state.dynamic_game_state, &sprites);
 }
 
 fn draw_building_locations(semi_static_game_state: &SemiStaticGameState) {

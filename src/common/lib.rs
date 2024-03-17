@@ -18,6 +18,7 @@ pub mod game_state;
 pub mod gameplay_config;
 pub mod get_unit_spawnpoints;
 pub mod hand;
+pub mod hit_numbers;
 pub mod ids;
 pub mod level_config;
 pub mod message_acknowledgement;

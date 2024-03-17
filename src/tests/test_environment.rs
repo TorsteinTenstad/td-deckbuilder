@@ -1,9 +1,8 @@
 pub mod test {
-    use std::{net::SocketAddr, thread::sleep, time::Duration};
-
+    use crate::{condition::Condition, TestMonitorPing, TEST_CLIENT_ADDR, TEST_SERVER_ADDR};
     use common::{
         card::Card,
-        entity::{Entity, EntityTag},
+        entity::Entity,
         entity_blueprint::EntityBlueprint,
         game_loop,
         game_state::ServerControlledGameState,
@@ -22,13 +21,16 @@ pub mod test {
         color::{BLUE, RED},
         math::Vec2,
     };
+    use std::{net::SocketAddr, thread::sleep, time::Duration};
 
-    use crate::{TestMonitorPing, TEST_CLIENT_ADDR, TEST_SERVER_ADDR};
+    const SIMULATION_FPS: f32 = 60.0;
+    const SIMULATION_DT: f32 = 1.0 / SIMULATION_FPS;
 
     struct TestEnvironmentNetworkState {
         ack_udp_socket:
             common::message_acknowledgement::AckUdpSocket<ServerMessage, TestMonitorPing>,
         client_addr: SocketAddr,
+        has_received_ping: bool,
     }
 
     impl Default for TestEnvironmentNetworkState {
@@ -38,6 +40,7 @@ pub mod test {
             Self {
                 ack_udp_socket: AckUdpSocket::new(udp_socket, Duration::from_secs(1)),
                 client_addr: TEST_CLIENT_ADDR.parse().unwrap(),
+                has_received_ping: false,
             }
         }
     }
@@ -47,9 +50,7 @@ pub mod test {
             send_static_game_state(&mut self.ack_udp_socket, state, &self.client_addr);
         }
         pub fn send_update(&mut self, state: &ServerControlledGameState) {
-            if self.ack_udp_socket.receive().is_some() {
-                sleep(Duration::from_millis(16));
-            }
+            self.has_received_ping |= self.ack_udp_socket.receive().is_some();
             send_semi_static_game_state(&mut self.ack_udp_socket, state, &self.client_addr);
             send_dynamic_game_state(&mut self.ack_udp_socket, state, &self.client_addr);
         }
@@ -60,17 +61,19 @@ pub mod test {
         pub state: ServerControlledGameState,
         pub player_a: PlayerId,
         pub player_b: PlayerId,
+        pub speed: f32,
         pub sim_time_s: f32,
         pub timeout_s: f32,
     }
 
-    impl Default for TestEnvironment {
-        fn default() -> Self {
+    impl TestEnvironment {
+        pub fn new(speed: f32) -> Self {
             let mut test_environment = Self {
                 network_state: TestEnvironmentNetworkState::default(),
                 state: ServerControlledGameState::default(),
                 player_a: PlayerId::new(),
                 player_b: PlayerId::new(),
+                speed,
                 sim_time_s: 0.0,
                 timeout_s: 1000.0,
             };
@@ -113,54 +116,19 @@ pub mod test {
         }
     }
 
-    pub enum Condition {
-        NoUnitsAlive,
-        SingleUnitAlive(EntityId),
-    }
-
-    impl Condition {
-        fn is_met(&self, env: &TestEnvironment) -> bool {
-            match self {
-                Condition::NoUnitsAlive => env
-                    .state
-                    .dynamic_game_state
-                    .entities
-                    .iter()
-                    .filter(|entity_instance| {
-                        matches!(
-                            entity_instance.entity.tag,
-                            EntityTag::Unit | EntityTag::FlyingUnit
-                        )
-                    })
-                    .count()
-                    .eq(&0),
-                Condition::SingleUnitAlive(entity_id) => env
-                    .state
-                    .dynamic_game_state
-                    .entities
-                    .iter()
-                    .filter(|entity_instance| {
-                        matches!(
-                            entity_instance.entity.tag,
-                            EntityTag::Unit | EntityTag::FlyingUnit
-                        ) && entity_instance.id != *entity_id
-                    })
-                    .count()
-                    .eq(&0),
-            }
-        }
-    }
-
     pub struct Timeout {}
 
     impl TestEnvironment {
         pub fn simulate_until(&mut self, condition: Condition) -> Result<(), Timeout> {
             self.network_state.send_init(&self.state);
             while !condition.is_met(self) {
-                let dt = 0.016;
+                let dt = SIMULATION_DT;
                 self.sim_time_s += dt;
                 game_loop::update_game_state(&mut self.state, dt);
                 self.network_state.send_update(&self.state);
+                if self.network_state.has_received_ping {
+                    sleep(Duration::from_secs_f32(dt / self.speed));
+                }
                 if self.sim_time_s > self.timeout_s {
                     return Err(Timeout {});
                 }

@@ -1,13 +1,13 @@
 use std::{collections::HashMap, time::SystemTime};
 
-use common::{entity::EntityInstance, ids::EntityId};
+use crate::{entity::EntityInstance, ids::EntityId};
 use macroquad::{
     color::{Color, GREEN, RED},
     math::Vec2,
     text::Font,
 };
 
-use common::draw::{draw_text_with_origin, to_screen_x, to_screen_y, TextOriginX, TextOriginY};
+use crate::draw::{draw_text_with_origin, to_screen_x, to_screen_y, TextOriginX, TextOriginY};
 
 pub struct PhysicalHitNumber {
     pub number: i32,
