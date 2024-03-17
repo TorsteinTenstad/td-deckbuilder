@@ -24,8 +24,8 @@ enum Message<MessageContent> {
 
 pub struct AckUdpSocket<TxMessageContent, RxMessageContent>
 where
-    TxMessageContent: Serialize + for<'de> Deserialize<'de> + Debug,
-    RxMessageContent: Serialize + for<'de> Deserialize<'de> + Debug,
+    TxMessageContent: Serialize + for<'de> Deserialize<'de>,
+    RxMessageContent: Serialize + for<'de> Deserialize<'de>,
 {
     udp_socket: UdpSocket,
     resend_interval: std::time::Duration,
@@ -35,8 +35,8 @@ where
 
 impl<TxMessageContent, RxMessageContent> AckUdpSocket<TxMessageContent, RxMessageContent>
 where
-    TxMessageContent: Serialize + for<'de> Deserialize<'de> + Debug,
-    RxMessageContent: Serialize + for<'de> Deserialize<'de> + Debug,
+    TxMessageContent: Serialize + for<'de> Deserialize<'de>,
+    RxMessageContent: Serialize + for<'de> Deserialize<'de>,
 {
     pub fn new(udp_socket: UdpSocket, resend_interval: std::time::Duration) -> Self {
         Self {
@@ -82,17 +82,14 @@ where
     }
 
     pub fn send_queued(&mut self) {
-        self.messages
-            .retain_mut(|(message, addr, last_sendt_time)| {
-                if last_sendt_time
-                    .is_some_and(|time| time.elapsed().unwrap() < self.resend_interval)
-                {
-                    return true;
-                }
-                *last_sendt_time = Some(SystemTime::now());
-                Self::send_single(&self.udp_socket, message, addr);
-                matches!(message, Message::Ack(_))
-            });
+        self.messages.retain_mut(|(message, addr, last_sent_time)| {
+            if last_sent_time.is_some_and(|time| time.elapsed().unwrap() < self.resend_interval) {
+                return true;
+            }
+            *last_sent_time = Some(SystemTime::now());
+            Self::send_single(&self.udp_socket, message, addr);
+            matches!(message, Message::Ack(_))
+        });
     }
 
     pub fn receive(&mut self) -> Option<(RxMessageContent, SocketAddr)> {

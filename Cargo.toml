@@ -20,8 +20,8 @@ name = "card_gen"
 path = "src/card_gen/main.rs"
 
 [[bin]]
-name = "tests"
-path = "src/tests/main.rs"
+name = "test_monitor"
+path = "src/tests/_test_monitor.rs"
 
 [env]
 CLIPPY_CONF_DIR = "./"

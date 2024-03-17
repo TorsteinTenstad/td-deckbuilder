@@ -1,4 +1,6 @@
 pub mod test {
+    use std::{net::SocketAddr, thread::sleep, time::Duration};
+
     use common::{
         card::Card,
         entity::{Entity, EntityTag},
@@ -7,6 +9,11 @@ pub mod test {
         game_state::ServerControlledGameState,
         get_unit_spawnpoints::get_unit_spawnpoints,
         ids::{EntityId, PathId, PlayerId},
+        message_acknowledgement::AckUdpSocket,
+        network::{
+            send_dynamic_game_state, send_semi_static_game_state, send_static_game_state,
+            ServerMessage,
+        },
         play_target::PlayFn,
         server_player::ServerPlayer,
         world::{world_place_path_entity, Direction},
@@ -16,7 +23,40 @@ pub mod test {
         math::Vec2,
     };
 
+    use crate::{TestMonitorPing, TEST_CLIENT_ADDR, TEST_SERVER_ADDR};
+
+    struct TestEnvironmentNetworkState {
+        ack_udp_socket:
+            common::message_acknowledgement::AckUdpSocket<ServerMessage, TestMonitorPing>,
+        client_addr: SocketAddr,
+    }
+
+    impl Default for TestEnvironmentNetworkState {
+        fn default() -> Self {
+            let udp_socket = std::net::UdpSocket::bind(TEST_SERVER_ADDR).unwrap();
+            udp_socket.set_nonblocking(true).unwrap();
+            Self {
+                ack_udp_socket: AckUdpSocket::new(udp_socket, Duration::from_secs(1)),
+                client_addr: TEST_CLIENT_ADDR.parse().unwrap(),
+            }
+        }
+    }
+
+    impl TestEnvironmentNetworkState {
+        pub fn send_init(&mut self, state: &ServerControlledGameState) {
+            send_static_game_state(&mut self.ack_udp_socket, state, &self.client_addr);
+        }
+        pub fn send_update(&mut self, state: &ServerControlledGameState) {
+            if self.ack_udp_socket.receive().is_some() {
+                sleep(Duration::from_millis(16));
+            }
+            send_semi_static_game_state(&mut self.ack_udp_socket, state, &self.client_addr);
+            send_dynamic_game_state(&mut self.ack_udp_socket, state, &self.client_addr);
+        }
+    }
+
     pub struct TestEnvironment {
+        network_state: TestEnvironmentNetworkState,
         pub state: ServerControlledGameState,
         pub player_a: PlayerId,
         pub player_b: PlayerId,
@@ -27,6 +67,7 @@ pub mod test {
     impl Default for TestEnvironment {
         fn default() -> Self {
             let mut test_environment = Self {
+                network_state: TestEnvironmentNetworkState::default(),
                 state: ServerControlledGameState::default(),
                 player_a: PlayerId::new(),
                 player_b: PlayerId::new(),
@@ -34,7 +75,7 @@ pub mod test {
                 timeout_s: 1000.0,
             };
 
-            let path = vec![(0.0, 0.0), (1000.0, 0.0)];
+            let path = vec![(100.0, 100.0), (1100.0, 100.0)];
 
             for (player_id, base_pos, direction, color) in &[
                 (
@@ -114,18 +155,17 @@ pub mod test {
 
     impl TestEnvironment {
         pub fn simulate_until(&mut self, condition: Condition) -> Result<(), Timeout> {
+            self.network_state.send_init(&self.state);
             while !condition.is_met(self) {
-                self.simulate_step();
+                let dt = 0.016;
+                self.sim_time_s += dt;
+                game_loop::update_game_state(&mut self.state, dt);
+                self.network_state.send_update(&self.state);
                 if self.sim_time_s > self.timeout_s {
                     return Err(Timeout {});
                 }
             }
             Ok(())
-        }
-        fn simulate_step(&mut self) {
-            let dt = 0.016;
-            self.sim_time_s += dt;
-            game_loop::update_game_state(&mut self.state, dt);
         }
         pub fn play_entity(&mut self, player_id: PlayerId, entity: Entity) -> Option<EntityId> {
             let spawnpoint = get_unit_spawnpoints(

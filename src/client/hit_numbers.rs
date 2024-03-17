@@ -7,7 +7,7 @@ use macroquad::{
     text::Font,
 };
 
-use crate::draw::{draw_text_with_origin, to_screen_x, to_screen_y, TextOriginX, TextOriginY};
+use common::draw::{draw_text_with_origin, to_screen_x, to_screen_y, TextOriginX, TextOriginY};
 
 pub struct PhysicalHitNumber {
     pub number: i32,

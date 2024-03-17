@@ -1,14 +1,13 @@
-use common::rect_transform::{point_inside, RectTransform};
+use crate::input::mouse_screen_position;
+use common::{
+    draw::{draw_rect_transform, draw_text_with_origin, TextOriginX, TextOriginY},
+    rect_transform::{point_inside, RectTransform},
+};
 use macroquad::{
     color::{GRAY, WHITE},
     input::{get_char_pressed, is_mouse_button_pressed},
     miniquad::{date::now, MouseButton},
     text::Font,
-};
-
-use crate::{
-    draw::{draw_rect_transform, draw_text_with_origin, TextOriginX, TextOriginY},
-    input::mouse_screen_position,
 };
 
 pub struct TextBox {

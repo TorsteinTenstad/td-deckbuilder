@@ -1,5 +1,4 @@
 use crate::{
-    draw::{to_screen_x, to_screen_y},
     input::{mouse_screen_position, mouse_world_position},
     physical_card::{
         card_transform_hovered, card_transform_in_hand, card_transform_outside_hand,
@@ -7,6 +6,7 @@ use crate::{
     },
     ClientGameState,
 };
+use common::draw::{to_screen_x, to_screen_y};
 use common::{
     card::CardInstance,
     get_unit_spawnpoints::get_unit_spawnpoints,
@@ -74,7 +74,6 @@ pub fn hand_try_play(state: &ClientGameState) -> Option<CardInstance> {
 pub fn hand_step(state: &mut ClientGameState) {
     let hand_size = state.physical_hand.cards.len();
     let mut top_hovering_card_idx: Option<usize> = None;
-    state.unit_spawnpoint_targets.clear();
 
     if let Some(card_idx_being_held) = state.physical_hand.card_idx_being_held {
         let Vec2 { x, y } = mouse_screen_position();
@@ -93,18 +92,6 @@ pub fn hand_step(state: &mut ClientGameState) {
             .card_instance
             .card
             .get_card_data();
-        match card_data.play_fn {
-            PlayFn::WorldPos(_) => {}
-            PlayFn::UnitSpawnPoint(_) => {
-                state.unit_spawnpoint_targets = get_unit_spawnpoints(
-                    state.player_id,
-                    &state.server_controlled_game_state.static_game_state,
-                    &state.server_controlled_game_state.dynamic_game_state,
-                )
-            }
-            PlayFn::BuildingSpot(_) => {}
-            PlayFn::Entity(_) => {}
-        }
 
         if is_mouse_button_released(MouseButton::Left) {
             match card_data.play_fn {
@@ -120,7 +107,12 @@ pub fn hand_step(state: &mut ClientGameState) {
                     }
                 }
                 PlayFn::UnitSpawnPoint(_) => {
-                    if let Some(target) = state.unit_spawnpoint_targets.iter().find(|target| {
+                    let unit_spawnpoint_targets = get_unit_spawnpoints(
+                        state.player_id,
+                        &state.server_controlled_game_state.static_game_state,
+                        &state.server_controlled_game_state.dynamic_game_state,
+                    );
+                    if let Some(target) = unit_spawnpoint_targets.iter().find(|target| {
                         point_inside(
                             mouse_world_position(),
                             &unit_spawnpoint_target_transform(

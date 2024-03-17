@@ -1,6 +1,7 @@
 use crate::{
     entity::EntityInstance,
     ids::{BuildingLocationId, GameId, PathId, PlayerId},
+    network::{ServerMessage, ServerMessageData},
     server_player::ServerPlayer,
     world::BuildingLocation,
 };
@@ -46,4 +47,28 @@ pub struct ServerControlledGameState {
     pub static_game_state: StaticGameState,
     pub semi_static_game_state: SemiStaticGameState,
     pub dynamic_game_state: DynamicGameState,
+}
+
+impl ServerControlledGameState {
+    pub fn update_with_server_message(&mut self, server_message: ServerMessage) -> bool {
+        if self.game_metadata.server_tick > server_message.metadata.server_tick
+            && server_message.metadata.game_id == self.game_metadata.game_id
+        {
+            false
+        } else {
+            self.game_metadata = server_message.metadata;
+            match server_message.data {
+                ServerMessageData::StaticGameState(static_state) => {
+                    self.static_game_state = static_state;
+                }
+                ServerMessageData::DynamicGameState(dynamic_state) => {
+                    self.dynamic_game_state = dynamic_state;
+                }
+                ServerMessageData::SemiStaticGameState(semi_static_state) => {
+                    self.semi_static_game_state = semi_static_state;
+                }
+            }
+            true
+        }
+    }
 }

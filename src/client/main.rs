@@ -1,37 +1,40 @@
 use client_game_state::ClientGameState;
 use common::component_attack::{Attack, AttackVariant};
 use common::component_movement::get_detection_range;
-use common::config::DEFAULT_UNIT_DETECTION_RADIUS;
-use common::entity::EntityTag;
+use common::draw::{
+    draw_card, draw_progress_bar, draw_rect_transform, to_screen_size, to_screen_transform,
+    to_screen_x, to_screen_y, Sprites,
+};
+use common::draw_server_controlled_game_state::draw_server_controlled_game_state;
+use common::game_state::{DynamicGameState, ServerControlledGameState, StaticGameState};
+use common::get_unit_spawnpoints::get_unit_spawnpoints;
+use common::ids::{EntityId, PlayerId};
 use common::network::ClientMessage;
 use common::play_target::{unit_spawnpoint_target_transform, BuildingSpotTarget, PlayFn};
 use common::rect_transform::{point_inside, RectTransform};
 use common::textures::SpriteId;
 use common::world::{find_entity, Zoning};
+use input::{main_input, mouse_screen_position, mouse_world_position};
 use itertools::Itertools;
-use macroquad::color::{Color, BLACK, BLUE, GRAY, LIGHTGRAY, PINK, RED, WHITE, YELLOW};
+use macroquad::color::{Color, BLACK, BLUE, RED, WHITE, YELLOW};
 use macroquad::input::is_key_pressed;
 use macroquad::math::Vec2;
 use macroquad::miniquad::KeyCode;
-use macroquad::shapes::{draw_circle, draw_circle_lines, draw_line, draw_poly, draw_poly_lines};
+use macroquad::shapes::{draw_circle, draw_circle_lines, draw_poly_lines};
 use macroquad::texture::{draw_texture_ex, DrawTextureParams};
 use macroquad::window::{clear_background, screen_height, screen_width};
 use macroquad::{window::next_frame, window::request_new_screen_size};
-use physical_hand::hand_step;
-pub mod config;
-mod draw;
-use draw::*;
-mod input;
-use input::*;
-mod network;
-use network::*;
+use physical_hand::{hand_step, hand_sync, PhysicalHand};
+use text_box::TextBox;
 mod client_game_state;
+pub mod config;
+mod deck_builder;
 mod hit_numbers;
+mod input;
+mod network;
 mod physical_card;
 mod physical_hand;
 mod text_box;
-use text_box::*;
-mod deck_builder;
 
 #[macroquad::main("Client")]
 async fn main() {
@@ -77,11 +80,16 @@ async fn main() {
                         .collect_vec(),
                 ));
             while let Some(server_message) = state.client_network_state.receive() {
-                state.update_server_controlled_game_state_with_server_message(server_message);
+                let updated = state
+                    .server_controlled_game_state
+                    .update_with_server_message(server_message);
+                if updated {
+                    hand_sync(&mut state);
+                }
             }
             main_step(&mut state);
             state.client_network_state.send_queued();
-            main_draw(&state);
+            draw_client_game_state(&state);
 
             next_frame().await;
 
@@ -105,74 +113,8 @@ fn main_step(state: &mut ClientGameState) {
     );
 }
 
-fn main_draw(state: &ClientGameState) {
-    if !state.has_player() {
-        return;
-    }
-
-    // board
-    clear_background(BLACK);
-    draw_texture_ex(
-        state.sprites.get_texture(&SpriteId::Map),
-        0.0,
-        0.0,
-        WHITE,
-        DrawTextureParams {
-            dest_size: Some(Vec2 {
-                x: screen_width(),
-                y: screen_height(),
-            }),
-            ..Default::default()
-        },
-    );
-
-    //paths
-    if state.show_debug_info {
-        for building_location in state
-            .server_controlled_game_state
-            .semi_static_game_state
-            .building_locations()
-            .values()
-        {
-            draw_circle(
-                to_screen_x(building_location.pos.x),
-                to_screen_y(building_location.pos.y),
-                to_screen_size(DEFAULT_UNIT_DETECTION_RADIUS),
-                Color { a: 0.2, ..PINK },
-            );
-        }
-        for (_, path) in state
-            .server_controlled_game_state
-            .static_game_state
-            .paths
-            .iter()
-        {
-            for ((x1, y1), (x2, y2)) in path.iter().tuple_windows() {
-                let x1 = to_screen_x(*x1);
-                let y1 = to_screen_y(*y1);
-                let x2 = to_screen_x(*x2);
-                let y2 = to_screen_y(*y2);
-                draw_circle(x1, y1, 10.0, PINK);
-                draw_circle(x2, y2, 10.0, PINK);
-                draw_line(
-                    x1,
-                    y1,
-                    x2,
-                    y2,
-                    5.0,
-                    Color {
-                        r: 0.843,
-                        g: 0.803,
-                        b: 0.627,
-                        a: 1.0,
-                    },
-                );
-            }
-        }
-    }
-
-    // hand
-    let mut physical_cards = state.physical_hand.cards.clone();
+fn draw_physical_hand(physical_hand: &PhysicalHand, sprites: &Sprites) {
+    let mut physical_cards = physical_hand.cards.clone();
     physical_cards.sort_by(|a, b| {
         a.transform
             .w
@@ -184,96 +126,71 @@ fn main_draw(state: &ClientGameState) {
             &physical_card.card_instance.card,
             &physical_card.transform,
             1.0,
-            &state.sprites,
+            &sprites,
         )
     }
+}
 
-    // locations
-    for (_id, loc) in state
-        .server_controlled_game_state
+fn draw_building_location_play_targets(
+    server_controlled_game_state: &ServerControlledGameState,
+    physical_hand: &PhysicalHand,
+    player_id: PlayerId,
+) {
+    for (id, loc) in server_controlled_game_state
         .semi_static_game_state
         .building_locations()
         .iter()
     {
-        let x = to_screen_x(loc.pos.x);
-        let y = to_screen_y(loc.pos.y);
-        let (poly_sides, color, radius) = match loc.zoning {
-            Zoning::Normal => (20, LIGHTGRAY, 16.0),
-            Zoning::Commerce => (6, WHITE, 20.0),
-        };
-        draw_poly(x, y, poly_sides, radius, 0., color);
-    }
-
-    // entities
-    for entity_instance in state
-        .server_controlled_game_state
-        .dynamic_game_state
-        .entities
-        .iter()
-    {
-        let Some(player) = state
-            .server_controlled_game_state
-            .dynamic_game_state
-            .players
-            .get(&entity_instance.owner)
-        else {
-            continue;
-        };
-        let damage_animation_color =
-            (entity_instance.entity.health.damage_animation > 0.0).then_some(RED);
-        let pos_x = to_screen_x(entity_instance.pos.x);
-        let pos_y = to_screen_y(entity_instance.pos.y);
-        let radius = to_screen_size(entity_instance.entity.radius);
-
-        match entity_instance.entity.tag {
-            EntityTag::None => {
-                debug_assert!(false);
-            }
-            EntityTag::Tower | EntityTag::Base | EntityTag::Unit | EntityTag::FlyingUnit => {
-                let texture = state.sprites.get_team_texture(
-                    &entity_instance.entity.sprite_id,
-                    Some(player.direction.clone()),
-                );
-
-                let flip_x = entity_instance
-                    .entity
-                    .movement
-                    .as_ref()
-                    .is_some_and(|movement| movement.movement_towards_target.velocity.x < 0.0);
-
-                let height = 2.0 * radius;
-                let width = height * texture.width() / texture.height();
-
-                draw_texture_ex(
-                    texture,
-                    pos_x - radius,
-                    pos_y - radius,
-                    damage_animation_color.unwrap_or(WHITE),
-                    DrawTextureParams {
-                        dest_size: Some(Vec2 {
-                            x: width,
-                            y: height,
-                        }),
-                        flip_x,
-                        ..Default::default()
-                    },
-                )
-            }
-            EntityTag::Bullet => {
-                draw_circle(pos_x, pos_y, radius, GRAY);
-            }
+        if physical_hand
+            .card_idx_being_held
+            .filter(|idx| {
+                if let PlayFn::BuildingSpot(specific_play_fn) = &physical_hand
+                    .cards
+                    .get(*idx)
+                    .unwrap()
+                    .card_instance
+                    .card
+                    .get_card_data()
+                    .play_fn
+                {
+                    !specific_play_fn.target_is_invalid.is_some_and(|f| {
+                        f(
+                            &BuildingSpotTarget { id: *id },
+                            player_id,
+                            &server_controlled_game_state.static_game_state,
+                            &server_controlled_game_state.semi_static_game_state,
+                            &server_controlled_game_state.dynamic_game_state,
+                        )
+                    })
+                } else {
+                    false
+                }
+            })
+            .is_some()
+        {
+            let x = to_screen_x(loc.pos.x);
+            let y = to_screen_y(loc.pos.y);
+            let (poly_sides, radius) = match loc.zoning {
+                Zoning::Normal => (20, 15.0),
+                Zoning::Commerce => (6, 20.0),
+            };
+            let hovering = (mouse_screen_position() - Vec2 { x, y }).length() < radius;
+            let thickness = 3.0;
+            let color = Color {
+                a: if hovering { 0.8 } else { 0.5 },
+                ..RED
+            };
+            draw_poly_lines(x, y, poly_sides, radius, 0., thickness, color);
         }
     }
+}
 
-    // range_circle_preview
+fn draw_range_circle_preview(
+    dynamic_game_state: &DynamicGameState,
+    selected_entity_id: Option<EntityId>,
+) {
     let mut range_circle_preview: Vec<(f32, f32, f32, Color)> = Vec::new();
-    if let Some(entity_instance) = find_entity(
-        &state
-            .server_controlled_game_state
-            .dynamic_game_state
-            .entities,
-        state.selected_entity_id,
-    ) {
+    if let Some(entity_instance) = find_entity(&dynamic_game_state.entities, selected_entity_id) {
         if let Some(Attack { range, .. }) = entity_instance
             .entity
             .attacks
@@ -312,8 +229,9 @@ fn main_draw(state: &ClientGameState) {
         draw_circle(x, y, r, Color { a: 0.2, ..color });
         draw_circle_lines(x, y, r, 2.0, color);
     }
+}
 
-    // Progress bars
+fn draw_progress_bars(state: &ClientGameState) {
     if let Some(player) = state
         .server_controlled_game_state
         .dynamic_game_state
@@ -360,65 +278,17 @@ fn main_draw(state: &ClientGameState) {
             Some(&state.font),
         );
     }
+}
 
-    // building location
-    for (id, loc) in state
-        .server_controlled_game_state
-        .semi_static_game_state
-        .building_locations()
-        .iter()
-    {
-        if state
-            .physical_hand
-            .card_idx_being_held
-            .filter(|idx| {
-                if let PlayFn::BuildingSpot(specific_play_fn) = &state
-                    .physical_hand
-                    .cards
-                    .get(*idx)
-                    .unwrap()
-                    .card_instance
-                    .card
-                    .get_card_data()
-                    .play_fn
-                {
-                    !specific_play_fn.target_is_invalid.is_some_and(|f| {
-                        f(
-                            &BuildingSpotTarget { id: *id },
-                            state.player_id,
-                            &state.server_controlled_game_state.static_game_state,
-                            &state.server_controlled_game_state.semi_static_game_state,
-                            &state.server_controlled_game_state.dynamic_game_state,
-                        )
-                    })
-                } else {
-                    false
-                }
-            })
-            .is_some()
-        {
-            let x = to_screen_x(loc.pos.x);
-            let y = to_screen_y(loc.pos.y);
-            let (poly_sides, radius) = match loc.zoning {
-                Zoning::Normal => (20, 15.0),
-                Zoning::Commerce => (6, 20.0),
-            };
-            let hovering = (mouse_screen_position() - Vec2 { x, y }).length() < radius;
-            let thickness = 3.0;
-            let color = Color {
-                a: if hovering { 0.8 } else { 0.5 },
-                ..RED
-            };
-            draw_poly_lines(x, y, poly_sides, radius, 0., thickness, color);
-        }
-    }
-
-    // spawnpoint indicators
-    for target in state.unit_spawnpoint_targets.iter() {
-        let transform = &unit_spawnpoint_target_transform(
-            target,
-            &state.server_controlled_game_state.static_game_state,
-        );
+fn draw_spawnpoint_play_targets(
+    player_id: PlayerId,
+    static_game_state: &StaticGameState,
+    dynamic_game_state: &DynamicGameState,
+) {
+    let unit_spawnpoint_targets =
+        get_unit_spawnpoints(player_id, &static_game_state, &dynamic_game_state);
+    for target in unit_spawnpoint_targets.iter() {
+        let transform = &unit_spawnpoint_target_transform(target, &static_game_state);
         let hovering = point_inside(mouse_world_position(), transform);
         draw_rect_transform(
             &to_screen_transform(transform),
@@ -428,7 +298,50 @@ fn main_draw(state: &ClientGameState) {
             },
         );
     }
+}
 
-    // hit numbers
+fn draw_client_game_state(state: &ClientGameState) {
+    if !state.has_player() {
+        return;
+    }
+
+    // board
+    clear_background(BLACK);
+    draw_texture_ex(
+        state.sprites.get_texture(&SpriteId::Map),
+        0.0,
+        0.0,
+        WHITE,
+        DrawTextureParams {
+            dest_size: Some(Vec2 {
+                x: screen_width(),
+                y: screen_height(),
+            }),
+            ..Default::default()
+        },
+    );
+
+    draw_physical_hand(&state.physical_hand, &state.sprites);
+    draw_server_controlled_game_state(
+        &state.server_controlled_game_state,
+        &state.sprites,
+        &state.debug_draw_config,
+    );
+    draw_range_circle_preview(
+        &state.server_controlled_game_state.dynamic_game_state,
+        state.selected_entity_id,
+    );
+    draw_progress_bars(state);
+    draw_building_location_play_targets(
+        &state.server_controlled_game_state,
+        &state.physical_hand,
+        state.player_id,
+    );
+    draw_spawnpoint_play_targets(
+        state.player_id,
+        &state.server_controlled_game_state.static_game_state,
+        &state.server_controlled_game_state.dynamic_game_state,
+    );
+
     state.hit_numbers.draw(Some(&state.font));
 }

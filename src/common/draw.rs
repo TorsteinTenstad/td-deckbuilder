@@ -1,5 +1,5 @@
-use common::rect_transform::RectTransform;
-use common::{card::Card, textures::SpriteId, world::Direction, *};
+use crate::rect_transform::RectTransform;
+use crate::{card::Card, textures::SpriteId, world::Direction};
 use macroquad::{
     color::{Color, WHITE},
     math::Vec2,
@@ -10,6 +10,8 @@ use macroquad::{
 };
 use std::collections::HashMap;
 use strum::IntoEnumIterator;
+
+use crate::level_config;
 
 #[allow(dead_code)]
 pub enum TextOriginX {

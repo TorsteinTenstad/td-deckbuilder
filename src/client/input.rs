@@ -1,7 +1,5 @@
-use crate::{
-    draw::{to_world_x, to_world_y},
-    ClientGameState,
-};
+use crate::ClientGameState;
+use common::draw::{to_world_x, to_world_y};
 use macroquad::{
     input::{is_key_down, is_key_pressed, is_mouse_button_released, mouse_position},
     math::Vec2,
@@ -39,7 +37,7 @@ pub fn main_input(state: &mut ClientGameState) {
     }
 
     if is_key_pressed(macroquad::miniquad::KeyCode::F3) {
-        state.show_debug_info = !state.show_debug_info;
+        state.debug_draw_config.draw_paths = !state.debug_draw_config.draw_paths;
     }
 
     // TODO, Magne: this is temp
