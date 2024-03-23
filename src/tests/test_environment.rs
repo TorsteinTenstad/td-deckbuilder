@@ -1,5 +1,5 @@
 pub mod test {
-    use crate::{condition::Condition, TestMonitorPing, TEST_CLIENT_ADDR, TEST_SERVER_ADDR};
+    use crate::{condition::Condition, TestMonitorPing, TEST_CLIENT_ADDR};
     use common::{
         card::Card,
         entity::Entity,
@@ -21,7 +21,11 @@ pub mod test {
         color::{BLUE, RED},
         math::Vec2,
     };
-    use std::{net::SocketAddr, thread::sleep, time::Duration};
+    use std::{
+        net::{Ipv4Addr, SocketAddr, UdpSocket},
+        thread::sleep,
+        time::Duration,
+    };
 
     const SIMULATION_FPS: f32 = 60.0;
     const SIMULATION_DT: f32 = 1.0 / SIMULATION_FPS;
@@ -35,7 +39,12 @@ pub mod test {
 
     impl Default for TestEnvironmentNetworkState {
         fn default() -> Self {
-            let udp_socket = std::net::UdpSocket::bind(TEST_SERVER_ADDR).unwrap();
+            let udp_socket = std::iter::successors(Some(6968), |port| Some(port + 1))
+                .find_map(|port| {
+                    let socket_addr = SocketAddr::new(Ipv4Addr::new(127, 0, 0, 1).into(), port);
+                    UdpSocket::bind(socket_addr).ok()
+                })
+                .unwrap();
             udp_socket.set_nonblocking(true).unwrap();
             Self {
                 ack_udp_socket: AckUdpSocket::new(udp_socket, Duration::from_secs(1)),
