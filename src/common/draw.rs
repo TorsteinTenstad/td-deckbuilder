@@ -11,7 +11,7 @@ use macroquad::{
 use std::collections::HashMap;
 use strum::IntoEnumIterator;
 
-use crate::level_config;
+use crate::level_config::get_prototype_level_config;
 
 #[allow(dead_code)]
 pub enum TextOriginX {
@@ -33,33 +33,33 @@ pub fn to_screen_x<T>(x: T) -> f32
 where
     T: Into<f32>,
 {
-    x.into() * screen_width() / level_config::LEVEL_WIDTH as f32
+    x.into() * screen_width() / get_prototype_level_config().level_width as f32
 }
 pub fn to_screen_y<T>(y: T) -> f32
 where
     T: Into<f32>,
 {
-    y.into() * screen_height() / level_config::LEVEL_HEIGHT as f32
+    y.into() * screen_height() / get_prototype_level_config().level_height as f32
 }
 
 pub fn to_world_x<T>(x: T) -> f32
 where
     T: Into<f32>,
 {
-    x.into() * level_config::LEVEL_WIDTH as f32 / screen_width()
+    x.into() * get_prototype_level_config().level_width as f32 / screen_width()
 }
 pub fn to_world_y<T>(y: T) -> f32
 where
     T: Into<f32>,
 {
-    y.into() * level_config::LEVEL_HEIGHT as f32 / screen_height()
+    y.into() * get_prototype_level_config().level_height as f32 / screen_height()
 }
 
 pub fn to_screen_size<T>(size: T) -> f32
 where
     T: Into<f32>,
 {
-    size.into() * screen_width() / level_config::LEVEL_WIDTH as f32
+    size.into() * screen_width() / get_prototype_level_config().level_width as f32
 }
 
 pub fn to_screen_transform(transform: &RectTransform) -> RectTransform {

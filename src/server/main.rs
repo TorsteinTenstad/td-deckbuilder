@@ -3,7 +3,7 @@ use common::entity_blueprint::EntityBlueprint;
 use common::game_state::ServerControlledGameState;
 use common::gameplay_config::{STARTING_ENERGY, STARTING_HAND_SIZE};
 use common::ids::{BuildingLocationId, PathId, PlayerId};
-use common::level_config::BUILDING_LOCATIONS;
+use common::level_config::get_prototype_level_config;
 use common::message_acknowledgement::AckUdpSocket;
 use common::network::{hash_client_addr, ClientMessage, ServerMessage, ServerMessageData};
 use common::server_player::ServerPlayer;
@@ -20,17 +20,14 @@ fn main() -> std::io::Result<()> {
     let mut game_state = ServerControlledGameState::default();
     let mut client_addresses = HashMap::<PlayerId, SocketAddr>::new();
 
-    for path in level_config::PATHS {
+    for path in get_prototype_level_config().paths {
         game_state.static_game_state.paths.insert(
             PathId::new(),
-            path.to_vec()
-                .iter()
-                .map(|(x, y)| (*x as f32, *y as f32))
-                .collect(),
+            path.iter().map(|(x, y)| (*x as f32, *y as f32)).collect(),
         );
     }
 
-    for (zoning, (x, y)) in BUILDING_LOCATIONS {
+    for (zoning, (x, y)) in get_prototype_level_config().building_locations.iter() {
         game_state
             .semi_static_game_state
             .building_locations_mut()
@@ -99,7 +96,8 @@ fn main() -> std::io::Result<()> {
                     if let hash_map::Entry::Vacant(vacant_entry) = client_addresses.entry(client_id)
                     {
                         vacant_entry.insert(client_addr);
-                        if let Some(available_config) = level_config::PLAYER_CONFIGS
+                        if let Some(available_config) = get_prototype_level_config()
+                            .player_configs
                             .get(game_state.dynamic_game_state.players.len())
                         {
                             let (base_pos, available_direction, available_color) = available_config;

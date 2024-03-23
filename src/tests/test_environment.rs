@@ -7,7 +7,7 @@ pub mod test {
         game_loop,
         game_state::ServerControlledGameState,
         get_unit_spawnpoints::get_unit_spawnpoints,
-        ids::{BuildingLocationId, EntityId, PathId, PlayerId},
+        ids::{EntityId, PathId, PlayerId},
         message_acknowledgement::AckUdpSocket,
         network::{
             send_dynamic_game_state, send_semi_static_game_state, send_static_game_state,
@@ -15,7 +15,7 @@ pub mod test {
         },
         play_target::PlayFn,
         server_player::ServerPlayer,
-        world::{world_place_path_entity, BuildingLocation, Direction, Zoning},
+        world::{world_place_path_entity, Direction},
     };
     use macroquad::{
         color::{BLUE, RED},
