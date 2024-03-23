@@ -12,7 +12,7 @@ use common::{
     get_unit_spawnpoints::get_unit_spawnpoints,
     network::ClientMessage,
     play_target::{
-        unit_spawnpoint_target_transform, BuildingSpotTarget, EntityTarget, PlayFn, PlayTarget,
+        unit_spawnpoint_target_transform, BuildingLocationTarget, EntityTarget, PlayFn, PlayTarget,
         WorldPosTarget,
     },
     rect_transform::point_inside,
@@ -149,7 +149,7 @@ pub fn hand_step(state: &mut ClientGameState) {
                                 .client_network_state
                                 .push_command(ClientMessage::PlayCard(
                                     card_instance.id,
-                                    PlayTarget::BuildingSpot(BuildingSpotTarget { id: *id }),
+                                    PlayTarget::BuildingSpot(BuildingLocationTarget { id: *id }),
                                 ));
                         }
                     }

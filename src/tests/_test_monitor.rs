@@ -12,6 +12,7 @@ use serde::{Deserialize, Serialize};
 pub mod condition;
 pub mod test_basic_movement_and_attack;
 pub mod test_environment;
+pub mod test_protector_can_attack_ranger;
 
 pub const TEST_CLIENT_ADDR: &str = "127.0.0.1:12346";
 

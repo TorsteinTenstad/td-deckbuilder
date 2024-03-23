@@ -5,7 +5,7 @@ use crate::{
     game_state::{DynamicGameState, SemiStaticGameState, StaticGameState},
     get_unit_spawnpoints::get_unit_spawnpoints,
     ids::{BuildingLocationId, EntityId, PathId, PlayerId},
-    play_target::{BuildingSpotTarget, UnitSpawnpointTarget},
+    play_target::{BuildingLocationTarget, UnitSpawnpointTarget},
     serde_defs::Vec2Def,
 };
 use itertools::Itertools;
@@ -207,7 +207,7 @@ pub fn world_place_builder(
     static_game_state: &StaticGameState,
     semi_static_game_state: &SemiStaticGameState,
     dynamic_game_state: &mut DynamicGameState,
-    target: BuildingSpotTarget,
+    target: BuildingLocationTarget,
     builder_entity: Entity,
     building_blueprint: EntityBlueprint,
     owner: PlayerId,

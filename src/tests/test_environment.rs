@@ -7,7 +7,7 @@ pub mod test {
         game_loop,
         game_state::ServerControlledGameState,
         get_unit_spawnpoints::get_unit_spawnpoints,
-        ids::{EntityId, PathId, PlayerId},
+        ids::{BuildingLocationId, EntityId, PathId, PlayerId},
         message_acknowledgement::AckUdpSocket,
         network::{
             send_dynamic_game_state, send_semi_static_game_state, send_static_game_state,
@@ -15,7 +15,7 @@ pub mod test {
         },
         play_target::PlayFn,
         server_player::ServerPlayer,
-        world::{world_place_path_entity, Direction},
+        world::{world_place_path_entity, BuildingLocation, Direction, Zoning},
     };
     use macroquad::{
         color::{BLUE, RED},
@@ -75,14 +75,20 @@ pub mod test {
         pub timeout_s: f32,
     }
 
+    impl Default for TestEnvironment {
+        fn default() -> Self {
+            Self::new()
+        }
+    }
+
     impl TestEnvironment {
-        pub fn new(speed: f32) -> Self {
+        pub fn new() -> Self {
             let mut test_environment = Self {
                 network_state: TestEnvironmentNetworkState::default(),
                 state: ServerControlledGameState::default(),
                 player_a: PlayerId::new(),
                 player_b: PlayerId::new(),
-                speed,
+                speed: 1.0,
                 sim_time_s: 0.0,
                 timeout_s: 1000.0,
             };
