@@ -17,7 +17,7 @@
 #include <iostream>
 #include <git2.h>
 #include <vector>
-#include "file_sys.cpp"
+#include "file_sys.hpp"
 
 class gitHandler{
     private:
@@ -195,12 +195,12 @@ class gitHandler{
         return gitInitWrapper(func);
     }
 
-    bool Undo(bool to_head)
+    bool Undo()
     {
         if (idx == 0){return false;}
-        if(LoadCommit(commit_ids[idx - !to_head]))
+        if(LoadCommit(commit_ids[idx - 1]))
         {
-            idx = idx - !to_head;
+            idx = idx - 1;
             return true;
         };
         return false;
