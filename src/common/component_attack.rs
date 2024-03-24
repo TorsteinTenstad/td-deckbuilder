@@ -6,7 +6,7 @@ use crate::{
     entity::{Entity, EntityInstance, EntityState, EntityTag},
     enum_flags::{flags, EnumFlags},
     find_target::find_target_for_attack,
-    ids::EntityId,
+    ids::{EntityId, PlayerId},
     update_args::UpdateArgs,
 };
 use serde::{Deserialize, Serialize};
@@ -62,6 +62,16 @@ pub enum TargetPool {
     Enemies,
     Allies,
     All,
+}
+
+impl TargetPool {
+    pub fn in_pool(&self, player_id_a: PlayerId, player_id_b: PlayerId) -> bool {
+        match self {
+            TargetPool::Allies => player_id_a == player_id_b,
+            TargetPool::Enemies => player_id_a != player_id_b,
+            TargetPool::All => true,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

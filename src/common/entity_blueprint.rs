@@ -1,8 +1,9 @@
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    buff::ArithmeticBuff,
+    buff::{ArithmeticBuff, Buff},
     component_attack::{Attack, AttackSpeed},
+    component_buff_aura::{BuffAura, BuffAuraRange},
     component_health::Health,
     component_movement::{Movement, MovementSpeed},
     component_spy::Spy,
@@ -45,7 +46,6 @@ impl EntityBlueprint {
         match self {
             EntityBlueprint::BasicBuilder => Entity {
                 health: Health::new(100.0),
-                movement: Some(Movement::new(MovementSpeed::Default)),
                 sprite_id: SpriteId::UnitBuilder,
                 attacks: vec![Attack {
                     damage: 5.0,
@@ -55,7 +55,6 @@ impl EntityBlueprint {
             },
             EntityBlueprint::HomesickWarrior => Entity {
                 health: Health::new(200.0),
-                movement: Some(Movement::new(MovementSpeed::Default)),
                 sprite_id: SpriteId::UnitHomesickWarrior,
                 ability_flags: vec![AbilityFlag::Protector],
                 attacks: vec![Attack {
@@ -66,7 +65,6 @@ impl EntityBlueprint {
             },
             EntityBlueprint::ElfWarrior => Entity {
                 health: Health::new(100.0),
-                movement: Some(Movement::new(MovementSpeed::Default)),
                 sprite_id: SpriteId::UnitElfWarrior,
                 attacks: vec![Attack {
                     damage: 10.0,
@@ -107,7 +105,6 @@ impl EntityBlueprint {
             },
             EntityBlueprint::StreetCriminal => Entity {
                 health: Health::new(200.0),
-                movement: Some(Movement::new(MovementSpeed::Default)),
                 sprite_id: SpriteId::UnitStreetCriminal,
                 attacks: vec![Attack {
                     damage: 10.0,
@@ -118,7 +115,6 @@ impl EntityBlueprint {
             },
             EntityBlueprint::Spy => Entity {
                 health: Health::new(200.0),
-                movement: Some(Movement::new(MovementSpeed::Default)),
                 sprite_id: SpriteId::UnitSpy,
                 attacks: vec![Attack {
                     damage: 20.0,
@@ -139,7 +135,6 @@ impl EntityBlueprint {
             },
             EntityBlueprint::WarEagle => Entity {
                 health: Health::new(100.0),
-                movement: Some(Movement::new(MovementSpeed::Default)),
                 sprite_id: SpriteId::UnitWarEagle,
                 attacks: vec![Attack {
                     damage: 10.0,
@@ -159,7 +154,6 @@ impl EntityBlueprint {
             },
             EntityBlueprint::Dragon => Entity {
                 health: Health::new(400.0),
-                movement: Some(Movement::new(MovementSpeed::Default)),
                 sprite_id: SpriteId::UnitDragon,
                 attacks: vec![Attack {
                     damage: 40.0,
@@ -183,6 +177,10 @@ impl EntityBlueprint {
                     damage: 10.0,
                     ..Attack::default_ranged_tower()
                 }],
+                buff_auras: vec![BuffAura::new(
+                    Buff::AttackRange(ArithmeticBuff::new_multiplicative(2.0)),
+                    BuffAuraRange::Default,
+                )],
                 ..Entity::default_tower()
             },
             EntityBlueprint::Farm => Entity {

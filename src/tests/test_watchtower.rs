@@ -2,15 +2,29 @@
 
 pub mod test {
     use crate::{condition::Condition, test_environment::test::TestEnvironment};
-    use common::{card::Card, entity_blueprint::EntityBlueprint};
+    use common::{
+        component_attack::Attack,
+        component_health::Health,
+        entity::{Entity, EntityTag},
+        entity_blueprint::EntityBlueprint,
+        enum_flags::{flags, EnumFlags},
+    };
 
     #[test]
     fn test_watchtower() {
         let mut test_env = TestEnvironment::default();
-        test_env.play_card(test_env.player_a, Card::Watchtower);
 
-        let mut ranger = EntityBlueprint::ElfWarrior.create();
-        ranger.health.health = 1.0;
+        test_env.place_building(test_env.player_a, EntityBlueprint::Watchtower.create());
+
+        let ranger = Entity {
+            health: Health::new(10000.0),
+            attacks: vec![Attack {
+                damage: 10000.0,
+                can_target: flags![EntityTag::Base, EntityTag::Unit],
+                ..Attack::default_ranged()
+            }],
+            ..Entity::default_unit()
+        };
 
         test_env
             .play_entity(test_env.player_a, ranger.clone())

@@ -264,16 +264,16 @@ pub fn world_place_building(
     entity: Entity,
     building_location_id: &BuildingLocationId,
     owner: PlayerId,
-) -> bool {
+) -> Option<EntityId> {
     let BuildingLocation { pos, entity_id, .. } = semi_static_game_state
         .building_locations_mut()
         .get_mut(building_location_id)
         .unwrap();
     if entity_id.is_some() {
-        return false;
+        return None;
     }
     let entity_instance = entity.instantiate(owner, *pos);
     *entity_id = Some(entity_instance.id);
     dynamic_game_state.entities.push(entity_instance);
-    true
+    *entity_id
 }

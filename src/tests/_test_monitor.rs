@@ -6,7 +6,10 @@ use common::{
     game_state::ServerControlledGameState, hit_numbers::HitNumbers,
     message_acknowledgement::AckUdpSocket, network::ServerMessage,
 };
-use macroquad::window::next_frame;
+use macroquad::{
+    color::GRAY,
+    window::{clear_background, next_frame},
+};
 use serde::{Deserialize, Serialize};
 
 pub mod condition;
@@ -65,6 +68,7 @@ async fn main() {
                 .entities,
             0.016,
         );
+        clear_background(GRAY);
         draw_server_controlled_game_state(
             &state.server_controlled_game_state,
             &state.sprites,

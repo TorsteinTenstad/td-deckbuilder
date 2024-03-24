@@ -1,7 +1,7 @@
 use crate::buff::ArithmeticBuff;
 use crate::component_buff_aura::BuffAura;
 use crate::component_health::Health;
-use crate::component_movement::Movement;
+use crate::component_movement::{Movement, MovementSpeed};
 use crate::component_spy::Spy;
 use crate::config;
 use crate::entity_blueprint::EntityBlueprint;
@@ -88,6 +88,7 @@ impl Entity {
             tag: EntityTag::Unit,
             radius: config::UNIT_RADIUS,
             hitbox_radius: config::UNIT_RADIUS,
+            movement: Some(Movement::new(MovementSpeed::Default)),
             ..Default::default()
         }
     }
@@ -97,6 +98,7 @@ impl Entity {
             tag: EntityTag::FlyingUnit,
             radius: config::UNIT_RADIUS,
             hitbox_radius: config::UNIT_RADIUS,
+            movement: Some(Movement::new(MovementSpeed::Default)),
             ..Default::default()
         }
     }

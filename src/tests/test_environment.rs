@@ -14,9 +14,9 @@ pub mod test {
             send_dynamic_game_state, send_semi_static_game_state, send_static_game_state,
             ServerMessage,
         },
-        play_target::{BuildingLocationTarget, PlayFn},
+        play_target::PlayFn,
         server_player::ServerPlayer,
-        world::{world_place_path_entity, Direction, Zoning},
+        world::{world_place_building, world_place_path_entity, Direction, Zoning},
     };
     use macroquad::{
         color::{BLUE, RED},
@@ -93,7 +93,7 @@ pub mod test {
                     (Vec2::new(50.0, 200.0), Direction::Positive, RED),
                     (Vec2::new(1150.0, 200.0), Direction::Negative, BLUE),
                 ],
-                building_locations: vec![(Zoning::Normal, (100.0, 600.0))],
+                building_locations: vec![(Zoning::Normal, (600.0, 100.0))],
                 paths: vec![vec![(100.0, 200.0), (1100.0, 200.0)]],
             }
         }
@@ -116,9 +116,10 @@ pub mod test {
                     player_id,
                     ServerPlayer::new(direction.clone(), *color, Vec::new()),
                 );
-                let base_entity = EntityBlueprint::Base
+                let mut base_entity = EntityBlueprint::Base
                     .create()
                     .instantiate(player_id, *base_pos);
+                base_entity.entity.health.health = 1.0;
                 test_environment
                     .state
                     .dynamic_game_state
@@ -166,8 +167,26 @@ pub mod test {
                 player_id,
             )
         }
+        pub fn place_building(&mut self, player_id: PlayerId, entity: Entity) -> Option<EntityId> {
+            let building_location_id = self
+                .state
+                .semi_static_game_state
+                .building_locations()
+                .iter()
+                .find_map(|(id, building_location)| {
+                    building_location.entity_id.is_none().then_some(*id)
+                })
+                .unwrap();
+            world_place_building(
+                &mut self.state.semi_static_game_state,
+                &mut self.state.dynamic_game_state,
+                entity,
+                &building_location_id,
+                player_id,
+            )
+        }
         pub fn play_card(&mut self, player_id: PlayerId, card: Card) {
-            match &card.get_card_data().play_fn {
+            let play_succeded = match &card.get_card_data().play_fn {
                 PlayFn::UnitSpawnPoint(specific_play_fn) => {
                     let spawnpoints = get_unit_spawnpoints(
                         player_id,
@@ -191,38 +210,10 @@ pub mod test {
                         &self.state.static_game_state,
                         &mut self.state.semi_static_game_state,
                         &mut self.state.dynamic_game_state,
-                    );
+                    )
                 }
-                PlayFn::BuildingLocation(specific_play_fn) => {
-                    let building_location_target = self
-                        .state
-                        .semi_static_game_state
-                        .building_locations()
-                        .iter()
-                        .find_map(|(id, building_location)| {
-                            building_location
-                                .entity_id
-                                .is_none()
-                                .then_some(BuildingLocationTarget { id: *id })
-                        })
-                        .unwrap();
-                    let invalid = specific_play_fn.target_is_invalid.is_some_and(|f| {
-                        f(
-                            &building_location_target,
-                            player_id,
-                            &self.state.static_game_state,
-                            &self.state.semi_static_game_state,
-                            &self.state.dynamic_game_state,
-                        )
-                    });
-                    assert!(!invalid);
-                    (specific_play_fn.play)(
-                        building_location_target,
-                        player_id,
-                        &self.state.static_game_state,
-                        &mut self.state.semi_static_game_state,
-                        &mut self.state.dynamic_game_state,
-                    );
+                PlayFn::BuildingLocation(_) => {
+                    todo!()
                 }
                 PlayFn::WorldPos(_) => {
                     todo!()
@@ -230,7 +221,8 @@ pub mod test {
                 PlayFn::Entity(_) => {
                     todo!()
                 }
-            }
+            };
+            assert!(play_succeded);
         }
     }
 }

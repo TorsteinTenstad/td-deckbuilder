@@ -9,6 +9,21 @@ pub struct ArithmeticBuff {
     pub seconds_left: Option<f32>,
 }
 
+impl ArithmeticBuff {
+    pub fn new_additive(additive_value: f32) -> Self {
+        Self {
+            additive_value,
+            ..Default::default()
+        }
+    }
+    pub fn new_multiplicative(multiplier: f32) -> Self {
+        Self {
+            multiplier,
+            ..Default::default()
+        }
+    }
+}
+
 impl Default for ArithmeticBuff {
     fn default() -> Self {
         ArithmeticBuff {

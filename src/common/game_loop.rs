@@ -84,9 +84,7 @@ pub fn update_entity(update_args: &mut UpdateArgs) {
                 update_args.entity_instance.pos,
                 update_args.entity_instance.owner,
                 update_args.entity_instance.entity.spy.as_ref(),
-                attack
-                    .range
-                    .to_f32(update_args.entity_instance.entity.radius),
+                attack.get_range(update_args.entity_instance.entity.radius),
                 attack,
                 &mut update_args.dynamic_game_state.entities,
             )
