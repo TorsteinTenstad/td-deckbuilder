@@ -23,6 +23,9 @@ fn cleanup_entity(
 pub fn update_game_state(server_controlled_game_state: &mut ServerControlledGameState, dt: f32) {
     //TODO: This implementation may cause entities to not be updated if the update_entities directly removes entities.
     // This could be solved by cashing the update state of all entities, or by only killing entities by setting their state to dead.
+    for entity_instance in &mut server_controlled_game_state.dynamic_game_state.entities {
+        buff_update_timers(&mut entity_instance.entity, dt);
+    }
     let mut i = 0;
     while i < server_controlled_game_state
         .dynamic_game_state
@@ -158,7 +161,6 @@ pub fn update_entity(update_args: &mut UpdateArgs) {
         EntityState::Passive | EntityState::Dead => {}
     }
 
-    buff_update_timers(&mut update_args.entity_instance.entity, update_args.dt);
     BuffAura::update(update_args);
     Health::update(update_args);
 }

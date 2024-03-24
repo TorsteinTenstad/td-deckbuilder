@@ -1,5 +1,5 @@
 use common::{
-    entity::{EntityInstance, EntityTag},
+    entity::{Entity, EntityInstance, EntityState, EntityTag},
     ids::{EntityId, PlayerId},
 };
 use itertools::Itertools;
@@ -9,7 +9,9 @@ use crate::test_environment::test::TestEnvironment;
 pub enum Condition {
     NoUnitsAlive,
     SingleUnitAlive(EntityId),
-    PlayerWins(PlayerId),
+    PlayerWon(PlayerId),
+    EntityIsInState(EntityId, EntityState),
+    EntitySatisfies(EntityId, fn(&Entity) -> bool),
 }
 
 fn filtered_count_equals<P>(count: usize, test_environment: &TestEnvironment, predicate: P) -> bool
@@ -47,7 +49,7 @@ impl Condition {
                     .collect_vec()
                     == vec![*entity_id]
             }
-            Condition::PlayerWins(player_id) => {
+            Condition::PlayerWon(player_id) => {
                 test_environment
                     .state
                     .dynamic_game_state
@@ -59,6 +61,26 @@ impl Condition {
                     })
                     .collect_vec()
                     == vec![*player_id]
+            }
+            Condition::EntityIsInState(entity_id, entity_state) => {
+                let entity_instance = test_environment
+                    .state
+                    .dynamic_game_state
+                    .entities
+                    .iter()
+                    .find(|entity_instance| entity_instance.id == *entity_id)
+                    .unwrap();
+                entity_instance.state == *entity_state
+            }
+            Condition::EntitySatisfies(entity_id, f) => {
+                let entity_instance = test_environment
+                    .state
+                    .dynamic_game_state
+                    .entities
+                    .iter()
+                    .find(|entity_instance| entity_instance.id == *entity_id)
+                    .unwrap();
+                f(&entity_instance.entity)
             }
         }
     }

@@ -26,15 +26,10 @@ pub mod test {
             ..Entity::default_unit()
         };
 
-        test_env
-            .play_entity(test_env.player_a, ranger.clone())
-            .unwrap();
+        test_env.play_entity(test_env.player_a, ranger.clone());
+        test_env.play_entity(test_env.player_b, ranger.clone());
 
-        test_env
-            .play_entity(test_env.player_b, ranger.clone())
-            .unwrap();
-
-        let simulation_result = test_env.simulate_until(Condition::PlayerWins(test_env.player_a));
+        let simulation_result = test_env.simulate_until(Condition::PlayerWon(test_env.player_a));
         assert!(simulation_result.is_ok())
     }
 }

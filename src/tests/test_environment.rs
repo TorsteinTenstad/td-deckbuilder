@@ -75,6 +75,7 @@ pub mod test {
         pub speed: f32,
         pub sim_time_s: f32,
         pub timeout_s: f32,
+        pub percistent_condtions: Vec<(Condition, bool)>,
     }
 
     impl Default for TestEnvironment {
@@ -106,6 +107,7 @@ pub mod test {
                 speed: 1.0,
                 sim_time_s: 0.0,
                 timeout_s: 1000.0,
+                percistent_condtions: Vec::new(),
             };
 
             for (player_id, (base_pos, direction, color)) in zip(
@@ -131,26 +133,37 @@ pub mod test {
         }
     }
 
-    pub struct Timeout {}
+    pub enum SimulationBreak {
+        Timeout,
+        PercistentConditionFail,
+    }
 
     impl TestEnvironment {
-        pub fn simulate_until(&mut self, condition: Condition) -> Result<(), Timeout> {
+        pub fn simulate_until(&mut self, condition: Condition) -> Result<(), SimulationBreak> {
             self.network_state.send_init(&self.state);
             while !condition.is_met(self) {
                 let dt = SIMULATION_DT;
                 self.sim_time_s += dt;
+                for (condidition, is_met) in &self.percistent_condtions {
+                    if condidition.is_met(self) != *is_met {
+                        return Err(SimulationBreak::PercistentConditionFail);
+                    }
+                }
                 game_loop::update_game_state(&mut self.state, dt);
                 self.network_state.send_update(&self.state);
                 if self.network_state.has_received_ping {
                     sleep(Duration::from_secs_f32(dt / self.speed));
                 }
                 if self.sim_time_s > self.timeout_s {
-                    return Err(Timeout {});
+                    return Err(SimulationBreak::Timeout);
                 }
             }
             Ok(())
         }
-        pub fn play_entity(&mut self, player_id: PlayerId, entity: Entity) -> Option<EntityId> {
+        pub fn add_percistent_condition(&mut self, condition: Condition, is_met: bool) {
+            self.percistent_condtions.push((condition, is_met))
+        }
+        pub fn play_entity(&mut self, player_id: PlayerId, entity: Entity) -> EntityId {
             let spawnpoint = get_unit_spawnpoints(
                 player_id,
                 &self.state.static_game_state,
@@ -166,6 +179,7 @@ pub mod test {
                 entity,
                 player_id,
             )
+            .unwrap()
         }
         pub fn place_building(&mut self, player_id: PlayerId, entity: Entity) -> Option<EntityId> {
             let building_location_id = self
