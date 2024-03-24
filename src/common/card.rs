@@ -26,6 +26,7 @@ pub enum Card {
     AirBalloon,
     Dragon,
     DirectDamage,
+    Watchtower,
 }
 
 impl Card {
@@ -52,7 +53,7 @@ pub struct CardData {
 
 macro_rules! play_normal_building {
     ($builder_blueprint:ident, $building_blueprint:ident) => {
-        PlayFn::BuildingSpot(
+        PlayFn::BuildingLocation(
             SpecificPlayFn::new(
                 |target, owner, static_game_state, semi_static_game_state, dynamic_game_state| {
                     world_place_builder(
@@ -86,7 +87,7 @@ macro_rules! play_normal_building {
 
 macro_rules! play_commerce_building {
     ($builder_blueprint:ident, $building_blueprint:ident) => {
-        PlayFn::BuildingSpot(
+        PlayFn::BuildingLocation(
             SpecificPlayFn::new(
                 |target, owner, static_game_state, semi_static_game_state, dynamic_game_state| {
                     world_place_builder(
@@ -146,6 +147,15 @@ impl Card {
                 attack: Some(3),
                 health: Some(500),
                 description: "[Ranged]",
+            },
+            Card::Watchtower => CardData {
+                name: "Watchtower",
+                energy_cost: 5,
+                play_fn: play_normal_building!(BasicBuilder, Watchtower),
+                card_art_path: "watchtower.jpg",
+                attack: Some(10),
+                health: Some(500),
+                description: "[Ranged] Nearby ranged attacks have double range",
             },
             Card::Farm => CardData {
                 name: "Farm",

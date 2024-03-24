@@ -131,7 +131,7 @@ pub fn hand_step(state: &mut ClientGameState) {
                         }
                     }
                 }
-                PlayFn::BuildingSpot(_) => {
+                PlayFn::BuildingLocation(_) => {
                     if let Some((id, _pos)) = state
                         .server_controlled_game_state
                         .semi_static_game_state

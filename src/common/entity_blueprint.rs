@@ -27,6 +27,7 @@ pub enum EntityBlueprint {
     WarEagle,
     AirBalloon,
     Tower,
+    Watchtower,
     Farm,
     TradingPlace,
     SpawnPoint,
@@ -171,6 +172,15 @@ impl EntityBlueprint {
                 sprite_id: SpriteId::BuildingTower,
                 attacks: vec![Attack {
                     damage: 20.0,
+                    ..Attack::default_ranged_tower()
+                }],
+                ..Entity::default_tower()
+            },
+            EntityBlueprint::Watchtower => Entity {
+                health: Health::new(500.0),
+                sprite_id: SpriteId::BuildingTower,
+                attacks: vec![Attack {
+                    damage: 10.0,
                     ..Attack::default_ranged_tower()
                 }],
                 ..Entity::default_tower()

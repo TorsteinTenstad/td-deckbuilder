@@ -14,7 +14,7 @@ pub mod test {
             send_dynamic_game_state, send_semi_static_game_state, send_static_game_state,
             ServerMessage,
         },
-        play_target::PlayFn,
+        play_target::{BuildingLocationTarget, PlayFn},
         server_player::ServerPlayer,
         world::{world_place_path_entity, Direction, Zoning},
     };
@@ -193,8 +193,36 @@ pub mod test {
                         &mut self.state.dynamic_game_state,
                     );
                 }
-                PlayFn::BuildingSpot(_) => {
-                    todo!()
+                PlayFn::BuildingLocation(specific_play_fn) => {
+                    let building_location_target = self
+                        .state
+                        .semi_static_game_state
+                        .building_locations()
+                        .iter()
+                        .find_map(|(id, building_location)| {
+                            building_location
+                                .entity_id
+                                .is_none()
+                                .then_some(BuildingLocationTarget { id: *id })
+                        })
+                        .unwrap();
+                    let invalid = specific_play_fn.target_is_invalid.is_some_and(|f| {
+                        f(
+                            &building_location_target,
+                            player_id,
+                            &self.state.static_game_state,
+                            &self.state.semi_static_game_state,
+                            &self.state.dynamic_game_state,
+                        )
+                    });
+                    assert!(!invalid);
+                    (specific_play_fn.play)(
+                        building_location_target,
+                        player_id,
+                        &self.state.static_game_state,
+                        &mut self.state.semi_static_game_state,
+                        &mut self.state.dynamic_game_state,
+                    );
                 }
                 PlayFn::WorldPos(_) => {
                     todo!()

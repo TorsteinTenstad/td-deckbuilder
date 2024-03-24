@@ -143,7 +143,7 @@ fn draw_building_location_play_targets(
         if physical_hand
             .card_idx_being_held
             .filter(|idx| {
-                if let PlayFn::BuildingSpot(specific_play_fn) = &physical_hand
+                if let PlayFn::BuildingLocation(specific_play_fn) = &physical_hand
                     .cards
                     .get(*idx)
                     .unwrap()

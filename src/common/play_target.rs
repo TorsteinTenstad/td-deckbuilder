@@ -78,7 +78,7 @@ impl<T> SpecificPlayFn<T> {
 pub enum PlayFn {
     WorldPos(SpecificPlayFn<WorldPosTarget>),
     UnitSpawnPoint(SpecificPlayFn<UnitSpawnpointTarget>),
-    BuildingSpot(SpecificPlayFn<BuildingLocationTarget>),
+    BuildingLocation(SpecificPlayFn<BuildingLocationTarget>),
     Entity(SpecificPlayFn<EntityTarget>),
 }
 
@@ -132,7 +132,7 @@ impl PlayFn {
                     dynamic_game_state,
                 )
             }
-            (PlayFn::BuildingSpot(specific_play_fn), PlayTarget::BuildingSpot(target)) => {
+            (PlayFn::BuildingLocation(specific_play_fn), PlayTarget::BuildingSpot(target)) => {
                 if specific_play_fn.target_is_invalid.is_some_and(|f| {
                     f(
                         &target,
