@@ -1,7 +1,7 @@
 use crate::{
     game_state::{DynamicGameState, StaticGameState},
     ids::PlayerId,
-    level_config,
+    level_config::get_prototype_level_config,
     play_target::UnitSpawnpointTarget,
 };
 use macroquad::math::Vec2;
@@ -40,7 +40,9 @@ pub fn get_unit_spawnpoints(
                             )
                         })
                         .min_by(|(_, _, a), (_, _, b)| a.partial_cmp(b).unwrap())
-                        .filter(|(_, _, dist)| dist < &level_config::SPAWN_POINT_RADIUS)
+                        .filter(|(_, _, dist)| {
+                            dist < &get_prototype_level_config().spawn_point_radius
+                        })
                         .map(|(path_id, path_idx, _)| (path_id, path_idx))
                 })
         })

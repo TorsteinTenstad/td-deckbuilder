@@ -21,6 +21,12 @@ pub struct HitNumbers {
     pub entity_healths: HashMap<EntityId, f32>,
 }
 
+impl Default for HitNumbers {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl HitNumbers {
     const ALIVE_TIME: f32 = 0.8;
     const SPEED: f32 = 150.0;

@@ -21,7 +21,7 @@ pub struct UnitSpawnpointTarget {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct BuildingSpotTarget {
+pub struct BuildingLocationTarget {
     pub id: BuildingLocationId,
 }
 
@@ -34,7 +34,7 @@ pub struct EntityTarget {
 pub enum PlayTarget {
     WorldPos(WorldPosTarget),
     UnitSpawnPoint(UnitSpawnpointTarget),
-    BuildingSpot(BuildingSpotTarget),
+    BuildingSpot(BuildingLocationTarget),
     Entity(EntityTarget),
 }
 
@@ -78,7 +78,7 @@ impl<T> SpecificPlayFn<T> {
 pub enum PlayFn {
     WorldPos(SpecificPlayFn<WorldPosTarget>),
     UnitSpawnPoint(SpecificPlayFn<UnitSpawnpointTarget>),
-    BuildingSpot(SpecificPlayFn<BuildingSpotTarget>),
+    BuildingSpot(SpecificPlayFn<BuildingLocationTarget>),
     Entity(SpecificPlayFn<EntityTarget>),
 }
 

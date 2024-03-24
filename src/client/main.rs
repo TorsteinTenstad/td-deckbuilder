@@ -10,7 +10,7 @@ use common::game_state::{DynamicGameState, ServerControlledGameState, StaticGame
 use common::get_unit_spawnpoints::get_unit_spawnpoints;
 use common::ids::{EntityId, PlayerId};
 use common::network::ClientMessage;
-use common::play_target::{unit_spawnpoint_target_transform, BuildingSpotTarget, PlayFn};
+use common::play_target::{unit_spawnpoint_target_transform, BuildingLocationTarget, PlayFn};
 use common::rect_transform::{point_inside, RectTransform};
 use common::textures::SpriteId;
 use common::world::{find_entity, Zoning};
@@ -125,7 +125,7 @@ fn draw_physical_hand(physical_hand: &PhysicalHand, sprites: &Sprites) {
             &physical_card.card_instance.card,
             &physical_card.transform,
             1.0,
-            &sprites,
+            sprites,
         )
     }
 }
@@ -154,7 +154,7 @@ fn draw_building_location_play_targets(
                 {
                     !specific_play_fn.target_is_invalid.is_some_and(|f| {
                         f(
-                            &BuildingSpotTarget { id: *id },
+                            &BuildingLocationTarget { id: *id },
                             player_id,
                             &server_controlled_game_state.static_game_state,
                             &server_controlled_game_state.semi_static_game_state,
@@ -285,9 +285,9 @@ fn draw_spawnpoint_play_targets(
     dynamic_game_state: &DynamicGameState,
 ) {
     let unit_spawnpoint_targets =
-        get_unit_spawnpoints(player_id, &static_game_state, &dynamic_game_state);
+        get_unit_spawnpoints(player_id, static_game_state, dynamic_game_state);
     for target in unit_spawnpoint_targets.iter() {
-        let transform = &unit_spawnpoint_target_transform(target, &static_game_state);
+        let transform = &unit_spawnpoint_target_transform(target, static_game_state);
         let hovering = point_inside(mouse_world_position(), transform);
         draw_rect_transform(
             &to_screen_transform(transform),

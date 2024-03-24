@@ -6,7 +6,7 @@ use crate::component_spy::Spy;
 use crate::config;
 use crate::entity_blueprint::EntityBlueprint;
 use crate::ids::EntityId;
-use crate::play_target::BuildingSpotTarget;
+use crate::play_target::BuildingLocationTarget;
 use crate::serde_defs::Vec2Def;
 use crate::{component_attack::Attack, ids::PlayerId, textures::SpriteId};
 use macroquad::math::Vec2;
@@ -69,7 +69,7 @@ pub struct Entity {
     pub attacks: Vec<Attack>,
     pub usable_as_spawn_point: bool,
     pub seconds_left_to_live: Option<f32>,
-    pub building_to_construct: Option<(BuildingSpotTarget, EntityBlueprint)>,
+    pub building_to_construct: Option<(BuildingLocationTarget, EntityBlueprint)>,
 }
 
 impl Entity {

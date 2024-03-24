@@ -5,87 +5,96 @@ use macroquad::{
 
 use crate::world::{Direction, Zoning};
 
-pub const LEVEL_WIDTH: i32 = 2048;
-pub const LEVEL_HEIGHT: i32 = 1152;
+pub struct LevelConfig {
+    pub level_width: i32,
+    pub level_height: i32,
+    pub spawn_point_radius: f32,
+    pub player_configs: Vec<(Vec2, Direction, Color)>,
+    pub building_locations: Vec<(Zoning, (f32, f32))>,
+    pub paths: Vec<Vec<(f32, f32)>>,
+}
 
-pub const BUILDING_LOCATIONS: &[(Zoning, (i32, i32))] = &[
-    (Zoning::Commerce, (213, 376)),
-    (Zoning::Commerce, (1727, 769)),
-    (Zoning::Commerce, (760, 700)),
-    (Zoning::Commerce, (1050, 480)),
-    (Zoning::Normal, (331, 214)),
-    (Zoning::Normal, (512, 243)),
-    (Zoning::Normal, (803, 119)),
-    (Zoning::Normal, (996, 64)),
-    (Zoning::Normal, (1545, 151)),
-    (Zoning::Normal, (1940, 484)),
-    (Zoning::Normal, (1946, 774)),
-    (Zoning::Normal, (473, 492)),
-    (Zoning::Normal, (1102, 267)),
-    (Zoning::Normal, (1687, 375)),
-    (Zoning::Normal, (1558, 832)),
-    (Zoning::Normal, (1336, 848)),
-    (Zoning::Normal, (1062, 666)),
-    (Zoning::Normal, (272, 735)),
-    (Zoning::Normal, (193, 966)),
-    (Zoning::Normal, (1505, 1051)),
-];
-
-pub const PATHS: &[&[(i32, i32)]] = &[
-    &[
-        (243, 276),
-        (420, 341),
-        (582, 331),
-        (679, 256),
-        (750, 257),
-        (1015, 173),
-        (1457, 246),
-        (1700, 254),
-        (1817, 381),
-        (1854, 838),
-    ],
-    &[
-        (243, 276),
-        (420, 341),
-        (582, 331),
-        (679, 256),
-        (750, 257),
-        (969, 272),
-        (1086, 421),
-        (1226, 492),
-        (1507, 537),
-        (1484, 673),
-        (1441, 782),
-        (1458, 861),
-        (1487, 949),
-        (1661, 933),
-    ],
-    &[
-        (109, 352),
-        (122, 687),
-        (191, 830),
-        (326, 854),
-        (537, 640),
-        (689, 600),
-        (885, 650),
-        (1094, 856),
-        (1173, 866),
-        (1255, 948),
-        (1487, 949),
-        (1661, 933),
-    ],
-];
-
-pub const SPAWN_POINT_RADIUS: f32 = 256.0;
-
-pub const PLAYER_CONFIGS: &[(Vec2, Direction, Color)] = &[
-    (Vec2 { x: 152.0, y: 236.0 }, Direction::Positive, ORANGE),
-    (
-        Vec2 {
-            x: 1817.0,
-            y: 1033.0,
-        },
-        Direction::Negative,
-        BLUE,
-    ),
-];
+pub fn get_prototype_level_config() -> LevelConfig {
+    LevelConfig {
+        level_width: 2048,
+        level_height: 1152,
+        spawn_point_radius: 256.0,
+        player_configs: vec![
+            (Vec2 { x: 152.0, y: 236.0 }, Direction::Positive, ORANGE),
+            (
+                Vec2 {
+                    x: 1817.0,
+                    y: 1033.0,
+                },
+                Direction::Negative,
+                BLUE,
+            ),
+        ],
+        building_locations: vec![
+            (Zoning::Commerce, (213.0, 376.0)),
+            (Zoning::Commerce, (1727.0, 769.0)),
+            (Zoning::Commerce, (760.0, 700.0)),
+            (Zoning::Commerce, (1050.0, 480.0)),
+            (Zoning::Normal, (331.0, 214.0)),
+            (Zoning::Normal, (512.0, 243.0)),
+            (Zoning::Normal, (803.0, 119.0)),
+            (Zoning::Normal, (996.0, 64.0)),
+            (Zoning::Normal, (1545.0, 151.0)),
+            (Zoning::Normal, (1940.0, 484.0)),
+            (Zoning::Normal, (1946.0, 774.0)),
+            (Zoning::Normal, (473.0, 492.0)),
+            (Zoning::Normal, (1102.0, 267.0)),
+            (Zoning::Normal, (1687.0, 375.0)),
+            (Zoning::Normal, (1558.0, 832.0)),
+            (Zoning::Normal, (1336.0, 848.0)),
+            (Zoning::Normal, (1062.0, 666.0)),
+            (Zoning::Normal, (272.0, 735.0)),
+            (Zoning::Normal, (193.0, 966.0)),
+            (Zoning::Normal, (1505.0, 1051.0)),
+        ],
+        paths: vec![
+            vec![
+                (243.0, 276.0),
+                (420.0, 341.0),
+                (582.0, 331.0),
+                (679.0, 256.0),
+                (750.0, 257.0),
+                (1015.0, 173.0),
+                (1457.0, 246.0),
+                (1700.0, 254.0),
+                (1817.0, 381.0),
+                (1854.0, 838.0),
+            ],
+            vec![
+                (243.0, 276.0),
+                (420.0, 341.0),
+                (582.0, 331.0),
+                (679.0, 256.0),
+                (750.0, 257.0),
+                (969.0, 272.0),
+                (1086.0, 421.0),
+                (1226.0, 492.0),
+                (1507.0, 537.0),
+                (1484.0, 673.0),
+                (1441.0, 782.0),
+                (1458.0, 861.0),
+                (1487.0, 949.0),
+                (1661.0, 933.0),
+            ],
+            vec![
+                (109.0, 352.0),
+                (122.0, 687.0),
+                (191.0, 830.0),
+                (326.0, 854.0),
+                (537.0, 640.0),
+                (689.0, 600.0),
+                (885.0, 650.0),
+                (1094.0, 856.0),
+                (1173.0, 866.0),
+                (1255.0, 948.0),
+                (1487.0, 949.0),
+                (1661.0, 933.0),
+            ],
+        ],
+    }
+}

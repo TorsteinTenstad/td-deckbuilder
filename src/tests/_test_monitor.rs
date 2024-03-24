@@ -1,7 +1,4 @@
-use std::{
-    net::{SocketAddr, UdpSocket},
-    time::Duration,
-};
+use std::{net::UdpSocket, time::Duration};
 
 use common::{
     debug_draw_config::DebugDrawConfig, draw::Sprites,
@@ -15,8 +12,8 @@ use serde::{Deserialize, Serialize};
 pub mod condition;
 pub mod test_basic_movement_and_attack;
 pub mod test_environment;
+pub mod test_protector_can_attack_ranger;
 
-pub const TEST_SERVER_ADDR: &str = "127.0.0.1:12345";
 pub const TEST_CLIENT_ADDR: &str = "127.0.0.1:12346";
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -26,7 +23,6 @@ pub struct TestMonitorState {
     ack_udp_socket: AckUdpSocket<TestMonitorPing, ServerMessage>,
     server_controlled_game_state: ServerControlledGameState,
     sprites: Sprites,
-    test_server_addr: SocketAddr,
     debug_draw_config: DebugDrawConfig,
     hit_numbers: HitNumbers,
 }
@@ -42,7 +38,6 @@ impl TestMonitorState {
             ack_udp_socket,
             server_controlled_game_state,
             sprites: Sprites::load().await,
-            test_server_addr: TEST_SERVER_ADDR.parse().unwrap(),
             debug_draw_config: DebugDrawConfig { draw_paths: true },
             hit_numbers: HitNumbers::new(),
         }
@@ -53,14 +48,13 @@ impl TestMonitorState {
 async fn main() {
     let mut state = TestMonitorState::new().await;
     loop {
-        state
-            .ack_udp_socket
-            .send_to(TestMonitorPing {}, &state.test_server_addr, false);
-
-        while let Some((server_message, _)) = state.ack_udp_socket.receive() {
+        while let Some((server_message, server_addr)) = state.ack_udp_socket.receive() {
             state
                 .server_controlled_game_state
                 .update_with_server_message(server_message);
+            state
+                .ack_udp_socket
+                .send_to(TestMonitorPing {}, &server_addr, false);
         }
 
         state.hit_numbers.step(
