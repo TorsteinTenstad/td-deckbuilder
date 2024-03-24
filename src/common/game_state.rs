@@ -1,10 +1,12 @@
 use crate::{
     entity::EntityInstance,
     ids::{BuildingLocationId, GameId, PathId, PlayerId},
+    level_config::LevelConfig,
     network::{ServerMessage, ServerMessageData},
     server_player::ServerPlayer,
     world::BuildingLocation,
 };
+use macroquad::math::Vec2;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -69,6 +71,23 @@ impl ServerControlledGameState {
                 }
             }
             true
+        }
+    }
+
+    pub fn load_level_config(&mut self, level_config: LevelConfig) {
+        for path in level_config.paths {
+            self.static_game_state.paths.insert(PathId::new(), path);
+        }
+
+        for (zoning, (x, y)) in level_config.building_locations.iter() {
+            self.semi_static_game_state.building_locations_mut().insert(
+                BuildingLocationId::new(),
+                BuildingLocation {
+                    pos: Vec2::new(*x, *y),
+                    entity_id: None,
+                    zoning: zoning.clone(),
+                },
+            );
         }
     }
 }

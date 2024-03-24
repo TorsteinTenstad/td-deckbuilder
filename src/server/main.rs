@@ -2,15 +2,13 @@ use common::config::SERVER_PORT;
 use common::entity_blueprint::EntityBlueprint;
 use common::game_state::ServerControlledGameState;
 use common::gameplay_config::{STARTING_ENERGY, STARTING_HAND_SIZE};
-use common::ids::{BuildingLocationId, PathId, PlayerId};
+use common::ids::PlayerId;
 use common::level_config::get_prototype_level_config;
 use common::message_acknowledgement::AckUdpSocket;
 use common::network::{hash_client_addr, ClientMessage, ServerMessage, ServerMessageData};
 use common::server_player::ServerPlayer;
-use common::world::BuildingLocation;
 use common::*;
 use itertools::Itertools;
-use macroquad::math::Vec2;
 use std::collections::hash_map;
 use std::collections::HashMap;
 use std::net::{SocketAddr, UdpSocket};
@@ -20,29 +18,7 @@ fn main() -> std::io::Result<()> {
     let mut game_state = ServerControlledGameState::default();
     let mut client_addresses = HashMap::<PlayerId, SocketAddr>::new();
 
-    for path in get_prototype_level_config().paths {
-        game_state.static_game_state.paths.insert(
-            PathId::new(),
-            path.iter().map(|(x, y)| (*x as f32, *y as f32)).collect(),
-        );
-    }
-
-    for (zoning, (x, y)) in get_prototype_level_config().building_locations.iter() {
-        game_state
-            .semi_static_game_state
-            .building_locations_mut()
-            .insert(
-                BuildingLocationId::new(),
-                BuildingLocation {
-                    pos: Vec2 {
-                        x: *x as f32,
-                        y: *y as f32,
-                    },
-                    entity_id: None,
-                    zoning: zoning.clone(),
-                },
-            );
-    }
+    game_state.load_level_config(get_prototype_level_config());
 
     let server_ip = local_ip_address::local_ip()
         .map(|ip| format!("{}:{}", ip, SERVER_PORT))

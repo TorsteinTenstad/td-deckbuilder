@@ -7,7 +7,8 @@ pub mod test {
         game_loop,
         game_state::ServerControlledGameState,
         get_unit_spawnpoints::get_unit_spawnpoints,
-        ids::{EntityId, PathId, PlayerId},
+        ids::{EntityId, PlayerId},
+        level_config::LevelConfig,
         message_acknowledgement::AckUdpSocket,
         network::{
             send_dynamic_game_state, send_semi_static_game_state, send_static_game_state,
@@ -15,13 +16,14 @@ pub mod test {
         },
         play_target::PlayFn,
         server_player::ServerPlayer,
-        world::{world_place_path_entity, Direction},
+        world::{world_place_path_entity, Direction, Zoning},
     };
     use macroquad::{
         color::{BLUE, RED},
         math::Vec2,
     };
     use std::{
+        iter::zip,
         net::{Ipv4Addr, SocketAddr, UdpSocket},
         thread::sleep,
         time::Duration,
@@ -77,12 +79,25 @@ pub mod test {
 
     impl Default for TestEnvironment {
         fn default() -> Self {
-            Self::new()
+            Self::new(Self::default_level_config())
         }
     }
 
     impl TestEnvironment {
-        pub fn new() -> Self {
+        pub fn default_level_config() -> LevelConfig {
+            LevelConfig {
+                level_width: 1200,
+                level_height: 400,
+                spawn_point_radius: 256.0,
+                player_configs: vec![
+                    (Vec2::new(50.0, 200.0), Direction::Positive, RED),
+                    (Vec2::new(1150.0, 200.0), Direction::Negative, BLUE),
+                ],
+                building_locations: vec![(Zoning::Normal, (100.0, 600.0))],
+                paths: vec![vec![(100.0, 200.0), (1100.0, 200.0)]],
+            }
+        }
+        pub fn new(level_config: LevelConfig) -> Self {
             let mut test_environment = Self {
                 network_state: TestEnvironmentNetworkState::default(),
                 state: ServerControlledGameState::default(),
@@ -93,40 +108,24 @@ pub mod test {
                 timeout_s: 1000.0,
             };
 
-            let path = vec![(100.0, 100.0), (1100.0, 100.0)];
-
-            for (player_id, base_pos, direction, color) in &[
-                (
-                    test_environment.player_a,
-                    Vec2::new(path[0].0, path[0].1),
-                    Direction::Positive,
-                    RED,
-                ),
-                (
-                    test_environment.player_b,
-                    Vec2::new(path[1].0, path[1].1),
-                    Direction::Negative,
-                    BLUE,
-                ),
-            ] {
+            for (player_id, (base_pos, direction, color)) in zip(
+                [test_environment.player_a, test_environment.player_b],
+                &level_config.player_configs,
+            ) {
                 test_environment.state.dynamic_game_state.players.insert(
-                    *player_id,
+                    player_id,
                     ServerPlayer::new(direction.clone(), *color, Vec::new()),
                 );
                 let base_entity = EntityBlueprint::Base
                     .create()
-                    .instantiate(*player_id, *base_pos);
+                    .instantiate(player_id, *base_pos);
                 test_environment
                     .state
                     .dynamic_game_state
                     .entities
                     .push(base_entity);
             }
-            test_environment
-                .state
-                .static_game_state
-                .paths
-                .insert(PathId::new(), path);
+            test_environment.state.load_level_config(level_config);
             test_environment
         }
     }
@@ -176,7 +175,7 @@ pub mod test {
                         &self.state.dynamic_game_state,
                     );
                     let target = spawnpoints.first().unwrap();
-                    let in_valid = specific_play_fn.target_is_invalid.is_some_and(|f| {
+                    let invalid = specific_play_fn.target_is_invalid.is_some_and(|f| {
                         f(
                             target,
                             player_id,
@@ -185,7 +184,7 @@ pub mod test {
                             &self.state.dynamic_game_state,
                         )
                     });
-                    assert!(!in_valid);
+                    assert!(!invalid);
                     (specific_play_fn.play)(
                         target.clone(),
                         player_id,
