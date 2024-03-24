@@ -89,7 +89,7 @@ impl DeckBuilder {
         }
 
         if is_mouse_button_pressed(MouseButton::Left) {
-            assert!(self.holding.is_none());
+            debug_assert!(self.holding.is_none());
             self.holding = pop_where(&mut self.deck, |physical_card| {
                 point_inside(mouse_screen_position(), &physical_card.transform)
             })

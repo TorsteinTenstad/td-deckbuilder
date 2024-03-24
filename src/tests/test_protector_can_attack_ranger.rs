@@ -14,8 +14,7 @@ pub mod test {
 
         let ranger = EntityBlueprint::ElfWarrior.create();
         test_env.play_entity(test_env.player_b, ranger);
-
         let simulation_result = test_env.simulate_until(Condition::SingleUnitAlive(protector_id));
-        assert!(simulation_result.is_ok())
+        assert!(simulation_result.is_ok());
     }
 }

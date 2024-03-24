@@ -106,7 +106,7 @@ pub mod test {
                 player_b: PlayerId::new(),
                 speed: 1.0,
                 sim_time_s: 0.0,
-                timeout_s: 1000.0,
+                timeout_s: 120.0,
                 percistent_condtions: Vec::new(),
             };
 
@@ -130,6 +130,9 @@ pub mod test {
             }
             test_environment.state.load_level_config(level_config);
             test_environment
+                .network_state
+                .send_init(&test_environment.state);
+            test_environment
         }
     }
 
@@ -139,28 +142,38 @@ pub mod test {
     }
 
     impl TestEnvironment {
+        pub fn simulate_for(&mut self, simulated_s: f32) -> Result<(), SimulationBreak> {
+            let break_sim_time_s = self.sim_time_s + simulated_s;
+            self.simulate(|env| env.sim_time_s >= break_sim_time_s)
+        }
         pub fn simulate_until(&mut self, condition: Condition) -> Result<(), SimulationBreak> {
-            self.network_state.send_init(&self.state);
-            while !condition.is_met(self) {
-                let dt = SIMULATION_DT;
-                self.sim_time_s += dt;
+            self.simulate(|env| condition.is_met(env))
+        }
+        pub fn simulate<P>(&mut self, break_condition: P) -> Result<(), SimulationBreak>
+        where
+            P: Fn(&Self) -> bool,
+        {
+            loop {
                 for (condidition, is_met) in &self.percistent_condtions {
                     if condidition.is_met(self) != *is_met {
                         return Err(SimulationBreak::PercistentConditionFail);
                     }
                 }
-                game_loop::update_game_state(&mut self.state, dt);
-                self.network_state.send_update(&self.state);
-                if self.network_state.has_received_ping {
-                    sleep(Duration::from_secs_f32(dt / self.speed));
+                if break_condition(self) {
+                    return Ok(());
                 }
                 if self.sim_time_s > self.timeout_s {
                     return Err(SimulationBreak::Timeout);
                 }
+                self.sim_time_s += SIMULATION_DT;
+                game_loop::update_game_state(&mut self.state, SIMULATION_DT);
+                self.network_state.send_update(&self.state);
+                if self.network_state.has_received_ping {
+                    sleep(Duration::from_secs_f32(SIMULATION_DT / self.speed));
+                }
             }
-            Ok(())
         }
-        pub fn add_percistent_condition(&mut self, condition: Condition, is_met: bool) {
+        pub fn add_percistent(&mut self, condition: Condition, is_met: bool) {
             self.percistent_condtions.push((condition, is_met))
         }
         pub fn play_entity(&mut self, player_id: PlayerId, entity: Entity) -> EntityId {

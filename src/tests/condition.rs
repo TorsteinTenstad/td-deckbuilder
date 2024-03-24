@@ -12,6 +12,7 @@ pub enum Condition {
     PlayerWon(PlayerId),
     EntityIsInState(EntityId, EntityState),
     EntitySatisfies(EntityId, fn(&Entity) -> bool),
+    EntityIsDead(EntityId),
 }
 
 fn filtered_count_equals<P>(count: usize, test_environment: &TestEnvironment, predicate: P) -> bool
@@ -35,9 +36,38 @@ fn is_unit(entity_instance: &&EntityInstance) -> bool {
     )
 }
 
+fn entity_satisfies<P>(test_environment: &TestEnvironment, entity_id: &EntityId, f: P) -> bool
+where
+    P: Fn(&EntityInstance) -> bool,
+{
+    let entity_instance = test_environment
+        .state
+        .dynamic_game_state
+        .entities
+        .iter()
+        .find(|entity_instance| entity_instance.id == *entity_id)
+        .unwrap();
+    f(entity_instance)
+}
+
 impl Condition {
     pub fn is_met(&self, test_environment: &TestEnvironment) -> bool {
         match self {
+            Condition::EntitySatisfies(entity_id, f) => {
+                entity_satisfies(test_environment, entity_id, |entity_instance| {
+                    f(&entity_instance.entity)
+                })
+            }
+            Condition::EntityIsDead(entity_id) => {
+                entity_satisfies(test_environment, entity_id, |entity_instance| {
+                    entity_instance.state == EntityState::Dead
+                })
+            }
+            Condition::EntityIsInState(entity_id, entity_state) => {
+                entity_satisfies(test_environment, entity_id, |entity_instance| {
+                    entity_instance.state == *entity_state
+                })
+            }
             Condition::NoUnitsAlive => filtered_count_equals(0, test_environment, is_unit),
             Condition::SingleUnitAlive(entity_id) => {
                 test_environment
@@ -61,26 +91,6 @@ impl Condition {
                     })
                     .collect_vec()
                     == vec![*player_id]
-            }
-            Condition::EntityIsInState(entity_id, entity_state) => {
-                let entity_instance = test_environment
-                    .state
-                    .dynamic_game_state
-                    .entities
-                    .iter()
-                    .find(|entity_instance| entity_instance.id == *entity_id);
-                let entity_instance = entity_instance.unwrap();
-                entity_instance.state == *entity_state
-            }
-            Condition::EntitySatisfies(entity_id, f) => {
-                let entity_instance = test_environment
-                    .state
-                    .dynamic_game_state
-                    .entities
-                    .iter()
-                    .find(|entity_instance| entity_instance.id == *entity_id)
-                    .unwrap();
-                f(&entity_instance.entity)
             }
         }
     }

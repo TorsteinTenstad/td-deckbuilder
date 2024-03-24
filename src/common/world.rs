@@ -71,9 +71,9 @@ pub fn path_length(path: &Vec<(f32, f32)>, start_idx: usize, stop_idx: usize) ->
     if start_idx > stop_idx {
         return path_length(path, stop_idx, start_idx);
     }
-    assert!(start_idx <= stop_idx);
-    assert!(start_idx < path.len());
-    assert!(stop_idx < path.len());
+    debug_assert!(start_idx <= stop_idx);
+    debug_assert!(start_idx < path.len());
+    debug_assert!(stop_idx < path.len());
 
     let mut length = 0.0;
     for i in start_idx..stop_idx {

@@ -20,12 +20,33 @@ fn cleanup_entity(
     }
 }
 
-pub fn update_game_state(server_controlled_game_state: &mut ServerControlledGameState, dt: f32) {
-    //TODO: This implementation may cause entities to not be updated if the update_entities directly removes entities.
-    // This could be solved by cashing the update state of all entities, or by only killing entities by setting their state to dead.
-    for entity_instance in &mut server_controlled_game_state.dynamic_game_state.entities {
-        buff_update_timers(&mut entity_instance.entity, dt);
+fn remove_dead_entities(server_controlled_game_state: &mut ServerControlledGameState) {
+    let mut i = 0;
+    while i < server_controlled_game_state
+        .dynamic_game_state
+        .entities
+        .len()
+    {
+        let entity = &server_controlled_game_state
+            .dynamic_game_state
+            .entities
+            .get(i)
+            .unwrap();
+        if entity.state == EntityState::Dead {
+            cleanup_entity(entity.id, server_controlled_game_state);
+            server_controlled_game_state
+                .dynamic_game_state
+                .entities
+                .swap_remove(i);
+        } else {
+            i += 1;
+        }
     }
+}
+
+fn update_entities(server_controlled_game_state: &mut ServerControlledGameState, dt: f32) {
+    // Implementation may cause entities to not be updated if the update_entities directly removes entities.
+    // Killing entities should only be done by setting their state to dead.
     let mut i = 0;
     while i < server_controlled_game_state
         .dynamic_game_state
@@ -50,28 +71,14 @@ pub fn update_game_state(server_controlled_game_state: &mut ServerControlledGame
             .insert(i, entity_instance);
         i += 1;
     }
+}
 
-    let mut i = 0;
-    while i < server_controlled_game_state
-        .dynamic_game_state
-        .entities
-        .len()
-    {
-        let entity = &server_controlled_game_state
-            .dynamic_game_state
-            .entities
-            .get(i)
-            .unwrap();
-        if entity.state == EntityState::Dead {
-            cleanup_entity(entity.id, server_controlled_game_state);
-            server_controlled_game_state
-                .dynamic_game_state
-                .entities
-                .swap_remove(i);
-        } else {
-            i += 1;
-        }
+pub fn update_game_state(server_controlled_game_state: &mut ServerControlledGameState, dt: f32) {
+    remove_dead_entities(server_controlled_game_state);
+    for entity_instance in &mut server_controlled_game_state.dynamic_game_state.entities {
+        buff_update_timers(&mut entity_instance.entity, dt);
     }
+    update_entities(server_controlled_game_state, dt);
 }
 
 pub fn update_entity(update_args: &mut UpdateArgs) {

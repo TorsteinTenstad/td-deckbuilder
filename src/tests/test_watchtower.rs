@@ -30,6 +30,6 @@ pub mod test {
         test_env.play_entity(test_env.player_b, ranger.clone());
 
         let simulation_result = test_env.simulate_until(Condition::PlayerWon(test_env.player_a));
-        assert!(simulation_result.is_ok())
+        assert!(simulation_result.is_ok());
     }
 }

@@ -14,16 +14,15 @@ pub mod test {
         let ranger_id =
             test_env.play_entity(test_env.player_a, EntityBlueprint::ElfWarrior.create());
 
-        test_env
-            .simulate_until(Condition::EntityIsInState(
-                ranger_id,
-                EntityState::Attacking,
-            ))
-            .ok();
+        let simulation_result = test_env.simulate_until(Condition::EntityIsInState(
+            ranger_id,
+            EntityState::Attacking,
+        ));
+        assert!(simulation_result.is_ok());
 
-        test_env
-            .simulate_until(Condition::EntityIsInState(ranger_id, EntityState::Moving))
-            .ok();
+        let simulation_result =
+            test_env.simulate_until(Condition::EntityIsInState(ranger_id, EntityState::Moving));
+        assert!(simulation_result.is_ok());
 
         assert!(Condition::PlayerWon(test_env.player_a).is_met(&test_env))
     }

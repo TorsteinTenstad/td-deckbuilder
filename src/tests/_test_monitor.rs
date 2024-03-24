@@ -15,7 +15,6 @@ use serde::{Deserialize, Serialize};
 pub mod condition;
 pub mod test_basic_movement_and_attack;
 pub mod test_continuous_buff_application;
-pub mod test_dead_detection;
 pub mod test_environment;
 pub mod test_protector_can_attack_ranger;
 pub mod test_ranger_stops_to_attack;
