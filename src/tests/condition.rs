@@ -68,8 +68,8 @@ impl Condition {
                     .dynamic_game_state
                     .entities
                     .iter()
-                    .find(|entity_instance| entity_instance.id == *entity_id)
-                    .unwrap();
+                    .find(|entity_instance| entity_instance.id == *entity_id);
+                let entity_instance = entity_instance.unwrap();
                 entity_instance.state == *entity_state
             }
             Condition::EntitySatisfies(entity_id, f) => {
