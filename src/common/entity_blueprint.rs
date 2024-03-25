@@ -4,12 +4,11 @@ use crate::{
     component_buff_aura::{BuffAura, BuffAuraRange},
     component_health::Health,
     component_movement::{Movement, MovementSpeed},
-    component_self_buff::{SelfBuff, SelfBuffCondition},
+    component_self_buff::{SelfBuff, SelfBuffCondition, SelfBuffRange},
     component_spy::Spy,
     entity::{AbilityFlag, Entity, EntityTag},
     entity_filter::EntityFilter,
     enum_flags::{flags, EnumFlags},
-    level_config::get_prototype_level_config,
     textures::SpriteId,
 };
 use serde::{Deserialize, Serialize};
@@ -159,7 +158,7 @@ impl EntityBlueprint {
                 self_buffs: vec![SelfBuff {
                     buff: Buff::AttackDamage(ArithmeticBuff::new_additive(5.0)),
                     condition: SelfBuffCondition::EntityFilter(EntityFilter {
-                        range: None,
+                        range: SelfBuffRange::Infinite,
                         target_pool: TargetPool::Allies,
                         tag_filter: flags![EntityTag::Tower],
                     }),
@@ -209,7 +208,7 @@ impl EntityBlueprint {
                 self_buffs: vec![SelfBuff {
                     buff: Buff::AttackSpeed(ArithmeticBuff::new_multiplicative(1.2)),
                     condition: SelfBuffCondition::EntityFilter(EntityFilter {
-                        range: Some(get_prototype_level_config().nearby_radius),
+                        range: SelfBuffRange::Default,
                         target_pool: TargetPool::Allies,
                         tag_filter: flags![EntityTag::Tower],
                     }),

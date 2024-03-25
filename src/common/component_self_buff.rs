@@ -1,13 +1,30 @@
 use crate::{
     buff::{buff_add_to_entity, Buff},
-    entity_filter::EntityFilter,
+    entity_filter::{EntityFilter, Range, ToRange},
+    level_config::get_prototype_level_config,
     update_args::UpdateArgs,
 };
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum SelfBuffRange {
+    Default,
+    Infinite,
+}
+
+impl ToRange for SelfBuffRange {
+    fn to_range(&self) -> Range {
+        let default = get_prototype_level_config().nearby_radius;
+        match self {
+            Self::Default => Range::Finite(default),
+            Self::Infinite => Range::Infinite,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum SelfBuffCondition {
-    EntityFilter(EntityFilter),
+    EntityFilter(EntityFilter<SelfBuffRange>),
 }
 
 impl SelfBuffCondition {

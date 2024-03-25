@@ -6,27 +6,39 @@ use crate::{
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct EntityFilter {
-    pub range: Option<f32>,
+pub struct EntityFilter<R> {
+    pub range: R,
     pub target_pool: TargetPool,
     pub tag_filter: EnumFlags<EntityTag>,
 }
 
-impl EntityFilter {
+pub enum Range {
+    Finite(f32),
+    Infinite,
+}
+
+pub trait ToRange {
+    fn to_range(&self) -> Range;
+}
+
+impl<R: ToRange> EntityFilter<R> {
     pub fn to_fn(
         &self,
         entity_instance: &EntityInstance,
     ) -> Box<dyn FnMut(&&EntityInstance) -> bool> {
-        let filter = self.clone();
+        let filter_range = self.range.to_range();
+        let filter_target_pool = self.target_pool.clone();
+        let filter_tag_filter = self.tag_filter.clone();
         let pos = entity_instance.pos;
         let owner = entity_instance.owner;
 
         Box::new(move |other| {
-            let distance_check = !filter
-                .range
-                .is_some_and(|r| (pos - other.pos).length_squared() > r.powi(2));
-            let owner_check = filter.target_pool.in_pool(owner, other.owner);
-            let tag_check = filter.tag_filter.is_set(&other.entity.tag);
+            let distance_check = match filter_range {
+                Range::Finite(value) => (pos - other.pos).length_squared() < value.powi(2),
+                Range::Infinite => true,
+            };
+            let owner_check = filter_target_pool.in_pool(owner, other.owner);
+            let tag_check = filter_tag_filter.is_set(&other.entity.tag);
             distance_check && owner_check && tag_check
         })
     }
@@ -34,16 +46,19 @@ impl EntityFilter {
         &self,
         entity_instance: &EntityInstance,
     ) -> Box<dyn FnMut(&&mut EntityInstance) -> bool> {
-        let filter = self.clone();
+        let filter_range = self.range.to_range();
+        let filter_target_pool = self.target_pool.clone();
+        let filter_tag_filter = self.tag_filter.clone();
         let pos = entity_instance.pos;
         let owner = entity_instance.owner;
 
         Box::new(move |other| {
-            let distance_check = !filter
-                .range
-                .is_some_and(|r| (pos - other.pos).length_squared() > r.powi(2));
-            let owner_check = filter.target_pool.in_pool(owner, other.owner);
-            let tag_check = filter.tag_filter.is_set(&other.entity.tag);
+            let distance_check = match filter_range {
+                Range::Finite(value) => (pos - other.pos).length_squared() < value.powi(2),
+                Range::Infinite => true,
+            };
+            let owner_check = filter_target_pool.in_pool(owner, other.owner);
+            let tag_check = filter_tag_filter.is_set(&other.entity.tag);
             distance_check && owner_check && tag_check
         })
     }

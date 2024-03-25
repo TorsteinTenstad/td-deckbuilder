@@ -2,28 +2,25 @@ use crate::{
     buff::{buff_add_to_entity, Buff},
     component_attack::TargetPool,
     entity::EntityTag,
-    entity_filter::EntityFilter,
+    entity_filter::{EntityFilter, Range, ToRange},
     enum_flags::EnumFlags,
+    level_config::get_prototype_level_config,
     update_args::UpdateArgs,
 };
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum BuffAuraRange {
-    Short,
     Default,
-    Long,
     Infinite,
 }
 
-impl BuffAuraRange {
-    pub fn to_range(&self) -> Option<f32> {
-        let default_range = 200.0;
+impl ToRange for BuffAuraRange {
+    fn to_range(&self) -> Range {
+        let default = get_prototype_level_config().nearby_radius;
         match self {
-            Self::Short => Some(default_range / 1.5),
-            Self::Default => Some(default_range),
-            Self::Long => Some(default_range * 1.5),
-            Self::Infinite => None,
+            Self::Default => Range::Finite(default),
+            Self::Infinite => Range::Infinite,
         }
     }
 }
@@ -31,15 +28,15 @@ impl BuffAuraRange {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BuffAura {
     buff: Buff,
-    filter: EntityFilter,
+    filter: EntityFilter<BuffAuraRange>,
 }
 
 impl BuffAura {
     pub fn new(buff: Buff, range: BuffAuraRange) -> Self {
         Self {
             buff,
-            filter: EntityFilter {
-                range: range.to_range(),
+            filter: EntityFilter::<BuffAuraRange> {
+                range,
                 target_pool: TargetPool::Allies,
                 tag_filter: EnumFlags::<EntityTag>::all(),
             },
