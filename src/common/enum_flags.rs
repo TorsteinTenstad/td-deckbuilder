@@ -31,6 +31,13 @@ impl<Enum: Clone + Into<usize>> EnumFlags<Enum> {
         let enum_usize: usize = (*flag).clone().into();
         self.value & (1 << enum_usize) != 0
     }
+
+    pub fn all() -> Self {
+        Self {
+            value: !0,
+            _phantom: std::marker::PhantomData,
+        }
+    }
 }
 
 impl<Enum: Clone + Into<usize>> Default for EnumFlags<Enum> {

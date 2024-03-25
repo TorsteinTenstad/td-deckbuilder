@@ -30,4 +30,21 @@ impl EntityFilter {
             distance_check && owner_check && tag_check
         })
     }
+    pub fn to_fn_mut(
+        &self,
+        entity_instance: &EntityInstance,
+    ) -> Box<dyn FnMut(&&mut EntityInstance) -> bool> {
+        let filter = self.clone();
+        let pos = entity_instance.pos;
+        let owner = entity_instance.owner;
+
+        Box::new(move |other| {
+            let distance_check = !filter
+                .range
+                .is_some_and(|r| (pos - other.pos).length_squared() > r.powi(2));
+            let owner_check = filter.target_pool.in_pool(owner, other.owner);
+            let tag_check = filter.tag_filter.is_set(&other.entity.tag);
+            distance_check && owner_check && tag_check
+        })
+    }
 }

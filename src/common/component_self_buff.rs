@@ -10,36 +10,6 @@ pub enum SelfBuffCondition {
     EntityFilter(EntityFilter),
 }
 
-// I currently have this implementation of is_met
-
-impl SelfBuffCondition {
-    pub fn _is_met(&self, update_args: &UpdateArgs) -> usize {
-        match self {
-            SelfBuffCondition::EntityFilter(entity_filter) => update_args
-                .dynamic_game_state
-                .entities
-                .iter()
-                .filter(|entity_instance| {
-                    !entity_filter.range.is_some_and(|r| {
-                        (update_args.entity_instance.pos - entity_instance.pos).length_squared()
-                            > r.powi(2)
-                    })
-                })
-                .filter(|entity_instance| {
-                    entity_filter
-                        .target_pool
-                        .in_pool(update_args.entity_instance.owner, entity_instance.owner)
-                })
-                .filter(|entity_instance| {
-                    entity_filter.tag_filter.is_set(&entity_instance.entity.tag)
-                })
-                .count(),
-        }
-    }
-}
-
-// but I want to implement to_fn on EntityFilter and use it like this in is_met. Can you help
-
 impl SelfBuffCondition {
     pub fn is_met(&self, update_args: &UpdateArgs) -> usize {
         match self {
