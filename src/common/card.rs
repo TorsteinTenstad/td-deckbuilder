@@ -1,6 +1,7 @@
 use crate::{
     entity_blueprint::EntityBlueprint,
     ids::CardInstanceId,
+    level_config::get_prototype_level_config,
     play_target::{PlayFn, SpecificPlayFn},
     world::{find_entity_mut, world_place_builder, world_place_path_entity, Zoning},
 };
@@ -30,6 +31,7 @@ pub enum Card {
     AirBalloon,
     Dragon,
     DirectDamage,
+    LightningStrike,
 }
 
 impl Card {
@@ -334,7 +336,31 @@ impl Card {
                 card_art_path: "direct_damage.jpg",
                 attack: None,
                 health: None,
-                description: "Deal 150 damage\nto a unit or building",
+                description: "Deal 150 damage\nto a single unit or building",
+            },
+            Card::LightningStrike => CardData {
+                name: "Lightning Strike",
+                energy_cost: 3,
+                play_fn: PlayFn::WorldPos(SpecificPlayFn::new(
+                    |target,
+                     _owner,
+                     _static_game_state,
+                     _semi_static_game_state,
+                     dynamic_game_state| {
+                        for entity_instance in dynamic_game_state.entities.iter_mut() {
+                            if entity_instance.pos.distance(target.to_vec2())
+                                < get_prototype_level_config().nearby_radius
+                            {
+                                entity_instance.entity.health.deal_damage(150.0);
+                            }
+                        }
+                        true
+                    },
+                )),
+                card_art_path: "lightning_strike.jpg",
+                attack: None,
+                health: None,
+                description: "Deal 150 damage\nto all units and buildings\nin a small area",
             },
         }
     }

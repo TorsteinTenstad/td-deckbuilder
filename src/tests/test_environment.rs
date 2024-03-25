@@ -14,10 +14,11 @@ pub mod test {
             send_dynamic_game_state, send_semi_static_game_state, send_static_game_state,
             ServerMessage,
         },
-        play_target::PlayFn,
+        play_target::PlayTarget,
         server_player::ServerPlayer,
         world::{
-            world_place_building, world_place_path_entity, BuildingLocation, Direction, Zoning,
+            find_entity, world_place_building, world_place_path_entity, BuildingLocation,
+            Direction, Zoning,
         },
     };
     use macroquad::{
@@ -244,43 +245,42 @@ pub mod test {
             .unwrap()
         }
         pub fn play_card(&mut self, player_id: PlayerId, card: Card) {
-            let play_succeded = match &card.get_card_data().play_fn {
-                PlayFn::UnitSpawnPoint(specific_play_fn) => {
-                    let spawnpoints = get_unit_spawnpoints(
+            self.play_card_at(player_id, card, None)
+        }
+
+        pub fn play_card_at(
+            &mut self,
+            player_id: PlayerId,
+            card: Card,
+            target: Option<PlayTarget>,
+        ) {
+            let play_fn = card.get_card_data().play_fn;
+            let target = match target {
+                Some(target) => target,
+                None => PlayTarget::UnitSpawnPoint(
+                    get_unit_spawnpoints(
                         player_id,
                         &self.state.static_game_state,
                         &self.state.dynamic_game_state,
-                    );
-                    let target = spawnpoints.first().unwrap();
-                    let invalid = specific_play_fn.target_is_invalid.is_some_and(|f| {
-                        f(
-                            target,
-                            player_id,
-                            &self.state.static_game_state,
-                            &self.state.semi_static_game_state,
-                            &self.state.dynamic_game_state,
-                        )
-                    });
-                    assert!(!invalid);
-                    (specific_play_fn.play)(
-                        target.clone(),
-                        player_id,
-                        &self.state.static_game_state,
-                        &mut self.state.semi_static_game_state,
-                        &mut self.state.dynamic_game_state,
                     )
-                }
-                PlayFn::BuildingLocation(_) => {
-                    todo!()
-                }
-                PlayFn::WorldPos(_) => {
-                    todo!()
-                }
-                PlayFn::Entity(_) => {
-                    todo!()
-                }
+                    .first()
+                    .unwrap()
+                    .clone(),
+                ),
             };
+            let play_succeded = play_fn.exec(
+                target,
+                player_id,
+                &self.state.static_game_state,
+                &mut self.state.semi_static_game_state,
+                &mut self.state.dynamic_game_state,
+            );
             assert!(play_succeded);
+        }
+        pub fn get_entity_position(&self, entity_id: EntityId) -> Vec2 {
+            find_entity(&self.state.dynamic_game_state.entities, Some(entity_id))
+                .unwrap()
+                .pos
         }
     }
 }

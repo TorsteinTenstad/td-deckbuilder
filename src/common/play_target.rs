@@ -12,6 +12,11 @@ pub struct WorldPosTarget {
     pub x: f32,
     pub y: f32,
 }
+impl WorldPosTarget {
+    pub fn to_vec2(&self) -> Vec2 {
+        Vec2::new(self.x, self.y)
+    }
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UnitSpawnpointTarget {

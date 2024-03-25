@@ -30,6 +30,7 @@ pub mod test {
 
         for _ in 0..opposing_units {
             test_env.play_entity(test_env.player_b, EntityBlueprint::StreetCriminal.create());
+            assert!(test_env.simulate_for(0.5).is_ok());
         }
         (test_env, spy_id)
     }
