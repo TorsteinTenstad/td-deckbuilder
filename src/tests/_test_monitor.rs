@@ -21,6 +21,7 @@ pub mod test_ranger_stops_to_attack;
 pub mod test_small_tower;
 pub mod test_spy;
 pub mod test_watchtower;
+pub mod test_governor;
 
 pub const TEST_CLIENT_ADDR: &str = "127.0.0.1:12346";
 

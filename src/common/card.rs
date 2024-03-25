@@ -25,6 +25,7 @@ pub enum Card {
     StreetCriminal,
     Spy,
     RecklessKnight,
+    Governor,
     WarEagle,
     AirBalloon,
     Dragon,
@@ -275,6 +276,15 @@ impl Card {
                 attack: EntityBlueprint::RecklessKnight.get_attack(),
                 health: EntityBlueprint::RecklessKnight.get_health(),
                 description: "[Fast moving]",
+            },
+            Card::Governor => CardData {
+                name: "Governor",
+                energy_cost: 4,
+                play_fn: play_unit!(Governor),
+                card_art_path: "governor.jpg",
+                attack: EntityBlueprint::Governor.get_attack(),
+                health: EntityBlueprint::Governor.get_health(),
+                description: "Deals 5 additional damage\nfor each tower\nyou control",
             },
             Card::WarEagle => CardData {
                 name: "War Eagle",

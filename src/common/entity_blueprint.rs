@@ -27,6 +27,7 @@ pub enum EntityBlueprint {
     StreetCriminal,
     Spy,
     RecklessKnight,
+    Governor,
     Dragon,
     WarEagle,
     AirBalloon,
@@ -145,6 +146,23 @@ impl EntityBlueprint {
                 attacks: vec![Attack {
                     damage: 30.0,
                     ..Attack::default()
+                }],
+                ..Entity::default_unit()
+            },
+            EntityBlueprint::Governor => Entity {
+                health: Health::new(300.0),
+                sprite_id: SpriteId::UnitGovernor,
+                attacks: vec![Attack {
+                    damage: 20.0,
+                    ..Attack::default()
+                }],
+                self_buffs: vec![SelfBuff {
+                    buff: Buff::AttackDamage(ArithmeticBuff::new_additive(5.0)),
+                    condition: SelfBuffCondition::EntityFilter(EntityFilter {
+                        range: None,
+                        target_pool: TargetPool::Allies,
+                        tag_filter: flags![EntityTag::Tower],
+                    }),
                 }],
                 ..Entity::default_unit()
             },
