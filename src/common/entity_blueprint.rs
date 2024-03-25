@@ -33,6 +33,7 @@ pub enum EntityBlueprint {
     Tower,
     SmallTower,
     Watchtower,
+    Wall,
     Farm,
     TradingPlace,
     SpawnPoint,
@@ -46,6 +47,16 @@ impl EntityBlueprint {
 }
 
 impl EntityBlueprint {
+    pub fn get_health(&self) -> Option<i32> {
+        Some(self.create().health.max_health as i32)
+    }
+    pub fn get_attack(&self) -> Option<i32> {
+        let entity = self.create();
+        if entity.attacks.len() > 1 {
+            return None;
+        }
+        entity.attacks.first().map(|attack| attack.damage as i32)
+    }
     pub fn create(&self) -> Entity {
         match self {
             EntityBlueprint::BasicBuilder => Entity {
@@ -202,6 +213,12 @@ impl EntityBlueprint {
                     Buff::AttackRange(ArithmeticBuff::new_multiplicative(2.0)),
                     BuffAuraRange::Default,
                 )],
+                ..Entity::default_tower()
+            },
+
+            EntityBlueprint::Wall => Entity {
+                health: Health::new(1000.0),
+                sprite_id: SpriteId::BuildingTower,
                 ..Entity::default_tower()
             },
             EntityBlueprint::Farm => Entity {
