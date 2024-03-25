@@ -1,15 +1,18 @@
-use serde::{Deserialize, Serialize};
-
 use crate::{
     buff::{ArithmeticBuff, Buff},
-    component_attack::{Attack, AttackSpeed},
+    component_attack::{Attack, AttackInterval, TargetPool},
     component_buff_aura::{BuffAura, BuffAuraRange},
     component_health::Health,
     component_movement::{Movement, MovementSpeed},
+    component_self_buff::{SelfBuff, SelfBuffCondition},
     component_spy::Spy,
-    entity::{AbilityFlag, Entity},
+    entity::{AbilityFlag, Entity, EntityTag},
+    entity_filter::EntityFilter,
+    enum_flags::{flags, EnumFlags},
+    level_config::get_prototype_level_config,
     textures::SpriteId,
 };
+use serde::{Deserialize, Serialize};
 use strum::IntoEnumIterator;
 use strum_macros::EnumIter;
 
@@ -28,6 +31,7 @@ pub enum EntityBlueprint {
     WarEagle,
     AirBalloon,
     Tower,
+    SmallTower,
     Watchtower,
     Farm,
     TradingPlace,
@@ -68,7 +72,7 @@ impl EntityBlueprint {
                 sprite_id: SpriteId::UnitElfWarrior,
                 attacks: vec![Attack {
                     damage: 10.0,
-                    attack_speed: AttackSpeed::Fast,
+                    attack_interval: AttackInterval::Fast,
                     ..Attack::default_ranged()
                 }],
                 ..Entity::default_unit()
@@ -108,7 +112,7 @@ impl EntityBlueprint {
                 sprite_id: SpriteId::UnitStreetCriminal,
                 attacks: vec![Attack {
                     damage: 10.0,
-                    attack_speed: AttackSpeed::Fast,
+                    attack_interval: AttackInterval::Fast,
                     ..Attack::default()
                 }],
                 ..Entity::default_unit()
@@ -166,6 +170,23 @@ impl EntityBlueprint {
                 sprite_id: SpriteId::BuildingTower,
                 attacks: vec![Attack {
                     damage: 20.0,
+                    ..Attack::default_ranged_tower()
+                }],
+                ..Entity::default_tower()
+            },
+            EntityBlueprint::SmallTower => Entity {
+                health: Health::new(300.0),
+                sprite_id: SpriteId::BuildingTower,
+                self_buffs: vec![SelfBuff {
+                    buff: Buff::AttackSpeed(ArithmeticBuff::new_multiplicative(1.2)),
+                    condition: SelfBuffCondition::EntityFilter(EntityFilter {
+                        range: Some(get_prototype_level_config().nearby_radius),
+                        target_pool: TargetPool::Allies,
+                        tag_filter: flags![EntityTag::Tower],
+                    }),
+                }],
+                attacks: vec![Attack {
+                    damage: 10.0,
                     ..Attack::default_ranged_tower()
                 }],
                 ..Entity::default_tower()

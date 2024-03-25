@@ -18,6 +18,7 @@ pub mod test_continuous_buff_application;
 pub mod test_environment;
 pub mod test_protector_can_attack_ranger;
 pub mod test_ranger_stops_to_attack;
+pub mod test_small_tower;
 pub mod test_spy;
 pub mod test_watchtower;
 

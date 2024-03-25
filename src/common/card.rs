@@ -11,6 +11,7 @@ use strum_macros::EnumIter;
 #[derive(Hash, EnumIter, Debug, Clone, Serialize, Deserialize, Eq, PartialEq)]
 pub enum Card {
     Tower,
+    SmallTower,
     Farm,
     TradingPlace,
     SpawnPoint,
@@ -147,6 +148,15 @@ impl Card {
                 attack: Some(3),
                 health: Some(500),
                 description: "[Ranged]",
+            },
+            Card::SmallTower => CardData {
+                name: "Small Tower",
+                energy_cost: 2,
+                play_fn: play_normal_building!(BasicBuilder, SmallTower),
+                card_art_path: "small_tower.jpg",
+                attack: Some(2),
+                health: Some(300),
+                description: "[Ranged] Gets 20% higher attack speed for each nearby tower",
             },
             Card::Watchtower => CardData {
                 name: "Watchtower",

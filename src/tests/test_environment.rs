@@ -7,7 +7,7 @@ pub mod test {
         game_loop,
         game_state::ServerControlledGameState,
         get_unit_spawnpoints::get_unit_spawnpoints,
-        ids::{EntityId, PlayerId},
+        ids::{BuildingLocationId, EntityId, PlayerId},
         level_config::LevelConfig,
         message_acknowledgement::AckUdpSocket,
         network::{
@@ -16,7 +16,9 @@ pub mod test {
         },
         play_target::PlayFn,
         server_player::ServerPlayer,
-        world::{world_place_building, world_place_path_entity, Direction, Zoning},
+        world::{
+            world_place_building, world_place_path_entity, BuildingLocation, Direction, Zoning,
+        },
     };
     use macroquad::{
         color::{BLUE, RED},
@@ -90,6 +92,7 @@ pub mod test {
                 level_width: 1200,
                 level_height: 400,
                 spawn_point_radius: 256.0,
+                nearby_radius: 256.0,
                 player_configs: vec![
                     (Vec2::new(50.0, 200.0), Direction::Positive, RED),
                     (Vec2::new(1150.0, 200.0), Direction::Negative, BLUE),
@@ -194,7 +197,7 @@ pub mod test {
             )
             .unwrap()
         }
-        pub fn place_building(&mut self, player_id: PlayerId, entity: Entity) -> Option<EntityId> {
+        pub fn place_building(&mut self, player_id: PlayerId, entity: Entity) -> EntityId {
             let building_location_id = self
                 .state
                 .semi_static_game_state
@@ -211,6 +214,34 @@ pub mod test {
                 &building_location_id,
                 player_id,
             )
+            .unwrap()
+        }
+        pub fn place_building_at(
+            &mut self,
+            player_id: PlayerId,
+            entity: Entity,
+            pos: (f32, f32),
+        ) -> EntityId {
+            let building_location_id = BuildingLocationId::new();
+            self.state
+                .semi_static_game_state
+                .building_locations_mut()
+                .insert(
+                    building_location_id,
+                    BuildingLocation {
+                        entity_id: None,
+                        pos: Vec2::new(pos.0, pos.1),
+                        zoning: Zoning::Normal,
+                    },
+                );
+            world_place_building(
+                &mut self.state.semi_static_game_state,
+                &mut self.state.dynamic_game_state,
+                entity,
+                &building_location_id,
+                player_id,
+            )
+            .unwrap()
         }
         pub fn play_card(&mut self, player_id: PlayerId, card: Card) {
             let play_succeded = match &card.get_card_data().play_fn {
