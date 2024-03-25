@@ -14,7 +14,7 @@ pub mod test {
             send_dynamic_game_state, send_semi_static_game_state, send_static_game_state,
             ServerMessage,
         },
-        play_target::PlayTarget,
+        play_target::{BuildingLocationTarget, PlayFn, PlayTarget, WorldPosTarget},
         server_player::ServerPlayer,
         world::{
             find_entity, world_place_building, world_place_path_entity, BuildingLocation,
@@ -257,16 +257,33 @@ pub mod test {
             let play_fn = card.get_card_data().play_fn;
             let target = match target {
                 Some(target) => target,
-                None => PlayTarget::UnitSpawnPoint(
-                    get_unit_spawnpoints(
-                        player_id,
-                        &self.state.static_game_state,
-                        &self.state.dynamic_game_state,
-                    )
-                    .first()
-                    .unwrap()
-                    .clone(),
-                ),
+                None => match play_fn {
+                    PlayFn::UnitSpawnPoint(_) => PlayTarget::UnitSpawnPoint(
+                        get_unit_spawnpoints(
+                            player_id,
+                            &self.state.static_game_state,
+                            &self.state.dynamic_game_state,
+                        )
+                        .first()
+                        .unwrap()
+                        .clone(),
+                    ),
+                    PlayFn::BuildingLocation(_) => {
+                        PlayTarget::BuildingSpot(BuildingLocationTarget {
+                            id: *self
+                                .state
+                                .semi_static_game_state
+                                .building_locations()
+                                .iter()
+                                .find_map(|(id, building_location)| {
+                                    building_location.entity_id.is_none().then_some(id)
+                                })
+                                .unwrap(),
+                        })
+                    }
+                    PlayFn::WorldPos(_) => PlayTarget::WorldPos(WorldPosTarget { x: 0.0, y: 0.0 }),
+                    PlayFn::Entity(_) => todo!(),
+                },
             };
             let play_succeded = play_fn.exec(
                 target,

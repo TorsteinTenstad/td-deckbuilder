@@ -47,7 +47,18 @@ pub fn apply_arithmetic_buffs(base_value: f32, buffs: &[ArithmeticBuff]) -> f32 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ExtraHealthBuff {
     pub health: f32,
+    pub max_health: f32,
     pub seconds_left: Option<f32>,
+}
+
+impl ExtraHealthBuff {
+    pub fn new(max_health: f32, seconds_left: Option<f32>) -> Self {
+        Self {
+            health: max_health,
+            max_health,
+            seconds_left,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

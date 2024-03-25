@@ -1,4 +1,6 @@
 use crate::{
+    buff::{buff_add_to_entity, Buff, ExtraHealthBuff},
+    entity::EntityTag,
     entity_blueprint::EntityBlueprint,
     ids::CardInstanceId,
     level_config::get_prototype_level_config,
@@ -32,6 +34,7 @@ pub enum Card {
     Dragon,
     DirectDamage,
     LightningStrike,
+    ReinforcedDoors,
 }
 
 impl Card {
@@ -361,6 +364,33 @@ impl Card {
                 attack: None,
                 health: None,
                 description: "Deal 150 damage\nto all units and buildings\nin a small area",
+            },
+            Card::ReinforcedDoors => CardData {
+                name: "Reinforced Doors",
+                energy_cost: 2,
+                play_fn: PlayFn::WorldPos(SpecificPlayFn::new(
+                    |_target,
+                     owner,
+                     _static_game_state,
+                     _semi_static_game_state,
+                     dynamic_game_state| {
+                        for entity_instance in dynamic_game_state.entities.iter_mut() {
+                            if entity_instance.entity.tag == EntityTag::Tower
+                                && entity_instance.owner == owner
+                            {
+                                buff_add_to_entity(
+                                    &mut entity_instance.entity,
+                                    Buff::ExtraHealth(ExtraHealthBuff::new(200.0, Some(f32::MAX))),
+                                );
+                            }
+                        }
+                        true
+                    },
+                )),
+                description: "All your towers\nget +200 health",
+                card_art_path: "reinforced_doors.jpg",
+                attack: None,
+                health: None,
             },
         }
     }

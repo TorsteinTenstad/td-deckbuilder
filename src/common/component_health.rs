@@ -33,8 +33,27 @@ impl Health {
     }
 
     pub fn heal(&mut self, damage: f32) {
-        self.health += damage;
-        self.health = self.health.min(self.max_health);
+        let mut damage = damage;
+        let health_capacity = (self.max_health - self.health).min(damage);
+        self.health += health_capacity;
+        damage -= health_capacity;
+        for buff in self.extra_health_buffs.iter_mut() {
+            if damage <= 0.0 {
+                break;
+            }
+            let health_capacity = (buff.max_health - buff.health).min(damage);
+            buff.health += health_capacity;
+            damage -= health_capacity;
+        }
+    }
+
+    pub fn get_health(&self) -> f32 {
+        self.health
+            + self
+                .extra_health_buffs
+                .iter()
+                .map(|buff| buff.health)
+                .sum::<f32>()
     }
 }
 

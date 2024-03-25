@@ -40,7 +40,7 @@ impl HitNumbers {
     pub fn step(&mut self, entities: &[EntityInstance], dt: f32) {
         for entity_instance in entities.iter() {
             if let Some(old_health) = self.entity_healths.get(&entity_instance.id) {
-                let health_diff = entity_instance.entity.health.health - old_health;
+                let health_diff = entity_instance.entity.health.get_health() - old_health;
                 if health_diff.abs() > 1.0 {
                     self.physical_hit_numbers.push(PhysicalHitNumber {
                         number: health_diff as i32,
@@ -53,7 +53,7 @@ impl HitNumbers {
         }
         self.entity_healths = entities
             .iter()
-            .map(|entity_instance| (entity_instance.id, entity_instance.entity.health.health))
+            .map(|entity_instance| (entity_instance.id, entity_instance.entity.health.get_health()))
             .collect();
 
         let time = SystemTime::now();
