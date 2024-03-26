@@ -2,7 +2,7 @@ pub mod test {
     use crate::{condition::Condition, TestMonitorPing, TEST_CLIENT_ADDR};
     use common::{
         card::Card,
-        entity::Entity,
+        entity::{Entity, EntityInstance},
         entity_blueprint::EntityBlueprint,
         game_loop,
         game_state::ServerControlledGameState,
@@ -153,11 +153,26 @@ pub mod test {
         pub fn simulate_until(&mut self, condition: Condition) -> Result<(), SimulationBreak> {
             self.simulate(|env| condition.is_met(env))
         }
+        pub fn simulate_frame(&mut self) -> Result<(), SimulationBreak> {
+            self.simulate(|_| true)
+        }
+        pub fn simulate_frames(&mut self, frames: usize) -> Result<(), SimulationBreak> {
+            for _ in 0..frames {
+                self.simulate_frame()?;
+            }
+            Ok(())
+        }
         pub fn simulate<P>(&mut self, break_condition: P) -> Result<(), SimulationBreak>
         where
             P: Fn(&Self) -> bool,
         {
             loop {
+                game_loop::update_game_state(&mut self.state, SIMULATION_DT);
+                self.sim_time_s += SIMULATION_DT;
+                self.network_state.send_update(&self.state);
+                if self.network_state.has_received_ping {
+                    sleep(Duration::from_secs_f32(SIMULATION_DT / self.speed));
+                }
                 for (condidition, is_met) in &self.percistent_condtions {
                     if condidition.is_met(self) != *is_met {
                         return Err(SimulationBreak::PercistentConditionFail);
@@ -168,12 +183,6 @@ pub mod test {
                 }
                 if self.sim_time_s > self.timeout_s {
                     return Err(SimulationBreak::Timeout);
-                }
-                self.sim_time_s += SIMULATION_DT;
-                game_loop::update_game_state(&mut self.state, SIMULATION_DT);
-                self.network_state.send_update(&self.state);
-                if self.network_state.has_received_ping {
-                    sleep(Duration::from_secs_f32(SIMULATION_DT / self.speed));
                 }
             }
         }
@@ -294,10 +303,11 @@ pub mod test {
             );
             assert!(play_succeded);
         }
+        pub fn get_entity(&self, entity_id: EntityId) -> &EntityInstance {
+            find_entity(&self.state.dynamic_game_state.entities, Some(entity_id)).unwrap()
+        }
         pub fn get_entity_position(&self, entity_id: EntityId) -> Vec2 {
-            find_entity(&self.state.dynamic_game_state.entities, Some(entity_id))
-                .unwrap()
-                .pos
+            self.get_entity(entity_id).pos
         }
     }
 }

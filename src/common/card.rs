@@ -19,6 +19,7 @@ pub enum Card {
     Wall,
     Farm,
     TradingPlace,
+    IronMine,
     SpawnPoint,
     HomesickWarrior,
     ElfWarrior,
@@ -200,6 +201,15 @@ impl Card {
                 attack: EntityBlueprint::TradingPlace.get_attack(),
                 health: EntityBlueprint::TradingPlace.get_health(),
                 description: "Increases energy generation by 40%",
+            },
+            Card::IronMine => CardData {
+                name: "Iron Mine",
+                energy_cost: 4,
+                play_fn: play_commerce_building!(BasicBuilder, IronMine),
+                card_art_path: "iron_mine.jpg",
+                attack: EntityBlueprint::IronMine.get_attack(),
+                health: EntityBlueprint::IronMine.get_health(),
+                description: "Towers get +500 health when they are built",
             },
             Card::SpawnPoint => CardData {
                 name: "Spawn Point",

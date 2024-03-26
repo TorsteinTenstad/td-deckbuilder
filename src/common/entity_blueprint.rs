@@ -1,5 +1,5 @@
 use crate::{
-    buff::{ArithmeticBuff, Buff},
+    buff::{ArithmeticBuff, Buff, ExtraHealthBuff},
     component_attack::{Attack, AttackInterval, TargetPool},
     component_buff_source::{BuffCondition, BuffRange, BuffSource, BuffTargetFilter},
     component_health::Health,
@@ -35,6 +35,7 @@ pub enum EntityBlueprint {
     Wall,
     Farm,
     TradingPlace,
+    IronMine,
     SpawnPoint,
     Base,
 }
@@ -260,6 +261,19 @@ impl EntityBlueprint {
                     multiplier: 1.4,
                     ..Default::default()
                 }),
+                ..Entity::default_tower()
+            },
+            EntityBlueprint::IronMine => Entity {
+                health: Health::new(200.0),
+                sprite_id: SpriteId::BuildingTradingPlace,
+                buff_sources: vec![BuffSource {
+                    buff: Buff::ExtraHealth(ExtraHealthBuff::new(500.0, Some(f32::MAX))),
+                    condition: BuffCondition::AlwaysSingle,
+                    target_filter: BuffTargetFilter::OnSpawn(EntityFilter {
+                        pool_filter: Some(TargetPool::Allies),
+                        ..Default::default()
+                    }),
+                }],
                 ..Entity::default_tower()
             },
             EntityBlueprint::SpawnPoint => Entity {

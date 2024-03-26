@@ -5,8 +5,8 @@ use crate::{
 };
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct EntityFilter<Range: Clone> {
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct EntityFilter<Range: Clone + Default> {
     pub range_filter: Option<Range>,
     pub pool_filter: Option<TargetPool>,
     pub tag_filter: Option<EnumFlags<EntityTag>>,
@@ -16,7 +16,7 @@ pub trait Tof32 {
     fn to_f32(&self) -> f32;
 }
 
-impl<Range: Tof32 + Clone> EntityFilter<Range> {
+impl<Range: Tof32 + Clone + Default> EntityFilter<Range> {
     fn predicate(&self, source: &EntityInstance, other: &EntityInstance) -> bool {
         let out_of_range = self.range_filter.as_ref().is_some_and(|range| {
             (source.pos - other.pos).length_squared() > range.to_f32().powi(2)

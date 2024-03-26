@@ -88,7 +88,9 @@ pub fn update_entity(update_args: &mut UpdateArgs) {
         update_args.entity_instance.state = EntityState::Attacking;
     } else if can_build {
         update_args.entity_instance.state = EntityState::Building;
-    } else {
+    } else if update_args.entity_instance.state != EntityState::CreationFrame
+        && update_args.entity_instance.state != EntityState::SpawnFrame
+    {
         update_args.entity_instance.state = EntityState::Moving;
     }
 
