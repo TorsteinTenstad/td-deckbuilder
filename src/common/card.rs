@@ -1,7 +1,7 @@
 use crate::{
     buff::{buff_add_to_entity, ArithmeticBuff, Buff, ExtraHealthBuff},
     component_attack::AttackVariant,
-    entity::EntityTag,
+    entity::{EntityState, EntityTag},
     entity_blueprint::EntityBlueprint,
     ids::CardInstanceId,
     level_config::get_prototype_level_config,
@@ -39,6 +39,7 @@ pub enum Card {
     ReinforcedDoors,
     HigherMotivation,
     SteadyAim,
+    Meteor,
 }
 
 impl Card {
@@ -477,6 +478,41 @@ impl Card {
                 ),
                 description: "Give a ranged unit\n+50% attack damage",
                 card_art_path: "steady_aim.jpg",
+                attack: None,
+                health: None,
+            },
+            Card::Meteor => CardData {
+                name: "Meteor",
+                energy_cost: 8,
+                play_fn: PlayFn::Entity(
+                    SpecificPlayFn::new(
+                        |target: EntityTarget,
+                         _owner,
+                         _static_game_state,
+                         _semi_static_game_state,
+                         dynamic_game_state| {
+                            let Some(entity) =
+                                find_entity_mut(&mut dynamic_game_state.entities, Some(target.id))
+                            else {
+                                return false;
+                            };
+                            entity.state = EntityState::Dead;
+                            true
+                        },
+                    )
+                    .with_target_is_invalid(
+                        |target,
+                         _owner,
+                         _static_game_state,
+                         _semi_static_game_state,
+                         dynamic_game_state| {
+                            !find_entity(&dynamic_game_state.entities, Some(target.id))
+                                .is_some_and(|e| e.entity.tag == EntityTag::Tower)
+                        },
+                    ),
+                ),
+                description: "Destroy a tower",
+                card_art_path: "meteor.jpg",
                 attack: None,
                 health: None,
             },

@@ -20,6 +20,7 @@ pub mod test_governor;
 pub mod test_higher_motivation;
 pub mod test_iron_mine;
 pub mod test_lightning_strike;
+pub mod test_meteor;
 pub mod test_protector_can_attack_ranger;
 pub mod test_ranger_stops_to_attack;
 pub mod test_reinforced_doors;
