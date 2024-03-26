@@ -9,6 +9,7 @@ pub mod config;
 pub mod debug_draw_config;
 pub mod draw;
 pub mod draw_server_controlled_game_state;
+pub mod entities;
 pub mod entity;
 pub mod entity_blueprint;
 pub mod entity_filter;

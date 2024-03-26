@@ -75,7 +75,11 @@ fn update_entities(server_controlled_game_state: &mut ServerControlledGameState,
 
 pub fn update_game_state(server_controlled_game_state: &mut ServerControlledGameState, dt: f32) {
     remove_dead_entities(server_controlled_game_state);
-    for entity_instance in &mut server_controlled_game_state.dynamic_game_state.entities {
+    for entity_instance in server_controlled_game_state
+        .dynamic_game_state
+        .entities
+        .iter_mut()
+    {
         buff_update_timers(&mut entity_instance.entity, dt);
     }
     update_entities(server_controlled_game_state, dt);
