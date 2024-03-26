@@ -36,6 +36,11 @@ pub fn update_game_state(server_controlled_game_state: &mut ServerControlledGame
         .iter_mut()
     {
         buff_update_timers(&mut entity_instance.entity, dt);
+        if entity_instance.state == EntityState::CreationFrame {
+            entity_instance.state = EntityState::SpawnFrame;
+        } else if entity_instance.state == EntityState::SpawnFrame {
+            entity_instance.state = EntityState::Moving;
+        }
     }
     update_entities(server_controlled_game_state, dt);
 }
@@ -88,6 +93,7 @@ pub fn update_entity(update_args: &mut UpdateArgs) {
     }
 
     match update_args.entity_instance.state {
+        EntityState::CreationFrame | EntityState::SpawnFrame => {} // State transitions are handled for all entities at once by update_game_state
         EntityState::Moving => {
             Movement::update(update_args);
         }

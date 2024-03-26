@@ -41,7 +41,10 @@ impl Entities {
         self.0.iter_mut()
     }
 
-    pub fn push(&mut self, entity: EntityInstance) {
+    pub fn spawn(&mut self, entity: EntityInstance) {
+        debug_assert!(entity.state == EntityState::CreationFrame);
+        let mut entity = entity;
+        entity.state = EntityState::CreationFrame;
         self.0.push(entity);
     }
 }
@@ -69,6 +72,7 @@ pub fn update_entities(server_controlled_game_state: &mut ServerControlledGameSt
         server_controlled_game_state
             .dynamic_game_state
             .entities
+            .0
             .push(entity_instance);
         i -= 1;
     }

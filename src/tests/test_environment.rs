@@ -130,7 +130,7 @@ pub mod test {
                     .state
                     .dynamic_game_state
                     .entities
-                    .push(base_entity);
+                    .spawn(base_entity);
             }
             test_environment.state.load_level_config(level_config);
             test_environment

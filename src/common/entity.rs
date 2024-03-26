@@ -31,6 +31,8 @@ impl From<EntityTag> for usize {
 
 #[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
 pub enum EntityState {
+    CreationFrame,
+    SpawnFrame,
     Moving,
     Attacking,
     Passive,
@@ -77,7 +79,7 @@ impl Entity {
         EntityInstance {
             id: EntityId::new(),
             owner,
-            state: EntityState::Moving,
+            state: EntityState::CreationFrame,
             pos,
             entity: self,
         }

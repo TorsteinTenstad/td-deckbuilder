@@ -3,10 +3,10 @@ use crate::{
     component_health::Health,
     component_movement::Movement,
     config::PROJECTILE_RADIUS,
-    entity::{Entity, EntityInstance, EntityState, EntityTag},
+    entity::{Entity, EntityState, EntityTag},
     enum_flags::{flags, EnumFlags},
     find_target::find_target_for_attack,
-    ids::{EntityId, PlayerId},
+    ids::PlayerId,
     update_args::UpdateArgs,
 };
 use serde::{Deserialize, Serialize};
@@ -173,28 +173,26 @@ impl Attack {
                 attack.cooldown_timer = attack.get_attack_interval();
                 match attack.variant {
                     AttackVariant::RangedAttack => {
-                        let bullet = EntityInstance {
-                            id: EntityId::new(),
-                            owner: update_args.entity_instance.owner,
-                            state: EntityState::Moving,
-                            pos: update_args.entity_instance.pos,
-                            entity: Entity {
-                                tag: EntityTag::Bullet,
-                                radius: PROJECTILE_RADIUS,
-                                hitbox_radius: PROJECTILE_RADIUS,
-                                health: Health::new(1.0),
-                                movement: Some(Movement::new_projectile(target_entity_instance.id)),
-                                seconds_left_to_live: Some(3.0),
-                                attacks: vec![Attack {
-                                    damage: attack.get_damage(),
-                                    can_target: attack.can_target.clone(),
-                                    self_destruct: true,
-                                    ..Attack::default()
-                                }],
-                                ..Entity::default()
-                            },
-                        };
-                        update_args.dynamic_game_state.entities.push(bullet);
+                        let bullet = Entity {
+                            tag: EntityTag::Bullet,
+                            radius: PROJECTILE_RADIUS,
+                            hitbox_radius: PROJECTILE_RADIUS,
+                            health: Health::new(1.0),
+                            movement: Some(Movement::new_projectile(target_entity_instance.id)),
+                            seconds_left_to_live: Some(3.0),
+                            attacks: vec![Attack {
+                                damage: attack.get_damage(),
+                                can_target: attack.can_target.clone(),
+                                self_destruct: true,
+                                ..Attack::default()
+                            }],
+                            ..Entity::default()
+                        }
+                        .instantiate(
+                            update_args.entity_instance.owner,
+                            update_args.entity_instance.pos,
+                        );
+                        update_args.dynamic_game_state.entities.spawn(bullet);
                     }
                     AttackVariant::MeleeAttack => {
                         target_entity_instance

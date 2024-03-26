@@ -97,7 +97,7 @@ fn main() -> std::io::Result<()> {
                             let base_entity = EntityBlueprint::Base
                                 .create()
                                 .instantiate(client_id, *base_pos);
-                            game_state.dynamic_game_state.entities.push(base_entity);
+                            game_state.dynamic_game_state.entities.spawn(base_entity);
                         }
                     }
                     ack_udp_socket.send_to(

@@ -199,7 +199,7 @@ pub fn world_place_path_entity(
     });
     let entity_instance = entity.instantiate(owner, pos);
     let entity_id = entity_instance.id;
-    dynamic_game_state.entities.push(entity_instance);
+    dynamic_game_state.entities.spawn(entity_instance);
     Some(entity_id)
 }
 
@@ -274,6 +274,6 @@ pub fn world_place_building(
     }
     let entity_instance = entity.instantiate(owner, *pos);
     *entity_id = Some(entity_instance.id);
-    dynamic_game_state.entities.push(entity_instance);
+    dynamic_game_state.entities.spawn(entity_instance);
     *entity_id
 }
