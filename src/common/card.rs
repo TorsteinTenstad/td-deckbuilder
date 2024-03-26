@@ -450,7 +450,9 @@ impl Card {
                                 return false;
                             };
                             buff_add_to_entity(
-                                Buff::AttackDamage(ArithmeticBuff::new_multiplicative(1.4)),
+                                Buff::AttackDamage(
+                                    ArithmeticBuff::new_multiplicative(1.4).with_timeout(f32::MAX),
+                                ),
                                 &mut entity.entity,
                             );
                             true

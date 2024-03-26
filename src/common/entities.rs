@@ -54,9 +54,9 @@ pub fn update_entities(server_controlled_game_state: &mut ServerControlledGameSt
         .dynamic_game_state
         .entities
         .0
-        .len()
-        - 1;
+        .len();
     while i > 0 {
+        i -= 1;
         let mut entity_instance = server_controlled_game_state
             .dynamic_game_state
             .entities
@@ -74,7 +74,6 @@ pub fn update_entities(server_controlled_game_state: &mut ServerControlledGameSt
             .entities
             .0
             .push(entity_instance);
-        i -= 1;
     }
 }
 
