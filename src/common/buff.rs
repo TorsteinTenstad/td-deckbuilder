@@ -25,6 +25,10 @@ impl ArithmeticBuff {
             ..Default::default()
         }
     }
+    pub fn with_timeout(mut self, seconds_left: f32) -> Self {
+        self.seconds_left = Some(seconds_left);
+        self
+    }
 }
 
 impl Default for ArithmeticBuff {

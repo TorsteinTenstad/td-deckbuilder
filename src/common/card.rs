@@ -1,11 +1,12 @@
 use crate::{
-    buff::{buff_add_to_entity, Buff, ExtraHealthBuff},
+    buff::{buff_add_to_entity, ArithmeticBuff, Buff, ExtraHealthBuff},
+    component_attack::AttackVariant,
     entity::EntityTag,
     entity_blueprint::EntityBlueprint,
     ids::CardInstanceId,
     level_config::get_prototype_level_config,
-    play_target::{PlayFn, SpecificPlayFn},
-    world::{find_entity_mut, world_place_builder, world_place_path_entity, Zoning},
+    play_target::{EntityTarget, PlayFn, SpecificPlayFn},
+    world::{find_entity, find_entity_mut, world_place_builder, world_place_path_entity, Zoning},
 };
 use serde::{Deserialize, Serialize};
 use strum::IntoEnumIterator;
@@ -36,6 +37,8 @@ pub enum Card {
     DirectDamage,
     LightningStrike,
     ReinforcedDoors,
+    HigherMotivation,
+    SteadyAim,
 }
 
 impl Card {
@@ -399,6 +402,79 @@ impl Card {
                 )),
                 description: "All your towers\nget +200 health",
                 card_art_path: "reinforced_doors.jpg",
+                attack: None,
+                health: None,
+            },
+            Card::HigherMotivation => CardData {
+                name: "Higher Motivation",
+                energy_cost: 3,
+                play_fn: PlayFn::WorldPos(SpecificPlayFn::new(
+                    |_target,
+                     owner,
+                     _static_game_state,
+                     _semi_static_game_state,
+                     dynamic_game_state| {
+                        for entity_instance in dynamic_game_state.entities.iter_mut() {
+                            if entity_instance.entity.tag == EntityTag::Unit
+                                && entity_instance.owner == owner
+                            {
+                                buff_add_to_entity(
+                                    Buff::AttackSpeed(
+                                        ArithmeticBuff::new_multiplicative(1.5).with_timeout(10.0),
+                                    ),
+                                    &mut entity_instance.entity,
+                                );
+                            }
+                        }
+                        true
+                    },
+                )),
+                description: "All your units\nget +50% attack speed for 10 seconds",
+                card_art_path: "higher_motivation.jpg",
+                attack: None,
+                health: None,
+            },
+            Card::SteadyAim => CardData {
+                name: "Steady Aim",
+                energy_cost: 2,
+                play_fn: PlayFn::Entity(
+                    SpecificPlayFn::new(
+                        |target: EntityTarget,
+                         _owner,
+                         _static_game_state,
+                         _semi_static_game_state,
+                         dynamic_game_state| {
+                            let Some(entity) =
+                                find_entity_mut(&mut dynamic_game_state.entities, Some(target.id))
+                            else {
+                                return false;
+                            };
+                            buff_add_to_entity(
+                                Buff::AttackDamage(ArithmeticBuff::new_multiplicative(1.4)),
+                                &mut entity.entity,
+                            );
+                            true
+                        },
+                    )
+                    .with_target_is_invalid(
+                        |target,
+                         _owner,
+                         _static_game_state,
+                         _semi_static_game_state,
+                         dynamic_game_state| {
+                            !find_entity(&dynamic_game_state.entities, Some(target.id)).is_some_and(
+                                |e| {
+                                    e.entity
+                                        .attacks
+                                        .iter()
+                                        .any(|a| a.variant == AttackVariant::RangedAttack)
+                                },
+                            )
+                        },
+                    ),
+                ),
+                description: "Give a ranged unit\n+50% attack damage",
+                card_art_path: "steady_aim.jpg",
                 attack: None,
                 health: None,
             },

@@ -17,6 +17,7 @@ pub mod test_basic_movement_and_attack;
 pub mod test_continuous_buff_application;
 pub mod test_environment;
 pub mod test_governor;
+pub mod test_higher_motivation;
 pub mod test_iron_mine;
 pub mod test_lightning_strike;
 pub mod test_protector_can_attack_ranger;
@@ -24,6 +25,7 @@ pub mod test_ranger_stops_to_attack;
 pub mod test_reinforced_doors;
 pub mod test_small_tower;
 pub mod test_spy;
+pub mod test_steady_aim;
 pub mod test_watchtower;
 
 pub const TEST_CLIENT_ADDR: &str = "127.0.0.1:12346";
