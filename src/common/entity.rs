@@ -1,8 +1,7 @@
 use crate::buff::ArithmeticBuff;
-use crate::component_buff_aura::BuffAura;
+use crate::component_buff_source::BuffSource;
 use crate::component_health::Health;
 use crate::component_movement::{Movement, MovementSpeed};
-use crate::component_self_buff::SelfBuff;
 use crate::component_spy::Spy;
 use crate::config;
 use crate::entity_blueprint::EntityBlueprint;
@@ -64,8 +63,7 @@ pub struct Entity {
     pub health: Health,
     pub movement: Option<Movement>,
     pub spy: Option<Spy>,
-    pub self_buffs: Vec<SelfBuff>,
-    pub buff_auras: Vec<BuffAura>,
+    pub buff_sources: Vec<BuffSource>,
     pub draw_speed_buff: Option<ArithmeticBuff>,
     pub energy_generation_buff: Option<ArithmeticBuff>,
     pub attacks: Vec<Attack>,

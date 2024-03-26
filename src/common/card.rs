@@ -379,8 +379,8 @@ impl Card {
                                 && entity_instance.owner == owner
                             {
                                 buff_add_to_entity(
-                                    &mut entity_instance.entity,
                                     Buff::ExtraHealth(ExtraHealthBuff::new(200.0, Some(f32::MAX))),
+                                    &mut entity_instance.entity,
                                 );
                             }
                         }

@@ -1,7 +1,7 @@
 use crate::{
-    buff::buff_update_timers, component_attack::Attack, component_buff_aura::BuffAura,
-    component_health::Health, component_movement::Movement, component_self_buff::SelfBuff,
-    config::CLOSE_ENOUGH_TO_TARGET, entity::EntityState, find_target::find_target_for_attack,
+    buff::buff_update_timers, component_attack::Attack, component_buff_source::BuffSource,
+    component_health::Health, component_movement::Movement, config::CLOSE_ENOUGH_TO_TARGET,
+    entity::EntityState, find_target::find_target_for_attack,
     game_state::ServerControlledGameState, ids::EntityId, update_args::UpdateArgs,
     world::world_place_building,
 };
@@ -82,8 +82,7 @@ pub fn update_game_state(server_controlled_game_state: &mut ServerControlledGame
 }
 
 pub fn update_entity(update_args: &mut UpdateArgs) {
-    SelfBuff::update(update_args);
-    BuffAura::update(update_args);
+    BuffSource::update(update_args);
 
     let can_attack = update_args
         .entity_instance

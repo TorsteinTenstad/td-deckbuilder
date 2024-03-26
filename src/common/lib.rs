@@ -1,10 +1,9 @@
 pub mod buff;
 pub mod card;
 pub mod component_attack;
-pub mod component_buff_aura;
+pub mod component_buff_source;
 pub mod component_health;
 pub mod component_movement;
-pub mod component_self_buff;
 pub mod component_spy;
 pub mod config;
 pub mod debug_draw_config;

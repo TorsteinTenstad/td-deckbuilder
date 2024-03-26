@@ -1,6 +1,9 @@
 use serde::{Deserialize, Serialize};
 
-use crate::entity::Entity;
+use crate::{
+    component_attack::Attack, component_health::Health, component_movement::Movement,
+    entity::Entity,
+};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ArithmeticBuff {
@@ -70,30 +73,44 @@ pub enum Buff {
     ExtraHealth(ExtraHealthBuff),
 }
 
-pub fn buff_add_to_entity(entity: &mut Entity, buff: Buff) {
+pub fn buff_add_to_entity(buff: Buff, entity: &mut Entity) {
+    buff_add_to_components(
+        buff,
+        &mut entity.attacks,
+        &mut entity.movement,
+        &mut entity.health,
+    );
+}
+
+pub fn buff_add_to_components(
+    buff: Buff,
+    attacks: &mut [Attack],
+    movement: &mut Option<Movement>,
+    health: &mut Health,
+) {
     match buff {
         Buff::AttackDamage(buff) => {
-            for attack in &mut entity.attacks {
+            for attack in &mut attacks.iter_mut() {
                 attack.damage_buffs.push(buff.clone());
             }
         }
         Buff::AttackSpeed(buff) => {
-            for attack in &mut entity.attacks {
+            for attack in &mut attacks.iter_mut() {
                 attack.attack_speed_buffs.push(buff.clone());
             }
         }
         Buff::AttackRange(buff) => {
-            for attack in &mut entity.attacks {
+            for attack in &mut attacks.iter_mut() {
                 attack.range_buffs.push(buff.clone());
             }
         }
         Buff::MovementSpeed(buff) => {
-            if let Some(ref mut movement) = entity.movement {
+            if let Some(ref mut movement) = movement {
                 movement.movement_towards_target.speed_buffs.push(buff);
             }
         }
         Buff::ExtraHealth(buff) => {
-            entity.health.extra_health_buffs.push(buff);
+            health.extra_health_buffs.push(buff);
         }
     }
 }

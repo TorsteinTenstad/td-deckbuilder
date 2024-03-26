@@ -1,10 +1,9 @@
 use crate::{
     buff::{ArithmeticBuff, Buff},
     component_attack::{Attack, AttackInterval, TargetPool},
-    component_buff_aura::{BuffAura, BuffAuraRange},
+    component_buff_source::{BuffCondition, BuffRange, BuffSource, BuffTargetFilter},
     component_health::Health,
     component_movement::{Movement, MovementSpeed},
-    component_self_buff::{SelfBuff, SelfBuffCondition, SelfBuffRange},
     component_spy::Spy,
     entity::{AbilityFlag, Entity, EntityTag},
     entity_filter::EntityFilter,
@@ -155,13 +154,14 @@ impl EntityBlueprint {
                     damage: 20.0,
                     ..Attack::default()
                 }],
-                self_buffs: vec![SelfBuff {
+                buff_sources: vec![BuffSource {
                     buff: Buff::AttackDamage(ArithmeticBuff::new_additive(5.0)),
-                    condition: SelfBuffCondition::EntityFilter(EntityFilter {
-                        range: SelfBuffRange::Infinite,
-                        target_pool: TargetPool::Allies,
-                        tag_filter: flags![EntityTag::Tower],
+                    condition: BuffCondition::EntityFilter(EntityFilter {
+                        range_filter: None,
+                        pool_filter: Some(TargetPool::Allies),
+                        tag_filter: Some(flags![EntityTag::Tower]),
                     }),
+                    target_filter: BuffTargetFilter::Me,
                 }],
                 ..Entity::default_unit()
             },
@@ -205,13 +205,14 @@ impl EntityBlueprint {
             EntityBlueprint::SmallTower => Entity {
                 health: Health::new(300.0),
                 sprite_id: SpriteId::BuildingTower,
-                self_buffs: vec![SelfBuff {
+                buff_sources: vec![BuffSource {
                     buff: Buff::AttackSpeed(ArithmeticBuff::new_multiplicative(1.2)),
-                    condition: SelfBuffCondition::EntityFilter(EntityFilter {
-                        range: SelfBuffRange::Default,
-                        target_pool: TargetPool::Allies,
-                        tag_filter: flags![EntityTag::Tower],
+                    condition: BuffCondition::EntityFilter(EntityFilter {
+                        range_filter: Some(BuffRange::Default),
+                        pool_filter: Some(TargetPool::Allies),
+                        tag_filter: Some(flags![EntityTag::Tower]),
                     }),
+                    target_filter: BuffTargetFilter::Me,
                 }],
                 attacks: vec![Attack {
                     damage: 10.0,
@@ -226,10 +227,15 @@ impl EntityBlueprint {
                     damage: 10.0,
                     ..Attack::default_ranged_tower()
                 }],
-                buff_auras: vec![BuffAura::new(
-                    Buff::AttackRange(ArithmeticBuff::new_multiplicative(2.0)),
-                    BuffAuraRange::Default,
-                )],
+                buff_sources: vec![BuffSource {
+                    buff: Buff::AttackRange(ArithmeticBuff::new_multiplicative(2.0)),
+                    condition: BuffCondition::AlwaysSingle,
+                    target_filter: BuffTargetFilter::EntityFilter(EntityFilter {
+                        range_filter: Some(BuffRange::Default),
+                        pool_filter: Some(TargetPool::Allies),
+                        tag_filter: None,
+                    }),
+                }],
                 ..Entity::default_tower()
             },
 
