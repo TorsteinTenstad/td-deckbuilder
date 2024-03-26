@@ -1,10 +1,9 @@
+use crate::test_environment::test::TestEnvironment;
 use common::{
     entity::{Entity, EntityInstance, EntityState, EntityTag},
     ids::{EntityId, PlayerId},
 };
 use itertools::Itertools;
-
-use crate::test_environment::test::TestEnvironment;
 
 pub enum Condition {
     NoUnitsAlive,
