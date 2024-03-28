@@ -5,7 +5,9 @@ use crate::{
     entity_blueprint::EntityBlueprint,
     ids::CardInstanceId,
     level_config::get_prototype_level_config,
-    play_target::{EntityTarget, PlayArgs, PlayFn, SpecificPlayFn, TargetIsInvalidArgs},
+    play_target::{
+        EntityTarget, PlayArgs, PlayFn, SpecificPlayFn, TargetIsInvalidArgs, WorldPosTarget,
+    },
     world::{find_entity, find_entity_mut, world_place_builder, world_place_path_entity, Zoning},
 };
 use serde::{Deserialize, Serialize};
@@ -40,6 +42,7 @@ pub enum Card {
     HigherMotivation,
     SteadyAim,
     Meteor,
+    BlackDeath,
 }
 
 impl Card {
@@ -461,6 +464,36 @@ impl Card {
                 ),
                 description: "Destroy a tower",
                 card_art_path: "meteor.jpg",
+                attack: None,
+                health: None,
+            },
+            Card::BlackDeath => CardData {
+                name: "Black Death",
+                energy_cost: 10,
+                play_fn: PlayFn::WorldPos(SpecificPlayFn::new(
+                    |play_args: PlayArgs<WorldPosTarget>| {
+                        for entity_instance in
+                            play_args.dynamic_game_state.entities.iter_mut().filter(
+                                |entity_instance| {
+                                    matches!(
+                                        entity_instance.entity.tag,
+                                        EntityTag::Unit | EntityTag::FlyingUnit
+                                    )
+                                },
+                            )
+                        {
+                            let sec = 60.0;
+                            entity_instance.entity.seconds_left_to_live =
+                                Some(match entity_instance.entity.seconds_left_to_live {
+                                    Some(seconds_left_to_live) => seconds_left_to_live.min(sec),
+                                    None => sec,
+                                });
+                        }
+                        true
+                    },
+                )),
+                description: "Infect all units.\nThey will die in 60 seconds",
+                card_art_path: "black_death.jpg",
                 attack: None,
                 health: None,
             },

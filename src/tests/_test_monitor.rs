@@ -14,6 +14,7 @@ use serde::{Deserialize, Serialize};
 
 pub mod condition;
 pub mod test_basic_movement_and_attack;
+pub mod test_black_death;
 pub mod test_continuous_buff_application;
 pub mod test_environment;
 pub mod test_governor;
