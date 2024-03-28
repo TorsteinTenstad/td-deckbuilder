@@ -1,5 +1,4 @@
 use crate::ClientGameState;
-use common::draw::{to_world_x, to_world_y};
 use macroquad::{
     input::{is_key_down, is_key_pressed, is_mouse_button_released, mouse_position},
     math::Vec2,
@@ -9,17 +8,9 @@ use macroquad::{
 #[derive(Default)]
 pub struct GameInput {}
 
-pub fn mouse_screen_position() -> Vec2 {
+pub fn mouse_position_vec() -> Vec2 {
     let (x, y) = mouse_position();
     Vec2 { x, y }
-}
-
-pub fn mouse_world_position() -> Vec2 {
-    let Vec2 { x, y } = mouse_screen_position();
-    Vec2 {
-        x: to_world_x(x),
-        y: to_world_y(y),
-    }
 }
 
 pub fn main_input(state: &mut ClientGameState) {
@@ -30,7 +21,7 @@ pub fn main_input(state: &mut ClientGameState) {
             .entities
             .iter()
             .find_map(|entity_instance| {
-                ((entity_instance.pos - mouse_world_position()).length()
+                ((entity_instance.pos - mouse_position_vec()).length()
                     < entity_instance.entity.radius)
                     .then_some(entity_instance.id)
             });

@@ -6,12 +6,10 @@ use macroquad::{
     shapes::{draw_rectangle, draw_rectangle_ex, DrawRectangleParams},
     text::{camera_font_scale, draw_text_ex, measure_text, Font, TextDimensions, TextParams},
     texture::{draw_texture_ex, load_texture, DrawTextureParams, Texture2D},
-    window::{screen_height, screen_width},
 };
 use std::collections::HashMap;
 use strum::IntoEnumIterator;
 
-use crate::level_config::get_prototype_level_config;
 
 #[allow(dead_code)]
 pub enum TextOriginX {
@@ -27,50 +25,6 @@ pub enum TextOriginY {
     AbsoluteCenter,
     Base,
     Bottom,
-}
-
-pub fn to_screen_x<T>(x: T) -> f32
-where
-    T: Into<f32>,
-{
-    x.into() * screen_width() / get_prototype_level_config().level_width as f32
-}
-pub fn to_screen_y<T>(y: T) -> f32
-where
-    T: Into<f32>,
-{
-    y.into() * screen_height() / get_prototype_level_config().level_height as f32
-}
-
-pub fn to_world_x<T>(x: T) -> f32
-where
-    T: Into<f32>,
-{
-    x.into() * get_prototype_level_config().level_width as f32 / screen_width()
-}
-pub fn to_world_y<T>(y: T) -> f32
-where
-    T: Into<f32>,
-{
-    y.into() * get_prototype_level_config().level_height as f32 / screen_height()
-}
-
-pub fn to_screen_size<T>(size: T) -> f32
-where
-    T: Into<f32>,
-{
-    size.into() * screen_width() / get_prototype_level_config().level_width as f32
-}
-
-pub fn to_screen_transform(transform: &RectTransform) -> RectTransform {
-    RectTransform {
-        x: to_screen_x(transform.x),
-        y: to_screen_y(transform.y),
-        w: to_screen_size(transform.w),
-        h: to_screen_size(transform.h),
-        rotation: transform.rotation,
-        offset: transform.offset,
-    }
 }
 
 pub fn draw_rect_transform(transform: &RectTransform, color: Color) {

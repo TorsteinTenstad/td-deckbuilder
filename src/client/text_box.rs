@@ -1,4 +1,3 @@
-use crate::input::mouse_screen_position;
 use common::{
     draw::{draw_rect_transform, draw_text_with_origin, TextOriginX, TextOriginY},
     rect_transform::{point_inside, RectTransform},
@@ -9,6 +8,8 @@ use macroquad::{
     miniquad::{date::now, MouseButton},
     text::Font,
 };
+
+use crate::input::mouse_position_vec;
 
 pub struct TextBox {
     pub transform: RectTransform,
@@ -39,7 +40,7 @@ impl TextBox {
                 self.text.push(c);
             }
         } else {
-            self.active = point_inside(mouse_screen_position(), &self.transform)
+            self.active = point_inside(mouse_position_vec(), &self.transform)
                 && is_mouse_button_pressed(MouseButton::Left);
         }
     }

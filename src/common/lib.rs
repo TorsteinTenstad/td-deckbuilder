@@ -1,4 +1,5 @@
 pub mod buff;
+pub mod camera;
 pub mod card;
 pub mod component_attack;
 pub mod component_buff_source;
