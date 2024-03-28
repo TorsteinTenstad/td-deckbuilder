@@ -5,7 +5,7 @@ use crate::{
     entity_blueprint::EntityBlueprint,
     ids::CardInstanceId,
     level_config::get_prototype_level_config,
-    play_target::{EntityTarget, PlayFn, SpecificPlayFn},
+    play_target::{EntityTarget, PlayArgs, PlayFn, SpecificPlayFn, TargetIsInvalidArgs},
     world::{find_entity, find_entity_mut, world_place_builder, world_place_path_entity, Zoning},
 };
 use serde::{Deserialize, Serialize};
@@ -67,33 +67,26 @@ pub struct CardData {
 macro_rules! play_normal_building {
     ($builder_blueprint:ident, $building_blueprint:ident) => {
         PlayFn::BuildingLocation(
-            SpecificPlayFn::new(
-                |target, owner, static_game_state, semi_static_game_state, dynamic_game_state| {
-                    world_place_builder(
-                        static_game_state,
-                        semi_static_game_state,
-                        dynamic_game_state,
-                        target,
-                        EntityBlueprint::$builder_blueprint.create(),
-                        EntityBlueprint::$building_blueprint,
-                        owner,
-                    )
-                },
-            )
-            .with_target_is_invalid(
-                |target,
-                 _owner,
-                 _static_game_state,
-                 semi_static_game_state,
-                 _dynamic_game_state| {
-                    semi_static_game_state
-                        .building_locations()
-                        .get(&target.id)
-                        .unwrap()
-                        .zoning
-                        != Zoning::Normal
-                },
-            ),
+            SpecificPlayFn::new(|play_args| {
+                world_place_builder(
+                    play_args.static_game_state,
+                    play_args.semi_static_game_state,
+                    play_args.dynamic_game_state,
+                    play_args.target,
+                    EntityBlueprint::$builder_blueprint.create(),
+                    EntityBlueprint::$building_blueprint,
+                    play_args.owner,
+                )
+            })
+            .with_target_is_invalid(|play_args| {
+                play_args
+                    .semi_static_game_state
+                    .building_locations()
+                    .get(&play_args.target.id)
+                    .unwrap()
+                    .zoning
+                    != Zoning::Normal
+            }),
         )
     };
 }
@@ -101,51 +94,42 @@ macro_rules! play_normal_building {
 macro_rules! play_commerce_building {
     ($builder_blueprint:ident, $building_blueprint:ident) => {
         PlayFn::BuildingLocation(
-            SpecificPlayFn::new(
-                |target, owner, static_game_state, semi_static_game_state, dynamic_game_state| {
-                    world_place_builder(
-                        static_game_state,
-                        semi_static_game_state,
-                        dynamic_game_state,
-                        target,
-                        EntityBlueprint::$builder_blueprint.create(),
-                        EntityBlueprint::$building_blueprint,
-                        owner,
-                    )
-                },
-            )
-            .with_target_is_invalid(
-                |target,
-                 _owner,
-                 _static_game_state,
-                 semi_static_game_state,
-                 _dynamic_game_state| {
-                    semi_static_game_state
-                        .building_locations()
-                        .get(&target.id)
-                        .unwrap()
-                        .zoning
-                        != Zoning::Commerce
-                },
-            ),
+            SpecificPlayFn::new(|play_args| {
+                world_place_builder(
+                    play_args.static_game_state,
+                    play_args.semi_static_game_state,
+                    play_args.dynamic_game_state,
+                    play_args.target,
+                    EntityBlueprint::$builder_blueprint.create(),
+                    EntityBlueprint::$building_blueprint,
+                    play_args.owner,
+                )
+            })
+            .with_target_is_invalid(|play_args| {
+                play_args
+                    .semi_static_game_state
+                    .building_locations()
+                    .get(&play_args.target.id)
+                    .unwrap()
+                    .zoning
+                    != Zoning::Commerce
+            }),
         )
     };
 }
 
 macro_rules! play_unit {
     ($unit_blueprint:ident) => {
-        PlayFn::UnitSpawnPoint(SpecificPlayFn::new(
-            |target, owner, static_game_state, _semi_static_game_state, dynamic_game_state| {
-                world_place_path_entity(
-                    static_game_state,
-                    dynamic_game_state,
-                    target,
-                    EntityBlueprint::$unit_blueprint.create(),
-                    owner,
-                )
-                .is_some()
-            },
-        ))
+        PlayFn::UnitSpawnPoint(SpecificPlayFn::new(|play_args| {
+            world_place_path_entity(
+                play_args.static_game_state,
+                play_args.dynamic_game_state,
+                play_args.target.clone(),
+                EntityBlueprint::$unit_blueprint.create(),
+                play_args.owner,
+            )
+            .is_some()
+        }))
     };
 }
 
@@ -335,21 +319,16 @@ impl Card {
             Card::DirectDamage => CardData {
                 name: "Direct Damage",
                 energy_cost: 1,
-                play_fn: PlayFn::Entity(SpecificPlayFn::new(
-                    |target,
-                     _owner,
-                     _static_game_state,
-                     _semi_static_game_state,
-                     dynamic_game_state| {
-                        let Some(target_entity_instance) =
-                            find_entity_mut(&mut dynamic_game_state.entities, Some(target.id))
-                        else {
-                            return false;
-                        };
-                        target_entity_instance.entity.health.deal_damage(150.0);
-                        true
-                    },
-                )),
+                play_fn: PlayFn::Entity(SpecificPlayFn::new(|play_args| {
+                    let Some(target_entity_instance) = find_entity_mut(
+                        &mut play_args.dynamic_game_state.entities,
+                        Some(play_args.target.id),
+                    ) else {
+                        return false;
+                    };
+                    target_entity_instance.entity.health.deal_damage(150.0);
+                    true
+                })),
                 card_art_path: "direct_damage.jpg",
                 attack: None,
                 health: None,
@@ -358,22 +337,16 @@ impl Card {
             Card::LightningStrike => CardData {
                 name: "Lightning Strike",
                 energy_cost: 3,
-                play_fn: PlayFn::WorldPos(SpecificPlayFn::new(
-                    |target,
-                     _owner,
-                     _static_game_state,
-                     _semi_static_game_state,
-                     dynamic_game_state| {
-                        for entity_instance in dynamic_game_state.entities.iter_mut() {
-                            if entity_instance.pos.distance(target.to_vec2())
-                                < get_prototype_level_config().nearby_radius
-                            {
-                                entity_instance.entity.health.deal_damage(150.0);
-                            }
+                play_fn: PlayFn::WorldPos(SpecificPlayFn::new(|play_args| {
+                    for entity_instance in play_args.dynamic_game_state.entities.iter_mut() {
+                        if entity_instance.pos.distance(play_args.target.to_vec2())
+                            < get_prototype_level_config().nearby_radius
+                        {
+                            entity_instance.entity.health.deal_damage(150.0);
                         }
-                        true
-                    },
-                )),
+                    }
+                    true
+                })),
                 card_art_path: "lightning_strike.jpg",
                 attack: None,
                 health: None,
@@ -382,25 +355,19 @@ impl Card {
             Card::ReinforcedDoors => CardData {
                 name: "Reinforced Doors",
                 energy_cost: 2,
-                play_fn: PlayFn::WorldPos(SpecificPlayFn::new(
-                    |_target,
-                     owner,
-                     _static_game_state,
-                     _semi_static_game_state,
-                     dynamic_game_state| {
-                        for entity_instance in dynamic_game_state.entities.iter_mut() {
-                            if entity_instance.entity.tag == EntityTag::Tower
-                                && entity_instance.owner == owner
-                            {
-                                buff_add_to_entity(
-                                    Buff::ExtraHealth(ExtraHealthBuff::new(200.0, Some(f32::MAX))),
-                                    &mut entity_instance.entity,
-                                );
-                            }
+                play_fn: PlayFn::WorldPos(SpecificPlayFn::new(|play_args| {
+                    for entity_instance in play_args.dynamic_game_state.entities.iter_mut() {
+                        if entity_instance.entity.tag == EntityTag::Tower
+                            && entity_instance.owner == play_args.owner
+                        {
+                            buff_add_to_entity(
+                                Buff::ExtraHealth(ExtraHealthBuff::new(200.0, Some(f32::MAX))),
+                                &mut entity_instance.entity,
+                            );
                         }
-                        true
-                    },
-                )),
+                    }
+                    true
+                })),
                 description: "All your towers\nget +200 health",
                 card_art_path: "reinforced_doors.jpg",
                 attack: None,
@@ -409,27 +376,21 @@ impl Card {
             Card::HigherMotivation => CardData {
                 name: "Higher Motivation",
                 energy_cost: 3,
-                play_fn: PlayFn::WorldPos(SpecificPlayFn::new(
-                    |_target,
-                     owner,
-                     _static_game_state,
-                     _semi_static_game_state,
-                     dynamic_game_state| {
-                        for entity_instance in dynamic_game_state.entities.iter_mut() {
-                            if entity_instance.entity.tag == EntityTag::Unit
-                                && entity_instance.owner == owner
-                            {
-                                buff_add_to_entity(
-                                    Buff::AttackSpeed(
-                                        ArithmeticBuff::new_multiplicative(1.5).with_timeout(10.0),
-                                    ),
-                                    &mut entity_instance.entity,
-                                );
-                            }
+                play_fn: PlayFn::WorldPos(SpecificPlayFn::new(|play_args| {
+                    for entity_instance in play_args.dynamic_game_state.entities.iter_mut() {
+                        if entity_instance.entity.tag == EntityTag::Unit
+                            && entity_instance.owner == play_args.owner
+                        {
+                            buff_add_to_entity(
+                                Buff::AttackSpeed(
+                                    ArithmeticBuff::new_multiplicative(1.5).with_timeout(10.0),
+                                ),
+                                &mut entity_instance.entity,
+                            );
                         }
-                        true
-                    },
-                )),
+                    }
+                    true
+                })),
                 description: "All your units\nget +50% attack speed for 10 seconds",
                 card_art_path: "higher_motivation.jpg",
                 attack: None,
@@ -439,40 +400,33 @@ impl Card {
                 name: "Steady Aim",
                 energy_cost: 2,
                 play_fn: PlayFn::Entity(
-                    SpecificPlayFn::new(
-                        |target: EntityTarget,
-                         _owner,
-                         _static_game_state,
-                         _semi_static_game_state,
-                         dynamic_game_state| {
-                            let Some(entity) =
-                                find_entity_mut(&mut dynamic_game_state.entities, Some(target.id))
-                            else {
-                                return false;
-                            };
-                            buff_add_to_entity(
-                                Buff::AttackDamage(
-                                    ArithmeticBuff::new_multiplicative(1.4).with_timeout(f32::MAX),
-                                ),
-                                &mut entity.entity,
-                            );
-                            true
-                        },
-                    )
+                    SpecificPlayFn::new(|play_args: PlayArgs<EntityTarget>| {
+                        let Some(entity) = find_entity_mut(
+                            &mut play_args.dynamic_game_state.entities,
+                            Some(play_args.target.id),
+                        ) else {
+                            return false;
+                        };
+                        buff_add_to_entity(
+                            Buff::AttackDamage(
+                                ArithmeticBuff::new_multiplicative(1.4).with_timeout(f32::MAX),
+                            ),
+                            &mut entity.entity,
+                        );
+                        true
+                    })
                     .with_target_is_invalid(
-                        |target,
-                         _owner,
-                         _static_game_state,
-                         _semi_static_game_state,
-                         dynamic_game_state| {
-                            !find_entity(&dynamic_game_state.entities, Some(target.id)).is_some_and(
-                                |e| {
-                                    e.entity
-                                        .attacks
-                                        .iter()
-                                        .any(|a| a.variant == AttackVariant::RangedAttack)
-                                },
+                        |play_args: TargetIsInvalidArgs<EntityTarget>| {
+                            !find_entity(
+                                &play_args.dynamic_game_state.entities,
+                                Some(play_args.target.id),
                             )
+                            .is_some_and(|e| {
+                                e.entity
+                                    .attacks
+                                    .iter()
+                                    .any(|a| a.variant == AttackVariant::RangedAttack)
+                            })
                         },
                     ),
                 ),
@@ -485,29 +439,23 @@ impl Card {
                 name: "Meteor",
                 energy_cost: 8,
                 play_fn: PlayFn::Entity(
-                    SpecificPlayFn::new(
-                        |target: EntityTarget,
-                         _owner,
-                         _static_game_state,
-                         _semi_static_game_state,
-                         dynamic_game_state| {
-                            let Some(entity) =
-                                find_entity_mut(&mut dynamic_game_state.entities, Some(target.id))
-                            else {
-                                return false;
-                            };
-                            entity.state = EntityState::Dead;
-                            true
-                        },
-                    )
+                    SpecificPlayFn::new(|play_args: PlayArgs<EntityTarget>| {
+                        let Some(entity) = find_entity_mut(
+                            &mut play_args.dynamic_game_state.entities,
+                            Some(play_args.target.id),
+                        ) else {
+                            return false;
+                        };
+                        entity.state = EntityState::Dead;
+                        true
+                    })
                     .with_target_is_invalid(
-                        |target,
-                         _owner,
-                         _static_game_state,
-                         _semi_static_game_state,
-                         dynamic_game_state| {
-                            !find_entity(&dynamic_game_state.entities, Some(target.id))
-                                .is_some_and(|e| e.entity.tag == EntityTag::Tower)
+                        |play_args: TargetIsInvalidArgs<EntityTarget>| {
+                            !find_entity(
+                                &play_args.dynamic_game_state.entities,
+                                Some(play_args.target.id),
+                            )
+                            .is_some_and(|e| e.entity.tag == EntityTag::Tower)
                         },
                     ),
                 ),

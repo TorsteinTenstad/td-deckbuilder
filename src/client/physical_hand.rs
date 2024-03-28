@@ -126,7 +126,7 @@ pub fn hand_step(state: &mut ClientGameState) {
                                 .client_network_state
                                 .push_command(ClientMessage::PlayCard(
                                     card_instance.id,
-                                    PlayTarget::UnitSpawnPoint(target.clone()),
+                                    PlayTarget::UnitSpawnpoint(target.clone()),
                                 ));
                         }
                     }
@@ -149,7 +149,9 @@ pub fn hand_step(state: &mut ClientGameState) {
                                 .client_network_state
                                 .push_command(ClientMessage::PlayCard(
                                     card_instance.id,
-                                    PlayTarget::BuildingSpot(BuildingLocationTarget { id: *id }),
+                                    PlayTarget::BuildingLocation(BuildingLocationTarget {
+                                        id: *id,
+                                    }),
                                 ));
                         }
                     }

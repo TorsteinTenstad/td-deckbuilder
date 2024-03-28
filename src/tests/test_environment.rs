@@ -14,7 +14,7 @@ pub mod test {
             send_dynamic_game_state, send_semi_static_game_state, send_static_game_state,
             ServerMessage,
         },
-        play_target::{BuildingLocationTarget, PlayFn, PlayTarget, WorldPosTarget},
+        play_target::{BuildingLocationTarget, PlayArgs, PlayFn, PlayTarget, WorldPosTarget},
         server_player::ServerPlayer,
         world::{
             find_entity, world_place_building, world_place_path_entity, BuildingLocation,
@@ -267,7 +267,7 @@ pub mod test {
             let target = match target {
                 Some(target) => target,
                 None => match play_fn {
-                    PlayFn::UnitSpawnPoint(_) => PlayTarget::UnitSpawnPoint(
+                    PlayFn::UnitSpawnPoint(_) => PlayTarget::UnitSpawnpoint(
                         get_unit_spawnpoints(
                             player_id,
                             &self.state.static_game_state,
@@ -278,7 +278,7 @@ pub mod test {
                         .clone(),
                     ),
                     PlayFn::BuildingLocation(_) => {
-                        PlayTarget::BuildingSpot(BuildingLocationTarget {
+                        PlayTarget::BuildingLocation(BuildingLocationTarget {
                             id: *self
                                 .state
                                 .semi_static_game_state
@@ -294,13 +294,13 @@ pub mod test {
                     PlayFn::Entity(_) => todo!(),
                 },
             };
-            let play_succeded = play_fn.exec(
-                target,
-                player_id,
-                &self.state.static_game_state,
-                &mut self.state.semi_static_game_state,
-                &mut self.state.dynamic_game_state,
-            );
+            let play_succeded = play_fn.exec(PlayArgs::<PlayTarget> {
+                target: &target,
+                owner: player_id,
+                static_game_state: &self.state.static_game_state,
+                semi_static_game_state: &mut self.state.semi_static_game_state,
+                dynamic_game_state: &mut self.state.dynamic_game_state,
+            });
             assert!(play_succeded);
         }
         pub fn get_entity(&self, entity_id: EntityId) -> &EntityInstance {

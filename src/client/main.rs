@@ -10,7 +10,9 @@ use common::game_state::{DynamicGameState, ServerControlledGameState, StaticGame
 use common::get_unit_spawnpoints::get_unit_spawnpoints;
 use common::ids::{EntityId, PlayerId};
 use common::network::ClientMessage;
-use common::play_target::{unit_spawnpoint_target_transform, BuildingLocationTarget, PlayFn};
+use common::play_target::{
+    unit_spawnpoint_target_transform, BuildingLocationTarget, PlayFn, TargetIsInvalidArgs,
+};
 use common::rect_transform::{point_inside, RectTransform};
 use common::textures::SpriteId;
 use common::world::{find_entity, Zoning};
@@ -152,14 +154,15 @@ fn draw_building_location_play_targets(
                     .get_card_data()
                     .play_fn
                 {
-                    !specific_play_fn.target_is_invalid.is_some_and(|f| {
-                        f(
-                            &BuildingLocationTarget { id: *id },
-                            player_id,
-                            &server_controlled_game_state.static_game_state,
-                            &server_controlled_game_state.semi_static_game_state,
-                            &server_controlled_game_state.dynamic_game_state,
-                        )
+                    !specific_play_fn.target_is_invalid(TargetIsInvalidArgs::<
+                        BuildingLocationTarget,
+                    > {
+                        target: &BuildingLocationTarget { id: *id },
+                        owner: player_id,
+                        static_game_state: &server_controlled_game_state.static_game_state,
+                        semi_static_game_state: &server_controlled_game_state
+                            .semi_static_game_state,
+                        dynamic_game_state: &server_controlled_game_state.dynamic_game_state,
                     })
                 } else {
                     false

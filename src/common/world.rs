@@ -207,7 +207,7 @@ pub fn world_place_builder(
     static_game_state: &StaticGameState,
     semi_static_game_state: &SemiStaticGameState,
     dynamic_game_state: &mut DynamicGameState,
-    target: BuildingLocationTarget,
+    target: &BuildingLocationTarget,
     builder_entity: Entity,
     building_blueprint: EntityBlueprint,
     owner: PlayerId,
@@ -223,7 +223,7 @@ pub fn world_place_builder(
         return false;
     };
 
-    builder_entity.building_to_construct = Some((target, building_blueprint.clone()));
+    builder_entity.building_to_construct = Some((target.clone(), building_blueprint.clone()));
 
     let Some((target_path_idx, mut spawnpoint_target)) =
         get_unit_spawnpoints(owner, static_game_state, dynamic_game_state)
