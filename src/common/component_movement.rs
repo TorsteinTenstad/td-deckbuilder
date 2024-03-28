@@ -217,7 +217,7 @@ impl PathTargetSetter {
             .entity_instance
             .entity
             .ability_flags
-            .contains(&AbilityFlag::Protector)
+            .is_set(&AbilityFlag::Protector)
         {
             if let Some((_, _, building_location_closest_path_idx)) =
                 world_get_furthest_planned_or_existing_building(

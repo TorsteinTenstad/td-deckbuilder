@@ -12,9 +12,8 @@ use common::play_target::{
 };
 use common::rect_transform::{point_inside, RectTransform};
 use common::textures::SpriteId;
-use common::view_state;
 use common::world::{find_entity, BuildingLocation, Zoning};
-use input::{main_input, mouse_screen_pos_vec};
+use input::main_input;
 use itertools::Itertools;
 use macroquad::color::{Color, BLACK, BLUE, RED, WHITE, YELLOW};
 use macroquad::input::is_key_pressed;

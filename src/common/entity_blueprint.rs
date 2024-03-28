@@ -71,7 +71,7 @@ impl EntityBlueprint {
             EntityBlueprint::HomesickWarrior => Entity {
                 health: Health::new(200.0),
                 sprite_id: SpriteId::UnitHomesickWarrior,
-                ability_flags: vec![AbilityFlag::Protector],
+                ability_flags: flags![AbilityFlag::Protector],
                 attacks: vec![Attack {
                     damage: 20.0,
                     ..Attack::default()

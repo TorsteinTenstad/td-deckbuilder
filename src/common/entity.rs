@@ -5,6 +5,7 @@ use crate::component_movement::{Movement, MovementSpeed};
 use crate::component_spy::Spy;
 use crate::config;
 use crate::entity_blueprint::EntityBlueprint;
+use crate::enum_flags::EnumFlags;
 use crate::ids::EntityId;
 use crate::play_target::BuildingLocationTarget;
 use crate::serde_defs::Vec2Def;
@@ -40,9 +41,14 @@ pub enum EntityState {
     Dead,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum AbilityFlag {
     Protector,
+}
+impl From<AbilityFlag> for usize {
+    fn from(val: AbilityFlag) -> Self {
+        val as usize
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -61,7 +67,7 @@ pub struct Entity {
     pub sprite_id: SpriteId,
     pub radius: f32,
     pub hitbox_radius: f32,
-    pub ability_flags: Vec<AbilityFlag>,
+    pub ability_flags: EnumFlags<AbilityFlag>,
     pub health: Health,
     pub movement: Option<Movement>,
     pub spy: Option<Spy>,
