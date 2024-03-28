@@ -9,7 +9,7 @@ use macroquad::{
     text::Font,
 };
 
-use crate::input::mouse_position_vec;
+use crate::input::mouse_screen_pos_vec;
 
 pub struct TextBox {
     pub transform: RectTransform,
@@ -40,7 +40,7 @@ impl TextBox {
                 self.text.push(c);
             }
         } else {
-            self.active = point_inside(mouse_position_vec(), &self.transform)
+            self.active = point_inside(mouse_screen_pos_vec(), &self.transform)
                 && is_mouse_button_pressed(MouseButton::Left);
         }
     }

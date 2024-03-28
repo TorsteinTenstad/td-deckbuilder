@@ -1,5 +1,4 @@
 pub mod buff;
-pub mod camera;
 pub mod card;
 pub mod component_attack;
 pub mod component_buff_source;
@@ -33,4 +32,5 @@ pub mod server_player;
 pub mod textures;
 pub mod update_args;
 pub mod vector;
+pub mod view_state;
 pub mod world;

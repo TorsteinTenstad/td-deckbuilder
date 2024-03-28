@@ -1,5 +1,5 @@
 use crate::{
-    input::mouse_position_vec,
+    input::mouse_screen_pos_vec,
     physical_card::{
         card_transform_hovered, card_transform_in_hand, card_transform_outside_hand,
         PhysicalCardInstance,
@@ -75,7 +75,7 @@ pub fn hand_step(state: &mut ClientGameState) {
     let mut top_hovering_card_idx: Option<usize> = None;
 
     if let Some(card_idx_being_held) = state.physical_hand.card_idx_being_held {
-        let Vec2 { x, y } = mouse_position_vec();
+        let Vec2 { x, y } = mouse_screen_pos_vec();
         state
             .physical_hand
             .cards
@@ -93,10 +93,11 @@ pub fn hand_step(state: &mut ClientGameState) {
             .get_card_data();
 
         if is_mouse_button_released(MouseButton::Left) {
+            let mouse_world_position = state.view_state.get_mouse_world_pos();
             match card_data.play_fn {
                 PlayFn::WorldPos(_) => {
                     if let Some(card_instance) = hand_try_play(state) {
-                        let Vec2 { x, y } = mouse_position_vec();
+                        let Vec2 { x, y } = mouse_world_position;
                         state
                             .client_network_state
                             .push_command(ClientMessage::PlayCard(
@@ -113,7 +114,7 @@ pub fn hand_step(state: &mut ClientGameState) {
                     );
                     if let Some(target) = unit_spawnpoint_targets.iter().find(|target| {
                         point_inside(
-                            mouse_position_vec(),
+                            mouse_world_position,
                             &unit_spawnpoint_target_transform(
                                 target,
                                 &state.server_controlled_game_state.static_game_state,
@@ -138,7 +139,7 @@ pub fn hand_step(state: &mut ClientGameState) {
                         .iter()
                         .find(|(_, loc)| {
                             let r = 20.0;
-                            (mouse_position_vec() - loc.pos).length() < r
+                            (mouse_world_position - loc.pos).length() < r
                         })
                     {
                         if let Some(card_instance) = hand_try_play(state) {
@@ -160,7 +161,7 @@ pub fn hand_step(state: &mut ClientGameState) {
                         .entities
                         .iter()
                         .find(|entity_instance| {
-                            (entity_instance.pos - mouse_position_vec()).length()
+                            (entity_instance.pos - mouse_world_position).length()
                                 < entity_instance.entity.radius
                         })
                     {
@@ -185,7 +186,7 @@ pub fn hand_step(state: &mut ClientGameState) {
                 state.relative_splay_radius,
                 state.card_delta_angle,
             );
-            if point_inside(mouse_position_vec(), &in_hand_transform) {
+            if point_inside(mouse_screen_pos_vec(), &in_hand_transform) {
                 top_hovering_card_idx = Some(i);
                 if is_mouse_button_pressed(MouseButton::Left) {
                     state.physical_hand.card_idx_being_held = Some(i);

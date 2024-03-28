@@ -1,6 +1,7 @@
 use crate::ClientGameState;
+use common::config::SCROLL_SENSITIVITY;
 use macroquad::{
-    input::{is_key_down, is_key_pressed, is_mouse_button_released, mouse_position},
+    input::{is_key_down, is_key_pressed, is_mouse_button_released, mouse_position, mouse_wheel},
     math::Vec2,
     miniquad::MouseButton,
 };
@@ -8,12 +9,15 @@ use macroquad::{
 #[derive(Default)]
 pub struct GameInput {}
 
-pub fn mouse_position_vec() -> Vec2 {
+pub fn mouse_screen_pos_vec() -> Vec2 {
     let (x, y) = mouse_position();
     Vec2 { x, y }
 }
 
 pub fn main_input(state: &mut ClientGameState) {
+    let (_, wheel_y) = mouse_wheel();
+    state.view_state.normalized_scroll_y += wheel_y * SCROLL_SENSITIVITY;
+    state.view_state.normalized_scroll_y = state.view_state.normalized_scroll_y.clamp(0.0, 1.0);
     if is_mouse_button_released(MouseButton::Left) {
         state.selected_entity_id = state
             .server_controlled_game_state
@@ -21,7 +25,7 @@ pub fn main_input(state: &mut ClientGameState) {
             .entities
             .iter()
             .find_map(|entity_instance| {
-                ((entity_instance.pos - mouse_position_vec()).length()
+                ((entity_instance.pos - mouse_screen_pos_vec()).length()
                     < entity_instance.entity.radius)
                     .then_some(entity_instance.id)
             });

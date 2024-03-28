@@ -1,5 +1,4 @@
 use client_game_state::ClientGameState;
-use common::camera::{set_gameplay_camera, set_ui_overlay_camera};
 use common::component_attack::{Attack, AttackVariant};
 use common::component_movement::get_detection_range;
 use common::draw::{draw_card, draw_progress_bar, draw_rect_transform, Sprites};
@@ -13,11 +12,13 @@ use common::play_target::{
 };
 use common::rect_transform::{point_inside, RectTransform};
 use common::textures::SpriteId;
+use common::view_state;
 use common::world::{find_entity, BuildingLocation, Zoning};
-use input::{main_input, mouse_position_vec};
+use input::{main_input, mouse_screen_pos_vec};
 use itertools::Itertools;
 use macroquad::color::{Color, BLACK, BLUE, RED, WHITE, YELLOW};
 use macroquad::input::is_key_pressed;
+use macroquad::math::Vec2;
 use macroquad::miniquad::KeyCode;
 use macroquad::shapes::{draw_circle, draw_circle_lines, draw_poly_lines};
 use macroquad::texture::draw_texture;
@@ -87,7 +88,7 @@ async fn main() {
             }
             main_step(&mut state);
             state.client_network_state.send_queued();
-            draw_client_game_state(&state);
+            draw_client_game_state(&mut state);
 
             next_frame().await;
 
@@ -131,6 +132,7 @@ fn draw_physical_hand(physical_hand: &PhysicalHand, sprites: &Sprites) {
 }
 
 fn draw_building_location_play_targets(
+    mouse_world_pos: Vec2,
     server_controlled_game_state: &ServerControlledGameState,
     physical_hand: &PhysicalHand,
     player_id: PlayerId,
@@ -172,7 +174,7 @@ fn draw_building_location_play_targets(
                 Zoning::Normal => (20, 15.0),
                 Zoning::Commerce => (6, 20.0),
             };
-            let hovering = (mouse_position_vec() - *pos).length() < radius;
+            let hovering = (mouse_world_pos - *pos).length() < radius;
             let thickness = 3.0;
             let color = Color {
                 a: if hovering { 0.8 } else { 0.5 },
@@ -275,6 +277,7 @@ fn draw_progress_bars(state: &ClientGameState) {
 }
 
 fn draw_spawnpoint_play_targets(
+    mouse_world_pos: Vec2,
     player_id: PlayerId,
     static_game_state: &StaticGameState,
     dynamic_game_state: &DynamicGameState,
@@ -283,7 +286,7 @@ fn draw_spawnpoint_play_targets(
         get_unit_spawnpoints(player_id, static_game_state, dynamic_game_state);
     for target in unit_spawnpoint_targets.iter() {
         let transform = &unit_spawnpoint_target_transform(target, static_game_state);
-        let hovering = point_inside(mouse_position_vec(), transform);
+        let hovering = point_inside(mouse_world_pos, transform);
         draw_rect_transform(
             transform,
             Color {
@@ -294,15 +297,15 @@ fn draw_spawnpoint_play_targets(
     }
 }
 
-fn draw_client_game_state(state: &ClientGameState) {
+fn draw_client_game_state(state: &mut ClientGameState) {
     clear_background(BLACK);
     let map_texture = state.sprites.get_texture(&SpriteId::Map);
     draw_texture(map_texture, 0.0, 0.0, WHITE);
 
-    set_ui_overlay_camera();
+    state.view_state.set_ui_overlay_camera();
     draw_physical_hand(&state.physical_hand, &state.sprites);
     draw_progress_bars(state);
-    set_gameplay_camera(0.0);
+    state.view_state.set_gameplay_camera();
     draw_server_controlled_game_state(
         &state.server_controlled_game_state,
         &state.sprites,
@@ -313,11 +316,13 @@ fn draw_client_game_state(state: &ClientGameState) {
         state.selected_entity_id,
     );
     draw_building_location_play_targets(
+        state.view_state.get_mouse_world_pos(),
         &state.server_controlled_game_state,
         &state.physical_hand,
         state.player_id,
     );
     draw_spawnpoint_play_targets(
+        state.view_state.get_mouse_world_pos(),
         state.player_id,
         &state.server_controlled_game_state.static_game_state,
         &state.server_controlled_game_state.dynamic_game_state,
