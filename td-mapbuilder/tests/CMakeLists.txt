@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.14)
 
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
+set(CMAKE_CXX_STANDARD 17)
 
 Include(FetchContent)
 
@@ -13,11 +14,11 @@ FetchContent_Declare(
 
 FetchContent_MakeAvailable(Catch2)
 
-add_executable(tests
-  example.cpp
-)
 
-target_link_libraries(tests PRIVATE Catch2::Catch2WithMain)
+add_executable(tests action_tests.cpp ../src/game_entity.cpp ../src/vector.cpp)
+
+target_link_libraries(tests PRIVATE Catch2::Catch2WithMain sfml-main sfml-graphics)
+
 
 list(APPEND CMAKE_MODULE_PATH ${catch2_SOURCE_DIR}/extras)
 include(CTest)

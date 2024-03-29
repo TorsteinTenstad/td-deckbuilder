@@ -1,8 +1,10 @@
-cmake_minimum_required(VERSION 3.11)
+cmake_minimum_required(VERSION 3.14)
 
 project(MapBuilder)
 
 # Set the C++ standard to C++17
+
+include_directories(include)
 
 include(FetchContent)
 
@@ -20,6 +22,7 @@ FetchContent_Populate(SFML)
 add_subdirectory(${sfml_SOURCE_DIR} ${sfml_BINARY_DIR})
 endif()
 
+option(BUILD_CLAR "Build libgit2's Clar tests." OFF)
 # Fetch Libgit2 from GitHub
 FetchContent_Declare(
     Libgit2
@@ -35,10 +38,10 @@ FetchContent_Declare(json URL https://github.com/nlohmann/json/releases/download
 FetchContent_MakeAvailable(json)
 
 # Add your executable and link libraries
-add_executable(mapbuilder src/main.cpp src/file_sys.cpp src/game_entity.cpp src/git.cpp src/vector.cpp)
-target_link_libraries(mapbuilder sfml-graphics)
-target_link_libraries(mapbuilder git2)
-target_link_libraries(mapbuilder nlohmann_json::nlohmann_json)
+aux_source_directory(src/ SRC_DIR)
+add_executable(mapbuilder ${SRC_DIR})
+target_link_libraries(mapbuilder PRIVATE sfml-graphics sfml-main git2)
+target_link_libraries(mapbuilder PRIVATE nlohmann_json::nlohmann_json)
 
 target_compile_features(mapbuilder PRIVATE cxx_std_17)
 

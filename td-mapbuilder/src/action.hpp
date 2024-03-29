@@ -1,5 +1,4 @@
 #pragma once
-#include "SFML/Graphics/RectangleShape.hpp"
 #include "SFML/System/Vector2.hpp"
 #include "game_entity.hpp"
 #include "cursor_and_keys.hpp"

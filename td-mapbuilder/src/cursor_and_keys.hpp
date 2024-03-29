@@ -12,7 +12,7 @@ class MouseEvent
     sf::Mouse mouse;
     bool pressed = false;
     bool released_this_frame = false;
-    bool pressed_this_frame = true;
+    bool pressed_this_frame = false;
     bool moved_while_pressed = false;
     sf::Vector2f position = {0,0};
     sf::Vector2f click_pos = {0,0};
