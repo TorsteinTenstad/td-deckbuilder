@@ -13,7 +13,7 @@ use macroquad::{
     window::screen_width,
 };
 
-use crate::{input::mouse_screen_position, physical_card::PhysicalCard};
+use crate::{input::mouse_screen_pos_vec, physical_card::PhysicalCard};
 
 pub struct DeckBuilder {
     pub card_pool: Vec<PhysicalCard>,
@@ -89,27 +89,27 @@ impl DeckBuilder {
         }
 
         if is_mouse_button_pressed(MouseButton::Left) {
-            assert!(self.holding.is_none());
+            debug_assert!(self.holding.is_none());
             self.holding = pop_where(&mut self.deck, |physical_card| {
-                point_inside(mouse_screen_position(), &physical_card.transform)
+                point_inside(mouse_screen_pos_vec(), &physical_card.transform)
             })
             .or(self
                 .card_pool
                 .iter()
                 .find(|physical_card| {
-                    point_inside(mouse_screen_position(), &physical_card.transform)
+                    point_inside(mouse_screen_pos_vec(), &physical_card.transform)
                 })
                 .cloned());
         }
 
         if let Some(holding) = &mut self.holding {
-            let mouse_pos = mouse_screen_position();
+            let mouse_pos = mouse_screen_pos_vec();
             holding.target_transform.x = mouse_pos.x;
             holding.target_transform.y = mouse_pos.y;
         }
 
         for physical_card in self.deck.iter_mut().chain(self.card_pool.iter_mut()) {
-            let scale = if point_inside(mouse_screen_position(), &physical_card.transform) {
+            let scale = if point_inside(mouse_screen_pos_vec(), &physical_card.transform) {
                 1.2
             } else {
                 1.0
@@ -129,7 +129,7 @@ impl DeckBuilder {
 
         if is_mouse_button_released(MouseButton::Left) {
             if let Some(holding) = &self.holding {
-                if mouse_screen_position().x > screen_width() / 2.0 {
+                if mouse_screen_pos_vec().x > screen_width() / 2.0 {
                     self.deck.push(holding.clone());
                 }
             }

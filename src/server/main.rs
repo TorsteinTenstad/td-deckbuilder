@@ -6,6 +6,7 @@ use common::ids::PlayerId;
 use common::level_config::get_prototype_level_config;
 use common::message_acknowledgement::AckUdpSocket;
 use common::network::{hash_client_addr, ClientMessage, ServerMessage, ServerMessageData};
+use common::play_target::{PlayArgs, PlayTarget};
 use common::server_player::ServerPlayer;
 use common::*;
 use itertools::Itertools;
@@ -49,13 +50,15 @@ fn main() -> std::io::Result<()> {
                         .hand
                         .try_get(card_id)
                     {
-                        let played = card_from_idx.get_card_data().play_fn.exec(
-                            target,
-                            client_id,
-                            &game_state.static_game_state,
-                            &mut game_state.semi_static_game_state,
-                            &mut game_state.dynamic_game_state,
-                        );
+                        let played = card_from_idx.get_card_data().play_fn.exec(PlayArgs::<
+                            PlayTarget,
+                        > {
+                            target: &target,
+                            owner: client_id,
+                            static_game_state: &game_state.static_game_state,
+                            semi_static_game_state: &mut game_state.semi_static_game_state,
+                            dynamic_game_state: &mut game_state.dynamic_game_state,
+                        });
 
                         if played {
                             game_state
@@ -97,7 +100,7 @@ fn main() -> std::io::Result<()> {
                             let base_entity = EntityBlueprint::Base
                                 .create()
                                 .instantiate(client_id, *base_pos);
-                            game_state.dynamic_game_state.entities.push(base_entity);
+                            game_state.dynamic_game_state.entities.spawn(base_entity);
                         }
                     }
                     ack_udp_socket.send_to(

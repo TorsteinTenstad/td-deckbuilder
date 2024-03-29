@@ -2,21 +2,24 @@ pub mod test {
     use crate::{condition::Condition, TestMonitorPing, TEST_CLIENT_ADDR};
     use common::{
         card::Card,
-        entity::Entity,
+        entity::{Entity, EntityInstance},
         entity_blueprint::EntityBlueprint,
         game_loop,
         game_state::ServerControlledGameState,
         get_unit_spawnpoints::get_unit_spawnpoints,
-        ids::{EntityId, PlayerId},
+        ids::{BuildingLocationId, EntityId, PlayerId},
         level_config::LevelConfig,
         message_acknowledgement::AckUdpSocket,
         network::{
             send_dynamic_game_state, send_semi_static_game_state, send_static_game_state,
             ServerMessage,
         },
-        play_target::PlayFn,
+        play_target::{BuildingLocationTarget, PlayArgs, PlayFn, PlayTarget, WorldPosTarget},
         server_player::ServerPlayer,
-        world::{world_place_path_entity, Direction, Zoning},
+        world::{
+            find_entity, world_place_building, world_place_path_entity, BuildingLocation,
+            Direction, Zoning,
+        },
     };
     use macroquad::{
         color::{BLUE, RED},
@@ -75,6 +78,7 @@ pub mod test {
         pub speed: f32,
         pub sim_time_s: f32,
         pub timeout_s: f32,
+        pub percistent_condtions: Vec<(Condition, bool)>,
     }
 
     impl Default for TestEnvironment {
@@ -89,11 +93,12 @@ pub mod test {
                 level_width: 1200,
                 level_height: 400,
                 spawn_point_radius: 256.0,
+                nearby_radius: 256.0,
                 player_configs: vec![
                     (Vec2::new(50.0, 200.0), Direction::Positive, RED),
                     (Vec2::new(1150.0, 200.0), Direction::Negative, BLUE),
                 ],
-                building_locations: vec![(Zoning::Normal, (100.0, 600.0))],
+                building_locations: vec![(Zoning::Normal, (600.0, 100.0))],
                 paths: vec![vec![(100.0, 200.0), (1100.0, 200.0)]],
             }
         }
@@ -105,7 +110,8 @@ pub mod test {
                 player_b: PlayerId::new(),
                 speed: 1.0,
                 sim_time_s: 0.0,
-                timeout_s: 1000.0,
+                timeout_s: 120.0,
+                percistent_condtions: Vec::new(),
             };
 
             for (player_id, (base_pos, direction, color)) in zip(
@@ -116,40 +122,74 @@ pub mod test {
                     player_id,
                     ServerPlayer::new(direction.clone(), *color, Vec::new()),
                 );
-                let base_entity = EntityBlueprint::Base
+                let mut base_entity = EntityBlueprint::Base
                     .create()
                     .instantiate(player_id, *base_pos);
+                base_entity.entity.health.health = 1.0;
                 test_environment
                     .state
                     .dynamic_game_state
                     .entities
-                    .push(base_entity);
+                    .spawn(base_entity);
             }
             test_environment.state.load_level_config(level_config);
+            test_environment
+                .network_state
+                .send_init(&test_environment.state);
             test_environment
         }
     }
 
-    pub struct Timeout {}
+    pub enum SimulationBreak {
+        Timeout,
+        PercistentConditionFail,
+    }
 
     impl TestEnvironment {
-        pub fn simulate_until(&mut self, condition: Condition) -> Result<(), Timeout> {
-            self.network_state.send_init(&self.state);
-            while !condition.is_met(self) {
-                let dt = SIMULATION_DT;
-                self.sim_time_s += dt;
-                game_loop::update_game_state(&mut self.state, dt);
-                self.network_state.send_update(&self.state);
-                if self.network_state.has_received_ping {
-                    sleep(Duration::from_secs_f32(dt / self.speed));
-                }
-                if self.sim_time_s > self.timeout_s {
-                    return Err(Timeout {});
-                }
+        pub fn simulate_for(&mut self, simulated_s: f32) -> Result<(), SimulationBreak> {
+            let break_sim_time_s = self.sim_time_s + simulated_s;
+            self.simulate(|env| env.sim_time_s >= break_sim_time_s)
+        }
+        pub fn simulate_until(&mut self, condition: Condition) -> Result<(), SimulationBreak> {
+            self.simulate(|env| condition.is_met(env))
+        }
+        pub fn simulate_frame(&mut self) -> Result<(), SimulationBreak> {
+            self.simulate(|_| true)
+        }
+        pub fn simulate_frames(&mut self, frames: usize) -> Result<(), SimulationBreak> {
+            for _ in 0..frames {
+                self.simulate_frame()?;
             }
             Ok(())
         }
-        pub fn play_entity(&mut self, player_id: PlayerId, entity: Entity) -> Option<EntityId> {
+        pub fn simulate<P>(&mut self, break_condition: P) -> Result<(), SimulationBreak>
+        where
+            P: Fn(&Self) -> bool,
+        {
+            loop {
+                game_loop::update_game_state(&mut self.state, SIMULATION_DT);
+                self.sim_time_s += SIMULATION_DT;
+                self.network_state.send_update(&self.state);
+                if self.network_state.has_received_ping {
+                    sleep(Duration::from_secs_f32(SIMULATION_DT / self.speed));
+                }
+                for (condidition, is_met) in &self.percistent_condtions {
+                    if condidition.is_met(self) != *is_met {
+                        return Err(SimulationBreak::PercistentConditionFail);
+                    }
+                }
+                if break_condition(self) {
+                    return Ok(());
+                }
+                if self.sim_time_s > self.timeout_s {
+                    return Err(SimulationBreak::Timeout);
+                }
+            }
+        }
+        pub fn add_percistent(&mut self, condition: Condition, is_met: bool) {
+            self.percistent_condtions.push((condition, is_met))
+        }
+        pub fn play_entity(&mut self, player_id: PlayerId, entity: Entity) -> EntityId {
             let spawnpoint = get_unit_spawnpoints(
                 player_id,
                 &self.state.static_game_state,
@@ -165,44 +205,109 @@ pub mod test {
                 entity,
                 player_id,
             )
+            .unwrap()
+        }
+        pub fn place_building(&mut self, player_id: PlayerId, entity: Entity) -> EntityId {
+            let building_location_id = self
+                .state
+                .semi_static_game_state
+                .building_locations()
+                .iter()
+                .find_map(|(id, building_location)| {
+                    building_location.entity_id.is_none().then_some(*id)
+                })
+                .unwrap();
+            world_place_building(
+                &mut self.state.semi_static_game_state,
+                &mut self.state.dynamic_game_state,
+                entity,
+                &building_location_id,
+                player_id,
+            )
+            .unwrap()
+        }
+        pub fn place_building_at(
+            &mut self,
+            player_id: PlayerId,
+            entity: Entity,
+            pos: (f32, f32),
+        ) -> EntityId {
+            let building_location_id = BuildingLocationId::new();
+            self.state
+                .semi_static_game_state
+                .building_locations_mut()
+                .insert(
+                    building_location_id,
+                    BuildingLocation {
+                        entity_id: None,
+                        pos: Vec2::new(pos.0, pos.1),
+                        zoning: Zoning::Normal,
+                    },
+                );
+            world_place_building(
+                &mut self.state.semi_static_game_state,
+                &mut self.state.dynamic_game_state,
+                entity,
+                &building_location_id,
+                player_id,
+            )
+            .unwrap()
         }
         pub fn play_card(&mut self, player_id: PlayerId, card: Card) {
-            match &card.get_card_data().play_fn {
-                PlayFn::UnitSpawnPoint(specific_play_fn) => {
-                    let spawnpoints = get_unit_spawnpoints(
-                        player_id,
-                        &self.state.static_game_state,
-                        &self.state.dynamic_game_state,
-                    );
-                    let target = spawnpoints.first().unwrap();
-                    let invalid = specific_play_fn.target_is_invalid.is_some_and(|f| {
-                        f(
-                            target,
+            self.play_card_at(player_id, card, None)
+        }
+
+        pub fn play_card_at(
+            &mut self,
+            player_id: PlayerId,
+            card: Card,
+            target: Option<PlayTarget>,
+        ) {
+            let play_fn = card.get_card_data().play_fn;
+            let target = match target {
+                Some(target) => target,
+                None => match play_fn {
+                    PlayFn::UnitSpawnPoint(_) => PlayTarget::UnitSpawnpoint(
+                        get_unit_spawnpoints(
                             player_id,
                             &self.state.static_game_state,
-                            &self.state.semi_static_game_state,
                             &self.state.dynamic_game_state,
                         )
-                    });
-                    assert!(!invalid);
-                    (specific_play_fn.play)(
-                        target.clone(),
-                        player_id,
-                        &self.state.static_game_state,
-                        &mut self.state.semi_static_game_state,
-                        &mut self.state.dynamic_game_state,
-                    );
-                }
-                PlayFn::BuildingSpot(_) => {
-                    todo!()
-                }
-                PlayFn::WorldPos(_) => {
-                    todo!()
-                }
-                PlayFn::Entity(_) => {
-                    todo!()
-                }
-            }
+                        .first()
+                        .unwrap()
+                        .clone(),
+                    ),
+                    PlayFn::BuildingLocation(_) => {
+                        PlayTarget::BuildingLocation(BuildingLocationTarget {
+                            id: *self
+                                .state
+                                .semi_static_game_state
+                                .building_locations()
+                                .iter()
+                                .find_map(|(id, building_location)| {
+                                    building_location.entity_id.is_none().then_some(id)
+                                })
+                                .unwrap(),
+                        })
+                    }
+                    PlayFn::WorldPos(_) => PlayTarget::WorldPos(WorldPosTarget { x: 0.0, y: 0.0 }),
+                    PlayFn::Entity(_) => todo!(),
+                },
+            };
+            let play_succeded = play_fn.exec(PlayArgs::<PlayTarget> {
+                target: &target,
+                owner: player_id,
+                static_game_state: &self.state.static_game_state,
+                semi_static_game_state: &mut self.state.semi_static_game_state,
+                dynamic_game_state: &mut self.state.dynamic_game_state,
+            });
+            assert!(play_succeded);
+        }
+        pub fn get_entity(&self, entity_id: EntityId) -> &EntityInstance {
+            find_entity(&self.state.dynamic_game_state.entities, Some(entity_id)).unwrap()
+        }
+        pub fn get_entity_position(&self, entity_id: EntityId) -> Vec2 {
+            self.get_entity(entity_id).pos
         }
     }
 }

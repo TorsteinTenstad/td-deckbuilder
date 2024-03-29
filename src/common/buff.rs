@@ -1,12 +1,34 @@
 use serde::{Deserialize, Serialize};
 
-use crate::entity::Entity;
+use crate::{
+    component_attack::Attack, component_health::Health, component_movement::Movement,
+    entity::Entity,
+};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ArithmeticBuff {
     pub additive_value: f32,
     pub multiplier: f32,
     pub seconds_left: Option<f32>,
+}
+
+impl ArithmeticBuff {
+    pub fn new_additive(additive_value: f32) -> Self {
+        Self {
+            additive_value,
+            ..Default::default()
+        }
+    }
+    pub fn new_multiplicative(multiplier: f32) -> Self {
+        Self {
+            multiplier,
+            ..Default::default()
+        }
+    }
+    pub fn with_timeout(mut self, seconds_left: f32) -> Self {
+        self.seconds_left = Some(seconds_left);
+        self
+    }
 }
 
 impl Default for ArithmeticBuff {
@@ -32,7 +54,18 @@ pub fn apply_arithmetic_buffs(base_value: f32, buffs: &[ArithmeticBuff]) -> f32 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ExtraHealthBuff {
     pub health: f32,
+    pub max_health: f32,
     pub seconds_left: Option<f32>,
+}
+
+impl ExtraHealthBuff {
+    pub fn new(max_health: f32, seconds_left: Option<f32>) -> Self {
+        Self {
+            health: max_health,
+            max_health,
+            seconds_left,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -44,30 +77,44 @@ pub enum Buff {
     ExtraHealth(ExtraHealthBuff),
 }
 
-pub fn buff_add_to_entity(entity: &mut Entity, buff: Buff) {
+pub fn buff_add_to_entity(buff: Buff, entity: &mut Entity) {
+    buff_add_to_components(
+        buff,
+        &mut entity.attacks,
+        &mut entity.movement,
+        &mut entity.health,
+    );
+}
+
+pub fn buff_add_to_components(
+    buff: Buff,
+    attacks: &mut [Attack],
+    movement: &mut Option<Movement>,
+    health: &mut Health,
+) {
     match buff {
         Buff::AttackDamage(buff) => {
-            for attack in &mut entity.attacks {
+            for attack in &mut attacks.iter_mut() {
                 attack.damage_buffs.push(buff.clone());
             }
         }
         Buff::AttackSpeed(buff) => {
-            for attack in &mut entity.attacks {
+            for attack in &mut attacks.iter_mut() {
                 attack.attack_speed_buffs.push(buff.clone());
             }
         }
         Buff::AttackRange(buff) => {
-            for attack in &mut entity.attacks {
+            for attack in &mut attacks.iter_mut() {
                 attack.range_buffs.push(buff.clone());
             }
         }
         Buff::MovementSpeed(buff) => {
-            if let Some(ref mut movement) = entity.movement {
+            if let Some(ref mut movement) = movement {
                 movement.movement_towards_target.speed_buffs.push(buff);
             }
         }
         Buff::ExtraHealth(buff) => {
-            entity.health.extra_health_buffs.push(buff);
+            health.extra_health_buffs.push(buff);
         }
     }
 }

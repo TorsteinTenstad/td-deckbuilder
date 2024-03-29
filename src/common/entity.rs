@@ -1,10 +1,11 @@
 use crate::buff::ArithmeticBuff;
-use crate::component_buff_aura::BuffAura;
+use crate::component_buff_source::BuffSource;
 use crate::component_health::Health;
-use crate::component_movement::Movement;
+use crate::component_movement::{Movement, MovementSpeed};
 use crate::component_spy::Spy;
 use crate::config;
 use crate::entity_blueprint::EntityBlueprint;
+use crate::enum_flags::EnumFlags;
 use crate::ids::EntityId;
 use crate::play_target::BuildingLocationTarget;
 use crate::serde_defs::Vec2Def;
@@ -31,6 +32,8 @@ impl From<EntityTag> for usize {
 
 #[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
 pub enum EntityState {
+    CreationFrame,
+    SpawnFrame,
     Moving,
     Attacking,
     Passive,
@@ -38,9 +41,14 @@ pub enum EntityState {
     Dead,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum AbilityFlag {
     Protector,
+}
+impl From<AbilityFlag> for usize {
+    fn from(val: AbilityFlag) -> Self {
+        val as usize
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -59,11 +67,11 @@ pub struct Entity {
     pub sprite_id: SpriteId,
     pub radius: f32,
     pub hitbox_radius: f32,
-    pub ability_flags: Vec<AbilityFlag>,
+    pub ability_flags: EnumFlags<AbilityFlag>,
     pub health: Health,
     pub movement: Option<Movement>,
     pub spy: Option<Spy>,
-    pub buff_auras: Vec<BuffAura>,
+    pub buff_sources: Vec<BuffSource>,
     pub draw_speed_buff: Option<ArithmeticBuff>,
     pub energy_generation_buff: Option<ArithmeticBuff>,
     pub attacks: Vec<Attack>,
@@ -77,7 +85,7 @@ impl Entity {
         EntityInstance {
             id: EntityId::new(),
             owner,
-            state: EntityState::Moving,
+            state: EntityState::CreationFrame,
             pos,
             entity: self,
         }
@@ -88,6 +96,7 @@ impl Entity {
             tag: EntityTag::Unit,
             radius: config::UNIT_RADIUS,
             hitbox_radius: config::UNIT_RADIUS,
+            movement: Some(Movement::new(MovementSpeed::Default)),
             ..Default::default()
         }
     }
@@ -97,6 +106,7 @@ impl Entity {
             tag: EntityTag::FlyingUnit,
             radius: config::UNIT_RADIUS,
             hitbox_radius: config::UNIT_RADIUS,
+            movement: Some(Movement::new(MovementSpeed::Default)),
             ..Default::default()
         }
     }

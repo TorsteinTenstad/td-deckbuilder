@@ -115,10 +115,13 @@ where
         };
         let sized_buf = &buf[..bytes_received];
         let deserialization_result = rmp_serde::from_slice::<Message<RxMessageContent>>(sized_buf);
-        let Ok(message) = deserialization_result else {
-            dbg!(deserialization_result.err());
-            debug_assert!(false);
-            return None;
+        let message = match deserialization_result {
+            Ok(message) => message,
+            Err(err) => {
+                dbg!(err);
+                debug_assert!(false);
+                return None;
+            }
         };
         match message {
             Message::AckReply(ack_id) => {

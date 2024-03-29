@@ -71,9 +71,9 @@ pub fn path_length(path: &Vec<(f32, f32)>, start_idx: usize, stop_idx: usize) ->
     if start_idx > stop_idx {
         return path_length(path, stop_idx, start_idx);
     }
-    assert!(start_idx <= stop_idx);
-    assert!(start_idx < path.len());
-    assert!(stop_idx < path.len());
+    debug_assert!(start_idx <= stop_idx);
+    debug_assert!(start_idx < path.len());
+    debug_assert!(stop_idx < path.len());
 
     let mut length = 0.0;
     for i in start_idx..stop_idx {
@@ -199,7 +199,7 @@ pub fn world_place_path_entity(
     });
     let entity_instance = entity.instantiate(owner, pos);
     let entity_id = entity_instance.id;
-    dynamic_game_state.entities.push(entity_instance);
+    dynamic_game_state.entities.spawn(entity_instance);
     Some(entity_id)
 }
 
@@ -207,7 +207,7 @@ pub fn world_place_builder(
     static_game_state: &StaticGameState,
     semi_static_game_state: &SemiStaticGameState,
     dynamic_game_state: &mut DynamicGameState,
-    target: BuildingLocationTarget,
+    target: &BuildingLocationTarget,
     builder_entity: Entity,
     building_blueprint: EntityBlueprint,
     owner: PlayerId,
@@ -223,7 +223,7 @@ pub fn world_place_builder(
         return false;
     };
 
-    builder_entity.building_to_construct = Some((target, building_blueprint.clone()));
+    builder_entity.building_to_construct = Some((target.clone(), building_blueprint.clone()));
 
     let Some((target_path_idx, mut spawnpoint_target)) =
         get_unit_spawnpoints(owner, static_game_state, dynamic_game_state)
@@ -264,16 +264,16 @@ pub fn world_place_building(
     entity: Entity,
     building_location_id: &BuildingLocationId,
     owner: PlayerId,
-) -> bool {
+) -> Option<EntityId> {
     let BuildingLocation { pos, entity_id, .. } = semi_static_game_state
         .building_locations_mut()
         .get_mut(building_location_id)
         .unwrap();
     if entity_id.is_some() {
-        return false;
+        return None;
     }
     let entity_instance = entity.instantiate(owner, *pos);
     *entity_id = Some(entity_instance.id);
-    dynamic_game_state.entities.push(entity_instance);
-    true
+    dynamic_game_state.entities.spawn(entity_instance);
+    *entity_id
 }

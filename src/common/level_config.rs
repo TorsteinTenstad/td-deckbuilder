@@ -9,6 +9,7 @@ pub struct LevelConfig {
     pub level_width: i32,
     pub level_height: i32,
     pub spawn_point_radius: f32,
+    pub nearby_radius: f32,
     pub player_configs: Vec<(Vec2, Direction, Color)>,
     pub building_locations: Vec<(Zoning, (f32, f32))>,
     pub paths: Vec<Vec<(f32, f32)>>,
@@ -19,6 +20,7 @@ pub fn get_prototype_level_config() -> LevelConfig {
         level_width: 2048,
         level_height: 1152,
         spawn_point_radius: 256.0,
+        nearby_radius: 256.0,
         player_configs: vec![
             (Vec2 { x: 152.0, y: 236.0 }, Direction::Positive, ORANGE),
             (

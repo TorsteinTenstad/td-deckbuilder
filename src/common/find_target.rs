@@ -1,7 +1,7 @@
 use macroquad::math::Vec2;
 
 use crate::{
-    component_attack::{Attack, TargetPool},
+    component_attack::Attack,
     component_spy::Spy,
     entity::{EntityInstance, EntityTag},
     enum_flags::EnumFlags,
@@ -18,35 +18,16 @@ pub fn find_target_for_attack<'a>(
     attack: &Attack,
     other_entities: &'a mut [EntityInstance],
 ) -> Option<&'a mut EntityInstance> {
-    match attack.target_pool {
-        TargetPool::Enemies => find_entity_in_range(
-            entity_pos,
-            range,
-            &attack.can_target,
-            other_entities,
-            |other_entity| {
-                other_entity.owner != entity_owner
-                    && can_find_target(entity_id, entity_tag.clone(), entity_spy, other_entity)
-            },
-        ),
-        TargetPool::Allies => find_entity_in_range(
-            entity_pos,
-            range,
-            &attack.can_target,
-            other_entities,
-            |other_entity| {
-                other_entity.owner == entity_owner
-                    && can_find_target(entity_id, entity_tag.clone(), entity_spy, other_entity)
-            },
-        ),
-        TargetPool::All => find_entity_in_range(
-            entity_pos,
-            range,
-            &attack.can_target,
-            other_entities,
-            |other_entity| can_find_target(entity_id, entity_tag.clone(), entity_spy, other_entity),
-        ),
-    }
+    find_entity_in_range(
+        entity_pos,
+        range,
+        &attack.can_target,
+        other_entities,
+        |other_entity| {
+            attack.target_pool.in_pool(entity_owner, other_entity.owner)
+                && can_find_target(entity_id, entity_tag.clone(), entity_spy, other_entity)
+        },
+    )
 }
 
 pub fn can_find_target(

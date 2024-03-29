@@ -34,8 +34,11 @@ async fn main() {
 async fn draw_card(template_texture: &Texture2D, font: &Font, card_data: &CardData) {
     let card_art_texture =
         load_texture(format!("assets/textures/card_art/{}", card_data.card_art_path).as_str())
-            .await
-            .unwrap();
+            .await;
+    let card_art_texture = match card_art_texture {
+        Ok(texture) => texture,
+        Err(_) => Texture2D::empty(),
+    };
 
     let card_art_margin = 0.05 * template_texture.width();
     let card_art_w = template_texture.width() - 2.0 * card_art_margin;

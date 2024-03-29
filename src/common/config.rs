@@ -6,3 +6,4 @@ pub const DEFAULT_UNIT_DETECTION_RADIUS: f32 = 200.0;
 pub const UNIT_RADIUS: f32 = 36.0;
 pub const BUILDING_RADIUS: f32 = 64.0;
 pub const PROJECTILE_RADIUS: f32 = 12.0;
+pub const SCROLL_SENSITIVITY: f32 = 0.0005;

@@ -6,6 +6,7 @@ use common::{
     hit_numbers::HitNumbers,
     ids::{EntityId, PlayerId},
     server_player::ServerPlayer,
+    view_state::ViewState,
 };
 use macroquad::text::Font;
 use std::time::SystemTime;
@@ -24,6 +25,7 @@ pub struct ClientGameState {
     pub physical_hand: PhysicalHand,
     pub hit_numbers: HitNumbers,
     pub debug_draw_config: DebugDrawConfig,
+    pub view_state: ViewState,
     // TODO: temp
     pub card_delta_angle: f32,
     pub relative_splay_radius: f32,
@@ -51,6 +53,7 @@ impl ClientGameState {
             deck_builder: DeckBuilder::load(),
             physical_hand: PhysicalHand::default(),
             hit_numbers: HitNumbers::new(),
+            view_state: ViewState::default(),
         }
     }
     pub fn has_player(&self) -> bool {

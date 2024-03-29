@@ -7,7 +7,7 @@ use macroquad::{
     text::Font,
 };
 
-use crate::draw::{draw_text_with_origin, to_screen_x, to_screen_y, TextOriginX, TextOriginY};
+use crate::draw::{draw_text_with_origin, TextOriginX, TextOriginY};
 
 pub struct PhysicalHitNumber {
     pub number: i32,
@@ -40,7 +40,7 @@ impl HitNumbers {
     pub fn step(&mut self, entities: &[EntityInstance], dt: f32) {
         for entity_instance in entities.iter() {
             if let Some(old_health) = self.entity_healths.get(&entity_instance.id) {
-                let health_diff = entity_instance.entity.health.health - old_health;
+                let health_diff = entity_instance.entity.health.get_health() - old_health;
                 if health_diff.abs() > 1.0 {
                     self.physical_hit_numbers.push(PhysicalHitNumber {
                         number: health_diff as i32,
@@ -53,7 +53,12 @@ impl HitNumbers {
         }
         self.entity_healths = entities
             .iter()
-            .map(|entity_instance| (entity_instance.id, entity_instance.entity.health.health))
+            .map(|entity_instance| {
+                (
+                    entity_instance.id,
+                    entity_instance.entity.health.get_health(),
+                )
+            })
             .collect();
 
         let time = SystemTime::now();
@@ -82,8 +87,8 @@ impl HitNumbers {
 
             draw_text_with_origin(
                 format!("{}", physical_hit_number.number).as_str(),
-                to_screen_x(physical_hit_number.pos.x),
-                to_screen_y(physical_hit_number.pos.y),
+                physical_hit_number.pos.x,
+                physical_hit_number.pos.y,
                 28.0,
                 0.0,
                 Color { a: alpha, ..rgb },
