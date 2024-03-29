@@ -4,6 +4,7 @@
 #include <SFML/Graphics.hpp>
 #include <iostream>
 #include <vector>
+#include <filesystem>
 #include "SFML/Window/Window.hpp"
 #include "file_sys.hpp"
 #include "git.hpp"
@@ -11,6 +12,8 @@
 #include "cursor_and_keys.hpp"
 #include "action.hpp"
 #include "globals.hpp"
+
+namespace fs = std::filesystem;
 
 Globals globals;
 

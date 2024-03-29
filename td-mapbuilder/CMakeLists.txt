@@ -34,9 +34,8 @@ include_directories(${libgit2_SOURCE_DIR}/include)
 FetchContent_Declare(json URL https://github.com/nlohmann/json/releases/download/v3.11.3/json.tar.xz)
 FetchContent_MakeAvailable(json)
 
-
 # Add your executable and link libraries
-add_executable(mapbuilder src/main.cpp)
+add_executable(mapbuilder src/main.cpp src/file_sys.cpp src/game_entity.cpp src/git.cpp src/vector.cpp)
 target_link_libraries(mapbuilder sfml-graphics)
 target_link_libraries(mapbuilder git2)
 target_link_libraries(mapbuilder nlohmann_json::nlohmann_json)

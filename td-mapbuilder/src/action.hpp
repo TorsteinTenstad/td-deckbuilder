@@ -174,9 +174,9 @@ class ActionMode
             return;
         }
          
-        // 2. Implicit: control is not pressed. When pressed this frame, 
-        // if and only if the mouse is hovering an unselected entity will this yield 
-        // a definite mode: selecting said entity. Will not always lead to commit.
+        /* 2. Implicit: control is not pressed. When pressed this frame, 
+        if and only if the mouse is hovering an unselected entity will this yield 
+        a definite mode: selecting said entity. Will not always lead to commit.*/
         if(m_event.pressed_this_frame && intersect_id >= 0 && !game_entity.entities[intersect_id].is_selected)
         {
             if(!std::holds_alternative<select_click>(action_opts.mode)){action_opts.mode = select_click{};}
