@@ -105,8 +105,11 @@ struct del
 {
     void act(gameEntity& game_entity, const MouseEvent& m_event, const KeyboardEvent& kb_event, bool& has_unsaved_changes)
     {
-        game_entity.deleteSelectedEntities();
-        has_unsaved_changes = true;
+        if(kb_event.del_down)
+        {
+            game_entity.deleteSelectedEntities();
+            has_unsaved_changes = true;
+        }
     }
 };
 

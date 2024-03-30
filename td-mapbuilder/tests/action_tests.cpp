@@ -45,7 +45,7 @@ std::string toString(const Mode& mode)
     else return "unknown";
 }
 
-SCENARIO("Test delete mode", "[add]")
+SCENARIO("Test delete mode", "[action]")
 {
     std::vector<sf::Vector2f> positions {{0, 0}, {100, 100},{200, 100}, {500, 500}};
 
@@ -106,7 +106,7 @@ SCENARIO("Test delete mode", "[add]")
 }
 
 
-TEST_CASE("Test add mode", "[add]")
+TEST_CASE("Test add mode", "[action]")
 {
     std::vector<sf::Vector2f> positions {{0, 0}, {100, 100},{200, 100}, {500, 500}};
     gameEntity game_entity = setupGameEntity(positions);
@@ -149,12 +149,42 @@ TEST_CASE("Test add mode", "[add]")
     }
 }
 
+void testActionSequence(ActionMode& action, gameEntity& game_entity, KeyboardEvent& keyboard_event, MouseEvent& mouse_event, ActionOptions& action_opts, const sf::Vector2f& new_position)
+{
+    // Imitates a simple 'click'-'move'-'release' sequence. Can this be generalized? Ideally, I would use the update-methods of MouseEvent and KeyboardEvent
 
-TEST_CASE("Test move mode", "[move]")
+    sf::Vector2f orig_position = mouse_event.position;
+
+    mouse_event.pressed_this_frame = true;
+    mouse_event.pressed = true;
+    mouse_event.click_pos = mouse_event.position;
+
+    action.compute(game_entity, keyboard_event, mouse_event, action_opts);
+    executeAction(game_entity, keyboard_event, mouse_event, action_opts);
+
+    mouse_event.pressed_this_frame = false;
+    mouse_event.moved_while_pressed = true;
+
+    action.compute(game_entity, keyboard_event, mouse_event, action_opts);
+    executeAction(game_entity, keyboard_event, mouse_event, action_opts);
+
+    mouse_event.position = new_position;
+    mouse_event.cursor_movement = new_position - orig_position;
+    action.compute(game_entity, keyboard_event, mouse_event, action_opts);
+    executeAction(game_entity, keyboard_event, mouse_event, action_opts);
+
+    mouse_event.pressed = false;
+    mouse_event.released_this_frame = true;
+
+    action.compute(game_entity, keyboard_event, mouse_event, action_opts);
+    executeAction(game_entity, keyboard_event, mouse_event, action_opts);
+    mouse_event.position = orig_position;
+}
+
+
+SCENARIO("Test move mode", "[action]")
 {
     std::vector<sf::Vector2f> positions {{0, 0}, {100, 100},{200, 100}, {500, 500}};
-    gameEntity game_entity = setupGameEntity(positions);
-    REQUIRE(game_entity.entities.size() == 4);
 
     MouseEvent mouse_event;
     ActionOptions action_opts;
@@ -164,32 +194,54 @@ TEST_CASE("Test move mode", "[move]")
 
     for(auto& test_mode: test_modes)
     {
-        game_entity.deselectAll();
-        action_opts.mode = test_mode;
-        mouse_event.position = {1000, 1000};
-        mouse_event.moved_while_pressed = false;
-        mouse_event.released_this_frame = true;
+        GIVEN("Test mode is " + toString(test_mode)){        
+            gameEntity game_entity = setupGameEntity(positions);
+            game_entity.deselectAll();
+            REQUIRE(game_entity.entities.size() == 4);
 
-        action.compute(game_entity, keyboard_event, mouse_event, action_opts);
-        CHECK(std::holds_alternative<add>(action_opts.mode));
-        
-        executeAction(game_entity, keyboard_event, mouse_event, action_opts);
-        CHECK(game_entity.entities.size() == 5);
+            action_opts.mode = test_mode;
+            
+            size_t test_index = 1;
+            sf::Vector2f mouse_increment {100, 200};
+            mouse_event.position = positions[test_index];
+       
+            WHEN("Unselected entity is pressed, and immediately moved"){
+                testActionSequence(action, game_entity, keyboard_event, mouse_event, action_opts, mouse_event.position + mouse_increment);            
+                THEN("Mode is move and test_index is moved accordingly")
+                {
+                    CHECK(std::holds_alternative<move>(action_opts.mode));
+                    for(size_t i = 0; i < game_entity.entities.size(); i++)
+                    {
+                        CHECK(game_entity.entities[i].position == positions[i] + mouse_increment * float(i == test_index));
+                        CHECK(game_entity.entities[i].is_selected == (i == test_index));
 
-        action_opts.mode = test_mode;
-        mouse_event.position = {0, 0};
-        mouse_event.pressed_this_frame = true;
-        keyboard_event.ctrl_down = true;
-        selectAll(game_entity);
+                        //Reset position for next test
+                        game_entity.entities[i].position = positions[i];
+                    }
+                }
+            }
 
-        action.compute(game_entity, keyboard_event, mouse_event, action_opts);
-        CHECK(std::holds_alternative<add>(action_opts.mode));
-        
-        executeAction(game_entity, keyboard_event, mouse_event, action_opts);
-        CHECK(game_entity.entities.size() == 6);
-        CHECK(countSelected(game_entity) == 1);
-        game_entity.deleteEntity(5);
-        game_entity.deleteEntity(4);
+            selectAll(game_entity);
+            test_index = 2;
+            mouse_increment = sf::Vector2f(75, 215);
+            mouse_event.position = game_entity.entities[test_index].position;
+            WHEN("All entities are selected, pressed and moved"){
+                testActionSequence(action, game_entity, keyboard_event, mouse_event, action_opts, mouse_event.position + mouse_increment);            
+                THEN("Mode is move and all are moved accordingly")
+                {
+                    CHECK(game_entity.entities.size() == 4);
+                    CHECK(std::holds_alternative<move>(action_opts.mode));
+                    for(size_t i = 0; i < game_entity.entities.size(); i++)
+                    {
+                        CHECK(game_entity.entities[i].position == positions[i] + mouse_increment);
+                        CHECK(game_entity.entities[i].is_selected);
+
+                        //Reset position for next test
+                        game_entity.entities[i].position = positions[i];
+                    }
+                }
+            }
+        }
     }
 }
 
