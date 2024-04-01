@@ -25,7 +25,7 @@ pub fn main_input(state: &mut ClientGameState) {
             .entities
             .iter()
             .find_map(|entity_instance| {
-                ((entity_instance.pos - mouse_screen_pos_vec()).length()
+                ((entity_instance.pos - state.view_state.get_mouse_world_pos()).length()
                     < entity_instance.entity.radius)
                     .then_some(entity_instance.id)
             });

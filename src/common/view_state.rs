@@ -25,32 +25,38 @@ impl ViewState {
         set_default_camera();
     }
 
-    pub fn set_gameplay_camera(&mut self) {
+    pub fn set_gameplay_camera(&mut self, normalized_draw_area: Rect) {
         let level_width = get_prototype_level_config().level_width as f32;
         let level_height = get_prototype_level_config().level_height as f32;
 
-        let window_aspect = screen_width() / screen_height();
+        let screen_width = screen_width();
+        let screen_height = screen_height();
+        let draw_width = screen_width * normalized_draw_area.w;
+        let draw_height = screen_height * normalized_draw_area.h;
+        let draw_area_aspect = draw_width / draw_height;
 
-        let height = level_width / window_aspect;
+        let height = level_width / draw_area_aspect;
         let top = if height > level_height {
             -(height - level_height) / 2.0
         } else {
             -self.normalized_scroll_y * level_height + level_height / 2.0
         };
 
-        let level_size = Rect {
-            x: 0.0,
-            y: top,
-            w: level_width,
-            h: height,
+        let camera_rect_w = level_width / normalized_draw_area.w;
+        let camera_rect_h = height / normalized_draw_area.h;
+        let camera_rect = Rect {
+            x: -normalized_draw_area.x * camera_rect_w,
+            y: top - normalized_draw_area.y * camera_rect_h,
+            w: camera_rect_w,
+            h: camera_rect_h,
         };
 
         let camera = Camera2D {
             target: Vec2::new(
-                level_size.x + level_size.w / 2.0,
-                level_size.y + level_size.h / 2.0,
+                camera_rect.x + camera_rect.w / 2.0,
+                camera_rect.y + camera_rect.h / 2.0,
             ),
-            zoom: Vec2::new(1.0 / level_size.w * 2.0, 1.0 / level_size.h * 2.0),
+            zoom: Vec2::new(1.0 / camera_rect.w * 2.0, 1.0 / camera_rect.h * 2.0),
             offset: Vec2::new(0.0, 0.0),
             rotation: 0.0,
             render_target: None,

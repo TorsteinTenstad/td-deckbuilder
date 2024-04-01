@@ -17,7 +17,7 @@ use input::main_input;
 use itertools::Itertools;
 use macroquad::color::{Color, BLACK, BLUE, RED, WHITE, YELLOW};
 use macroquad::input::is_key_pressed;
-use macroquad::math::Vec2;
+use macroquad::math::{Rect, Vec2};
 use macroquad::miniquad::KeyCode;
 use macroquad::shapes::{draw_circle, draw_circle_lines, draw_poly_lines};
 use macroquad::texture::draw_texture;
@@ -304,7 +304,12 @@ fn draw_client_game_state(state: &mut ClientGameState) {
     state.view_state.set_ui_overlay_camera();
     draw_physical_hand(&state.physical_hand, &state.sprites);
     draw_progress_bars(state);
-    state.view_state.set_gameplay_camera();
+    state.view_state.set_gameplay_camera(Rect {
+        x: 0.0,
+        y: 0.0,
+        w: 1.0,
+        h: 1.0,
+    });
     draw_server_controlled_game_state(
         &state.server_controlled_game_state,
         &state.sprites,
