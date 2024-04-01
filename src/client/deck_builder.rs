@@ -1,8 +1,9 @@
 use common::{
     card::Card,
     config::CARD_ASPECT_RATIO,
-    draw::{draw_card, Sprites},
+    draw::draw_card,
     rect_transform::{point_inside, RectTransform},
+    sprites::Sprites,
     vector::pop_where,
 };
 use itertools::Itertools;

@@ -152,7 +152,7 @@ impl Attack {
     }
 }
 
-#[derive(PartialEq, Eq, Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum AttackVariant {
     RangedAttack,
     MeleeAttack,

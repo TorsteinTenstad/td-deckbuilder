@@ -7,7 +7,7 @@ use crate::{
     update_args::UpdateArgs,
 };
 
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct Entities(Vec<EntityInstance>);
 
 impl std::ops::Deref for Entities {

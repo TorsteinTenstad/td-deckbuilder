@@ -8,7 +8,7 @@ use crate::{
     entity::{AbilityFlag, Entity, EntityTag},
     entity_filter::EntityFilter,
     enum_flags::{flags, EnumFlags},
-    textures::SpriteId,
+    sprite_id::SpriteId,
 };
 use serde::{Deserialize, Serialize};
 use strum::IntoEnumIterator;

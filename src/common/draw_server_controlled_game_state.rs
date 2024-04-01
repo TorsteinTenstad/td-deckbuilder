@@ -1,10 +1,10 @@
 use crate::config::DEFAULT_UNIT_DETECTION_RADIUS;
 use crate::debug_draw_config::DebugDrawConfig;
-use crate::draw::Sprites;
 use crate::entity::EntityTag;
 use crate::game_state::{
     DynamicGameState, SemiStaticGameState, ServerControlledGameState, StaticGameState,
 };
+use crate::sprites::Sprites;
 use crate::world::{BuildingLocation, Zoning};
 use itertools::Itertools;
 use macroquad::color::{Color, GRAY, LIGHTGRAY, PINK, RED, WHITE};

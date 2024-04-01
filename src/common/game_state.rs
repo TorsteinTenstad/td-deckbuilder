@@ -10,12 +10,12 @@ use macroquad::math::Vec2;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-#[derive(Default, Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct StaticGameState {
     pub paths: HashMap<PathId, Vec<(f32, f32)>>,
 }
 
-#[derive(Default, Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct SemiStaticGameState {
     building_locations: HashMap<BuildingLocationId, BuildingLocation>,
     pub dirty: bool,
@@ -31,19 +31,19 @@ impl SemiStaticGameState {
     }
 }
 
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct DynamicGameState {
     pub entities: Entities,
     pub players: HashMap<PlayerId, ServerPlayer>,
 }
 
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct GameMetadata {
     pub game_id: GameId,
     pub server_tick: u32,
 }
 
-#[derive(Default, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Default)]
 pub struct ServerControlledGameState {
     pub game_metadata: GameMetadata,
     pub static_game_state: StaticGameState,

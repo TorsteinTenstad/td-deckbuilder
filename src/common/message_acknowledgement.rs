@@ -7,7 +7,7 @@ use std::{
     time::SystemTime,
 };
 
-#[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct AckId(pub u64);
 impl Default for AckId {
     fn default() -> Self {

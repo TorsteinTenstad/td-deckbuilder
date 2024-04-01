@@ -9,11 +9,11 @@ use crate::enum_flags::EnumFlags;
 use crate::ids::EntityId;
 use crate::play_target::BuildingLocationTarget;
 use crate::serde_defs::Vec2Def;
-use crate::{component_attack::Attack, ids::PlayerId, textures::SpriteId};
+use crate::{component_attack::Attack, ids::PlayerId, sprite_id::SpriteId};
 use macroquad::math::Vec2;
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq, Eq)]
 pub enum EntityTag {
     #[default]
     None,
@@ -30,7 +30,7 @@ impl From<EntityTag> for usize {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum EntityState {
     CreationFrame,
     SpawnFrame,
@@ -41,7 +41,7 @@ pub enum EntityState {
     Dead,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum AbilityFlag {
     Protector,
 }

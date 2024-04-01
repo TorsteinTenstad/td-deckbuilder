@@ -22,7 +22,7 @@ use macroquad::{
     miniquad::MouseButton,
 };
 
-#[derive(Default)]
+#[derive(Debug, Default)]
 pub struct PhysicalHand {
     pub card_idx_being_held: Option<usize>,
     pub cards: Vec<PhysicalCardInstance>,

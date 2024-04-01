@@ -4,7 +4,7 @@ use crate::{hand::Hand, world::Direction};
 use macroquad::color::Color;
 use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ServerPlayer {
     pub direction: Direction,
     #[serde(with = "ColorDef")]

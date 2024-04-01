@@ -6,7 +6,7 @@ use macroquad::{
     miniquad::MouseButton,
 };
 
-#[derive(Default)]
+#[derive(Debug, Default)]
 pub struct GameInput {}
 
 pub fn mouse_screen_pos_vec() -> Vec2 {

@@ -14,7 +14,7 @@ use serde::{Deserialize, Serialize};
 use strum::IntoEnumIterator;
 use strum_macros::EnumIter;
 
-#[derive(Hash, EnumIter, Debug, Clone, Serialize, Deserialize, Eq, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, EnumIter, Hash)]
 pub enum Card {
     Tower,
     SmallTower,
@@ -52,7 +52,7 @@ impl Card {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct CardInstance {
     pub id: CardInstanceId,
     pub card: Card,

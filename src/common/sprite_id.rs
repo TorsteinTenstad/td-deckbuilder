@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
-use strum_macros::EnumIter;
+use strum::{EnumIter, IntoEnumIterator};
 
-#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq, Hash, EnumIter, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq, Eq, EnumIter, Hash)]
 pub enum SpriteId {
     #[default]
     Empty,
@@ -30,6 +30,12 @@ pub enum SpriteId {
     UnitAirBalloon,
     UnitDragon,
     UnitWarEagle,
+}
+
+impl SpriteId {
+    pub fn iter() -> impl Iterator<Item = SpriteId> {
+        <SpriteId as IntoEnumIterator>::iter()
+    }
 }
 
 impl SpriteId {

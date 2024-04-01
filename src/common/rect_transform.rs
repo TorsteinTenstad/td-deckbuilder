@@ -1,6 +1,6 @@
 use macroquad::math::Vec2;
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct RectTransform {
     pub w: f32,
     pub h: f32,

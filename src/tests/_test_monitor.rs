@@ -1,10 +1,10 @@
 use std::{net::UdpSocket, time::Duration};
 
 use common::{
-    debug_draw_config::DebugDrawConfig, draw::Sprites,
+    debug_draw_config::DebugDrawConfig,
     draw_server_controlled_game_state::draw_server_controlled_game_state,
     game_state::ServerControlledGameState, hit_numbers::HitNumbers,
-    message_acknowledgement::AckUdpSocket, network::ServerMessage,
+    message_acknowledgement::AckUdpSocket, network::ServerMessage, sprites::Sprites,
 };
 use macroquad::{
     color::GRAY,

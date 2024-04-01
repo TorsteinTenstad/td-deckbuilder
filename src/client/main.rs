@@ -1,7 +1,7 @@
 use client_game_state::ClientGameState;
 use common::component_attack::{Attack, AttackVariant};
 use common::component_movement::get_detection_range;
-use common::draw::{draw_card, draw_progress_bar, draw_rect_transform, Sprites};
+use common::draw::{draw_card, draw_progress_bar, draw_rect_transform};
 use common::draw_server_controlled_game_state::draw_server_controlled_game_state;
 use common::game_state::{DynamicGameState, ServerControlledGameState, StaticGameState};
 use common::get_unit_spawnpoints::get_unit_spawnpoints;
@@ -11,7 +11,8 @@ use common::play_target::{
     unit_spawnpoint_target_transform, BuildingLocationTarget, PlayFn, TargetIsInvalidArgs,
 };
 use common::rect_transform::{point_inside, RectTransform};
-use common::textures::SpriteId;
+use common::sprite_id::SpriteId;
+use common::sprites::Sprites;
 use common::world::{find_entity, BuildingLocation, Zoning};
 use input::main_input;
 use itertools::Itertools;

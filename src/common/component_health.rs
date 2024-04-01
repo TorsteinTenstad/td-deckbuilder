@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{buff::ExtraHealthBuff, entity::EntityState, update_args::UpdateArgs};
 
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct Health {
     pub max_health: f32,
     pub health: f32,

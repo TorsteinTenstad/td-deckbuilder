@@ -5,7 +5,7 @@ use crate::{
 };
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct EntityFilter<Range: Clone + Default> {
     pub range_filter: Option<Range>,
     pub pool_filter: Option<TargetPool>,
