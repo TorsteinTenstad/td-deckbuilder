@@ -1,6 +1,6 @@
 use crate::{
     buff::{ArithmeticBuff, Buff, ExtraHealthBuff},
-    component_attack::{Attack, AttackInterval, TargetPool},
+    component_attack::{Attack, AttackInterval, AttackRange, TargetPool},
     component_buff_source::{BuffCondition, BuffRange, BuffSource, BuffTargetFilter},
     component_health::Health,
     component_movement::{Movement, MovementSpeed},
@@ -26,6 +26,7 @@ pub enum EntityBlueprint {
     Spy,
     RecklessKnight,
     Governor,
+    DynamiteMan,
     Dragon,
     WarEagle,
     AirBalloon,
@@ -163,6 +164,17 @@ impl EntityBlueprint {
                         tag_filter: Some(flags![EntityTag::Tower]),
                     }),
                     target_filter: BuffTargetFilter::Me,
+                }],
+                ..Entity::default_unit()
+            },
+            EntityBlueprint::DynamiteMan => Entity {
+                health: Health::new(100.0),
+                sprite_id: SpriteId::UnitDynamiteMan,
+                attacks: vec![Attack {
+                    damage: 300.0,
+                    multi_attack_damage_range: Some(AttackRange::Default),
+                    self_destruct: true,
+                    ..Attack::default()
                 }],
                 ..Entity::default_unit()
             },

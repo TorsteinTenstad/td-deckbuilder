@@ -2,7 +2,7 @@ use crate::{
     buff::{apply_arithmetic_buffs, ArithmeticBuff},
     config::{CLOSE_ENOUGH_TO_TARGET, DEFAULT_UNIT_DETECTION_RADIUS},
     entity::{AbilityFlag, Entity},
-    find_target::find_target_for_attack,
+    find_target::find_targets_for_attack,
     game_state::StaticGameState,
     ids::{EntityId, PathId},
     play_target::UnitSpawnpointTarget,
@@ -314,7 +314,7 @@ impl DetectionBasedTargetSetter {
             }
         }
         for attack in &update_args.entity_instance.entity.attacks {
-            if let Some(target_entity_instance_to_attack) = find_target_for_attack(
+            if let Some(target_entity_instance_to_attack) = find_targets_for_attack(
                 update_args.entity_instance.id,
                 update_args.entity_instance.entity.tag.clone(),
                 update_args.entity_instance.pos,
@@ -323,7 +323,9 @@ impl DetectionBasedTargetSetter {
                 detection_range,
                 attack,
                 &mut update_args.dynamic_game_state.entities,
-            ) {
+            )
+            .first()
+            {
                 if entity_path_id.is_some_and(|id| {
                     get_path_id(&target_entity_instance_to_attack.entity)
                         .is_some_and(|other_id| id != other_id)

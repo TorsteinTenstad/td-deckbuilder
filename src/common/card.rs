@@ -33,6 +33,7 @@ pub enum Card {
     Spy,
     RecklessKnight,
     Governor,
+    DynamiteMan,
     WarEagle,
     AirBalloon,
     Dragon,
@@ -291,6 +292,15 @@ impl Card {
                 attack: EntityBlueprint::Governor.get_attack(),
                 health: EntityBlueprint::Governor.get_health(),
                 description: "Deals 5 additional damage\nfor each tower\nyou control",
+            },
+            Card::DynamiteMan => CardData {
+                name: "Dynamite Man",
+                energy_cost: 2,
+                play_fn: play_unit!(DynamiteMan),
+                card_art_path: "dynamite_man.jpg",
+                attack: EntityBlueprint::DynamiteMan.get_attack(),
+                health: EntityBlueprint::DynamiteMan.get_health(),
+                description: "Explodes!",
             },
             Card::WarEagle => CardData {
                 name: "War Eagle",

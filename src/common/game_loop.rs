@@ -7,7 +7,7 @@ use crate::{
     config::CLOSE_ENOUGH_TO_TARGET,
     entities::{remove_dead_entities, update_entities},
     entity::EntityState,
-    find_target::find_target_for_attack,
+    find_target::find_targets_for_attack,
     game_state::ServerControlledGameState,
     ids::EntityId,
     update_args::UpdateArgs,
@@ -54,7 +54,7 @@ pub fn update_entity(update_args: &mut UpdateArgs) {
         .attacks
         .iter()
         .any(|attack| {
-            find_target_for_attack(
+            !find_targets_for_attack(
                 update_args.entity_instance.id,
                 update_args.entity_instance.entity.tag.clone(),
                 update_args.entity_instance.pos,
@@ -64,7 +64,7 @@ pub fn update_entity(update_args: &mut UpdateArgs) {
                 attack,
                 &mut update_args.dynamic_game_state.entities,
             )
-            .is_some()
+            .is_empty()
         });
 
     let can_build = update_args
