@@ -1,7 +1,9 @@
 use crate::ClientGameState;
 use common::config::SCROLL_SENSITIVITY;
 use macroquad::{
-    input::{is_key_down, is_key_pressed, is_mouse_button_released, mouse_position, mouse_wheel},
+    input::{
+        is_key_down, is_key_pressed, is_mouse_button_released, mouse_position, mouse_wheel, KeyCode,
+    },
     math::Vec2,
     miniquad::MouseButton,
 };
@@ -30,27 +32,34 @@ pub fn main_input(state: &mut ClientGameState) {
                     .then_some(entity_instance.id)
             });
     }
+    if is_key_pressed(KeyCode::M) {
+        if state.view_state.ui_bar_width == 0.0 {
+            state.view_state.ui_bar_width = 0.2;
+        } else {
+            state.view_state.ui_bar_width = 0.0;
+        }
+    }
 
-    if is_key_pressed(macroquad::miniquad::KeyCode::F3) {
+    if is_key_pressed(KeyCode::F3) {
         state.debug_draw_config.draw_paths = !state.debug_draw_config.draw_paths;
     }
 
     // TODO, Magne: this is temp
     // Card drawing parameter adjustment
     {
-        if is_key_down(macroquad::prelude::KeyCode::L) {
+        if is_key_down(KeyCode::L) {
             state.card_delta_angle += 0.05 * state.dt;
             dbg!(state.card_delta_angle);
         }
-        if is_key_down(macroquad::prelude::KeyCode::J) {
+        if is_key_down(KeyCode::J) {
             state.card_delta_angle -= 0.05 * state.dt;
             dbg!(state.card_delta_angle);
         }
-        if is_key_down(macroquad::prelude::KeyCode::I) {
+        if is_key_down(KeyCode::I) {
             state.relative_splay_radius += 0.5 * state.dt;
             dbg!(state.relative_splay_radius);
         }
-        if is_key_down(macroquad::prelude::KeyCode::K) {
+        if is_key_down(KeyCode::K) {
             state.relative_splay_radius -= 0.5 * state.dt;
             dbg!(state.relative_splay_radius);
         }

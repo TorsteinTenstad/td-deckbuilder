@@ -8,61 +8,68 @@ use macroquad::{
 
 pub struct ViewState {
     pub normalized_scroll_y: f32,
+    pub ui_bar_width: f32,
     pub camera_cash: Option<Camera2D>,
 }
 
 impl Default for ViewState {
     fn default() -> Self {
         Self {
-            normalized_scroll_y: 0.5,
+            normalized_scroll_y: 0.0,
+            ui_bar_width: 0.0,
             camera_cash: None,
         }
     }
 }
 
+pub fn get_level_rect() -> Rect {
+    let level_width = get_prototype_level_config().level_width as f32;
+    let level_height = get_prototype_level_config().level_height as f32;
+    Rect::new(0.0, 0.0, level_width, level_height)
+}
+
+pub fn get_level_aspect() -> f32 {
+    let level_width = get_prototype_level_config().level_width as f32;
+    let level_height = get_prototype_level_config().level_height as f32;
+    level_width / level_height
+}
+
+pub fn get_screen_aspect() -> f32 {
+    screen_width() / screen_height()
+}
+
 impl ViewState {
+    pub fn set_camera(world_space: Rect, display_space: Rect) -> Camera2D {
+        let zoom = 2.0 * display_space.size() / world_space.size();
+        let camera = Camera2D {
+            target: world_space.point() + (1.0 - 2.0 * display_space.point()) / zoom,
+            zoom,
+            ..Default::default()
+        };
+        set_camera(&camera);
+        camera
+    }
+
     pub fn set_ui_overlay_camera(&mut self) {
         set_default_camera();
     }
 
-    pub fn set_gameplay_camera(&mut self, normalized_draw_area: Rect) {
+    pub fn set_scrolling_level_camera(&mut self, display_space: Rect) {
         let level_width = get_prototype_level_config().level_width as f32;
         let level_height = get_prototype_level_config().level_height as f32;
 
-        let screen_width = screen_width();
-        let screen_height = screen_height();
-        let draw_width = screen_width * normalized_draw_area.w;
-        let draw_height = screen_height * normalized_draw_area.h;
-        let draw_area_aspect = draw_width / draw_height;
+        let draw_area_aspect =
+            (screen_width() * display_space.w) / (screen_height() * display_space.h);
 
-        let height = level_width / draw_area_aspect;
-        let top = if height > level_height {
-            -(height - level_height) / 2.0
+        let world_space_h = level_width / draw_area_aspect;
+        let world_space_y = if world_space_h > level_height {
+            -(world_space_h - level_height) / 2.0
         } else {
-            -self.normalized_scroll_y * level_height + level_height / 2.0
+            -(1.0 - self.normalized_scroll_y) * (world_space_h - level_height)
         };
+        let world_space = Rect::new(0.0, world_space_y, level_width, world_space_h);
 
-        let camera_rect_w = level_width / normalized_draw_area.w;
-        let camera_rect_h = height / normalized_draw_area.h;
-        let camera_rect = Rect {
-            x: -normalized_draw_area.x * camera_rect_w,
-            y: top - normalized_draw_area.y * camera_rect_h,
-            w: camera_rect_w,
-            h: camera_rect_h,
-        };
-
-        let camera = Camera2D {
-            target: Vec2::new(
-                camera_rect.x + camera_rect.w / 2.0,
-                camera_rect.y + camera_rect.h / 2.0,
-            ),
-            zoom: Vec2::new(1.0 / camera_rect.w * 2.0, 1.0 / camera_rect.h * 2.0),
-            offset: Vec2::new(0.0, 0.0),
-            rotation: 0.0,
-            render_target: None,
-            viewport: None,
-        };
-        set_camera(&camera);
+        let camera = Self::set_camera(world_space, display_space);
         self.camera_cash = Some(camera);
     }
 

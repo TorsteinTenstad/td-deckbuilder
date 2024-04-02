@@ -2,7 +2,7 @@ use client_game_state::ClientGameState;
 use common::component_attack::{Attack, AttackVariant};
 use common::component_movement::get_detection_range;
 use common::draw::{draw_card, draw_progress_bar, draw_rect_transform};
-use common::draw_server_controlled_game_state::draw_server_controlled_game_state;
+use common::draw_server_controlled_game_state::{draw_minimap, draw_server_controlled_game_state};
 use common::game_state::{DynamicGameState, ServerControlledGameState, StaticGameState};
 use common::get_unit_spawnpoints::get_unit_spawnpoints;
 use common::ids::{EntityId, PlayerId};
@@ -13,6 +13,7 @@ use common::play_target::{
 use common::rect_transform::{point_inside, RectTransform};
 use common::sprite_id::SpriteId;
 use common::sprites::Sprites;
+use common::view_state::{get_level_aspect, get_level_rect, get_screen_aspect, ViewState};
 use common::world::{find_entity, BuildingLocation, Zoning};
 use input::main_input;
 use itertools::Itertools;
@@ -298,6 +299,16 @@ fn draw_spawnpoint_play_targets(
 }
 
 fn draw_client_game_state(state: &mut ClientGameState) {
+    let level_display_space = Rect {
+        x: state.view_state.ui_bar_width,
+        y: 0.0,
+        w: 1.0 - state.view_state.ui_bar_width,
+        h: 1.0,
+    };
+
+    state
+        .view_state
+        .set_scrolling_level_camera(level_display_space);
     clear_background(BLACK);
     let map_texture = state.sprites.get_texture(&SpriteId::Map);
     draw_texture(map_texture, 0.0, 0.0, WHITE);
@@ -305,12 +316,10 @@ fn draw_client_game_state(state: &mut ClientGameState) {
     state.view_state.set_ui_overlay_camera();
     draw_physical_hand(&state.physical_hand, &state.sprites);
     draw_progress_bars(state);
-    state.view_state.set_gameplay_camera(Rect {
-        x: 0.0,
-        y: 0.0,
-        w: 1.0,
-        h: 1.0,
-    });
+
+    state
+        .view_state
+        .set_scrolling_level_camera(level_display_space);
     draw_server_controlled_game_state(
         &state.server_controlled_game_state,
         &state.sprites,
@@ -334,4 +343,17 @@ fn draw_client_game_state(state: &mut ClientGameState) {
     );
 
     state.hit_numbers.draw(Some(&state.font));
+
+    let level_rect = get_level_rect();
+
+    let minimap_display_space = Rect {
+        x: 0.0,
+        y: 0.0,
+        w: state.view_state.ui_bar_width,
+        h: state.view_state.ui_bar_width * get_screen_aspect() / get_level_aspect(),
+    };
+    ViewState::set_camera(level_rect, minimap_display_space);
+    let minimap_texture = state.sprites.get_texture(&SpriteId::Minimap);
+    draw_texture(minimap_texture, 0.0, 0.0, WHITE);
+    draw_minimap(&state.server_controlled_game_state);
 }

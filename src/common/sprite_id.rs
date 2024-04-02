@@ -6,6 +6,7 @@ pub enum SpriteId {
     #[default]
     Empty,
     Map,
+    Minimap,
     UnitArcher,
     UnitSwordsman,
     BuildingBase,
@@ -42,6 +43,7 @@ impl SpriteId {
     pub fn to_path(&self) -> &'static str {
         match self {
             SpriteId::Map => "map.png",
+            SpriteId::Minimap => "minimap.png",
             SpriteId::UnitArcher => "unit_archer.png",
             SpriteId::UnitSwordsman => "unit_swordsman.png",
             SpriteId::UnitPriest => "unit_priest.png",
