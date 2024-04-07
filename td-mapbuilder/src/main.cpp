@@ -1,5 +1,7 @@
 #include "SFML/Graphics/CircleShape.hpp"
 #include "SFML/Graphics/Color.hpp"
+#include "SFML/Graphics/Rect.hpp"
+#include "SFML/Graphics/RectangleShape.hpp"
 #include "SFML/System/Vector2.hpp"
 #include <SFML/Graphics.hpp>
 #include <iostream>
@@ -81,6 +83,30 @@ void drawEntities(gameEntity& game_entity)
         }
 }
 
+class UIElements
+{
+    public:
+    sf::RectangleShape select_rectangle;
+
+    UIElements()
+    {
+        select_rectangle.setFillColor(sf::Color(115,30,90, 128));
+    }
+
+};
+
+void drawUI(UIElements& ui_elements, const MouseEvent& mouse_event, const ActionOptions& action_opts)
+{
+    if(mouse_event.moved_while_pressed && std::holds_alternative<select_drag>(action_opts.mode))
+    {
+        sf::Vector2f upper_left = sf::Vector2f(std::min(mouse_event.position.x, mouse_event.click_pos.x), std::min(mouse_event.position.y, mouse_event.click_pos.y));
+        sf::Vector2f lower_right = sf::Vector2f(std::max(mouse_event.position.x, mouse_event.click_pos.x), std::max(mouse_event.position.y, mouse_event.click_pos.y));
+        ui_elements.select_rectangle.setPosition(upper_left);
+        ui_elements.select_rectangle.setSize(lower_right - upper_left);
+        globals.window.draw(ui_elements.select_rectangle);
+    }
+}
+
 
 int main() {
     std::string project_folder = "projects/";
@@ -91,6 +117,7 @@ int main() {
     std::string background_path = findFileInDirectory(project_path, "map", {"png", "jpeg"});
 
     gameEntity game_entity = loadGameEntities(project_path);
+    UIElements ui_elements;
     MouseEvent mouse_event;
     ActionOptions action_opts;
     ActionMode action;
@@ -103,6 +130,7 @@ int main() {
     sf::Texture map;
     map.loadFromFile(background_path);
     sf::Sprite map_sprite;
+
     map_sprite.setTexture(map);
     globals.map_texture_size = sf::Vector2f(map.getSize());
     globals.window.setView(sf::View(globals.map_texture_size / 2.f, globals.map_texture_size));
@@ -123,7 +151,7 @@ int main() {
         action.compute(game_entity, keyboard_event, mouse_event, action_opts);
 
         if(action_opts.will_save){
-            std::cout << "Save" << "\n";
+            // std::cout << "Save" << "\n";
             saveEntitiesToFile(project_path + "/entities.json", game_entity);
             git_handler.stageAndCommit({"entities.json"});
             saveCommitIdToFile(project_path + "/oid.txt", git_handler.commit_ids.back());
@@ -145,7 +173,8 @@ int main() {
         globals.window.clear(sf::Color::White);
         globals.window.draw(map_sprite);
 
-        // Draw map entities
+        // Draw map entities and UI-layer
+        drawUI(ui_elements, mouse_event, action_opts);
         drawEntities(game_entity);
 
         // Display what was drawn
