@@ -57,9 +57,10 @@ struct select_click{
         int intersect_id = mouseEntitiesIntersection(m_event.position, game_entity.entities, game_entity.radius);
 
         /* 
-        Implementation a bit unclear, because this works under the assumption that during releasethisframe, everything might or might not 
-        deselect automatically. Also, select should be added during pressedthisframe, to facilitate easy select-and-move shenanigans.
+        Implementation a bit messy, because this works under the assumption that during release_this_frame, everything might or might not 
+        deselect automatically. Also, select should be added during pressed_this_frame, to facilitate easy select-and-move shenanigans.
         */
+        
         if(m_event.pressed_this_frame && intersect_id >= 0)
         {
             !game_entity.entities[intersect_id].is_selected ? select_id = intersect_id : select_id = -1;

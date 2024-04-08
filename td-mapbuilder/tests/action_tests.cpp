@@ -149,36 +149,52 @@ TEST_CASE("Test add mode", "[action]")
     }
 }
 
-void testActionSequence(ActionMode& action, gameEntity& game_entity, KeyboardEvent& keyboard_event, MouseEvent& mouse_event, ActionOptions& action_opts, const sf::Vector2f& new_position)
+std::vector<Mode> testActionSequence(ActionMode& action, gameEntity& game_entity, KeyboardEvent& keyboard_event, MouseEvent& mouse_event, ActionOptions& action_opts, const sf::Vector2f& new_position)
 {
-    // Imitates a simple 'click'-'move'-'release' sequence. Can this be generalized? Ideally, I would use the update-methods of MouseEvent and KeyboardEvent
+    // Imitates a simple 'click'-'hold'-'release' sequence, with or without movement. Can this be generalized? Ideally, I would use the update-methods of MouseEvent and KeyboardEvent
 
     sf::Vector2f orig_position = mouse_event.position;
+
+    std::vector<Mode> mode_history;
 
     mouse_event.pressed_this_frame = true;
     mouse_event.pressed = true;
     mouse_event.click_pos = mouse_event.position;
 
     action.compute(game_entity, keyboard_event, mouse_event, action_opts);
+    mode_history.emplace_back(action_opts.mode);
+
     executeAction(game_entity, keyboard_event, mouse_event, action_opts);
 
+
     mouse_event.pressed_this_frame = false;
-    mouse_event.moved_while_pressed = true;
+    mouse_event.moved_while_pressed = orig_position.x != new_position.x || orig_position.y != new_position.y ;
 
     action.compute(game_entity, keyboard_event, mouse_event, action_opts);
+    mode_history.emplace_back(action_opts.mode);
+
     executeAction(game_entity, keyboard_event, mouse_event, action_opts);
 
     mouse_event.position = new_position;
     mouse_event.cursor_movement = new_position - orig_position;
     action.compute(game_entity, keyboard_event, mouse_event, action_opts);
+    mode_history.emplace_back(action_opts.mode);
+
     executeAction(game_entity, keyboard_event, mouse_event, action_opts);
 
     mouse_event.pressed = false;
     mouse_event.released_this_frame = true;
 
     action.compute(game_entity, keyboard_event, mouse_event, action_opts);
+    mode_history.emplace_back(action_opts.mode);
+
     executeAction(game_entity, keyboard_event, mouse_event, action_opts);
     mouse_event.position = orig_position;
+
+    mouse_event.released_this_frame = false;
+    mouse_event.moved_while_pressed = false;
+
+    return mode_history;
 }
 
 
@@ -206,9 +222,10 @@ SCENARIO("Test move mode", "[action]")
             mouse_event.position = positions[test_index];
        
             WHEN("Unselected entity is pressed, and immediately moved"){
-                testActionSequence(action, game_entity, keyboard_event, mouse_event, action_opts, mouse_event.position + mouse_increment);            
+                std::vector<Mode> intermediate_mode = testActionSequence(action, game_entity, keyboard_event, mouse_event, action_opts, mouse_event.position + mouse_increment);            
                 THEN("Mode is move and test_index is moved accordingly")
                 {
+                    CHECK_FALSE(std::holds_alternative<move>(intermediate_mode[0]));
                     CHECK(std::holds_alternative<move>(action_opts.mode));
                     for(size_t i = 0; i < game_entity.entities.size(); i++)
                     {
@@ -245,3 +262,152 @@ SCENARIO("Test move mode", "[action]")
     }
 }
 
+
+SCENARIO("Test select_click mode", "[action]")
+{
+    std::vector<sf::Vector2f> positions {{0, 0}, {100, 100},{200, 100}, {500, 500}};
+
+    MouseEvent mouse_event;
+    ActionOptions action_opts;
+    ActionMode action;
+    KeyboardEvent keyboard_event;
+    std::vector<Mode> test_modes = {select_click{}, select_drag{}, add{}, move{}, del{}, none{}};
+
+    for(auto& test_mode: test_modes)
+    {
+        GIVEN("Test mode is " + toString(test_mode)){        
+            action_opts.mode = test_mode;
+            
+            gameEntity game_entity = setupGameEntity(positions);
+            REQUIRE(game_entity.entities.size() == 4);
+
+            // Check esc to deselect all
+            CHECK(countSelected(game_entity) > 0);
+            keyboard_event.esc_down = true;
+            action.compute(game_entity, keyboard_event, mouse_event, action_opts);
+            CHECK(std::holds_alternative<select_click>(action_opts.mode));
+            executeAction(game_entity, keyboard_event, mouse_event, action_opts);
+            CHECK(countSelected(game_entity) == 0);
+            CHECK(game_entity.entities.size() == 4);
+
+            action_opts.mode = test_mode;
+            keyboard_event.esc_down = false;
+            
+            size_t test_index = 2;
+            mouse_event.position = positions[test_index];
+       
+            WHEN("Unselected entity is pressed and no entities are selected"){
+                std::vector<Mode> intermediate_modes = testActionSequence(action, game_entity, keyboard_event, mouse_event, action_opts, mouse_event.position);
+                THEN("Mode is select_click, nothing is moved and only the test index is selected")
+                {
+                    for(const Mode& mode: intermediate_modes)
+                    {
+                        CHECK(std::holds_alternative<select_click>(mode));
+                    }
+                    CHECK(std::holds_alternative<select_click>(action_opts.mode));
+                    for(size_t i = 0; i < game_entity.entities.size(); i++)
+                    {
+                        CHECK(game_entity.entities[i].position == positions[i]);
+                        CHECK(game_entity.entities[i].is_selected == (i == test_index));
+                    }
+                }
+            }
+
+            WHEN("Unselected entity is pressed and another entity is selected"){
+                test_index = 3;
+                action_opts.mode = test_mode;
+                mouse_event.position = positions[test_index];
+                testActionSequence(action, game_entity, keyboard_event, mouse_event, action_opts, mouse_event.position);
+                THEN("Mode is select_click and only one entity is selected")
+                {
+                    CHECK(std::holds_alternative<select_click>(action_opts.mode));
+                    for(size_t i = 0; i < game_entity.entities.size(); i++)
+                    {
+                        CHECK(game_entity.entities[i].position == positions[i]);
+                        CHECK(game_entity.entities[i].is_selected == (i == test_index));
+                    }
+                }
+            }
+
+            WHEN("Unselected entity is pressed and another entity is selected and shift is pressed"){
+                test_index = 1;
+                action_opts.mode = test_mode;
+                keyboard_event.shift_down = true;
+                mouse_event.position = positions[test_index];
+                game_entity.entities[3].is_selected = true;
+                testActionSequence(action, game_entity, keyboard_event, mouse_event, action_opts, mouse_event.position);
+                THEN("Mode is select_click and entity 1 and 3 are selected")
+                {
+                    CHECK(std::holds_alternative<select_click>(action_opts.mode));
+                    for(size_t i = 0; i < game_entity.entities.size(); i++)
+                    {
+                        CHECK(game_entity.entities[i].position == positions[i]);
+                        CHECK(game_entity.entities[i].is_selected == (i == 1 || i == 3));
+                    }
+                }
+            }
+
+            WHEN("Selected entity is pressed"){
+                game_entity.deselectAll();
+                test_index = 3;
+                action_opts.mode = test_mode;
+                keyboard_event.shift_down = false;
+                mouse_event.position = positions[test_index];
+                game_entity.entities[3].is_selected = true;
+
+                testActionSequence(action, game_entity, keyboard_event, mouse_event, action_opts, mouse_event.position);
+                THEN("Mode is select_click and no entities are selected")
+                {
+                    CHECK(std::holds_alternative<select_click>(action_opts.mode));
+                    CHECK(countSelected(game_entity) == 0);
+                }
+            }
+
+            WHEN("All entities are selected, and entity is pressed but shift is down"){
+                selectAll(game_entity);
+                test_index = 0;
+                action_opts.mode = test_mode;
+                keyboard_event.shift_down = true;
+                mouse_event.position = positions[test_index];
+
+                testActionSequence(action, game_entity, keyboard_event, mouse_event, action_opts, mouse_event.position);
+                THEN("Mode is select_click and only pressed entity is unselected")
+                {
+                    CHECK(std::holds_alternative<select_click>(action_opts.mode));
+                    for(size_t i = 0; i < game_entity.entities.size(); i++)
+                    {
+                        CHECK(game_entity.entities[i].is_selected == (i != test_index));
+                    }
+                }
+            }
+
+            WHEN("All entities are selected, and no-intersection press but shift is down"){
+                selectAll(game_entity);
+                action_opts.mode = test_mode;
+                keyboard_event.shift_down = true;
+                mouse_event.position = sf::Vector2f(1000, 924);
+
+                testActionSequence(action, game_entity, keyboard_event, mouse_event, action_opts, mouse_event.position);
+                THEN("Mode is select_click and only pressed entity is unselected")
+                {
+                    CHECK(std::holds_alternative<select_click>(action_opts.mode));
+                    CHECK(countSelected(game_entity) == game_entity.entities.size());
+                }
+            }
+
+            WHEN("All entities are selected, and no-intersection press"){
+                selectAll(game_entity);
+                action_opts.mode = test_mode;
+                keyboard_event.shift_down = false;
+                mouse_event.position = sf::Vector2f(-156, 2498);
+
+                testActionSequence(action, game_entity, keyboard_event, mouse_event, action_opts, mouse_event.position);
+                THEN("Mode is select_click and only pressed entity is unselected")
+                {
+                    CHECK(std::holds_alternative<select_click>(action_opts.mode));
+                    CHECK(countSelected(game_entity) == 0);
+                }
+            }
+        }
+    }
+}
